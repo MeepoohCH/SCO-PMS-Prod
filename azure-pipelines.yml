@@ -1,0 +1,10 @@
+trigger:
+  branches:
+    include: [ main ]
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - task: MicrosoftSecurityDevOps@1
+    displayName: 'Run Microsoft Security DevOps'
