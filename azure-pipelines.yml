@@ -5,11 +5,58 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
+variables:
+  NPM_CONFIG_AUDIT: true
+  NODE_OPTIONS: "--no-deprecation"
+
 steps:
-  - task: AdvancedSecurity-Codeql-Init@1
-    inputs:
-      languages: 'javascript'
 
-  - task: AdvancedSecurity-Codeql-Autobuild@1
+# ── Secret scanning — เช็คก่อนว่ามี password/key หลุดเข้า git history ไหม
+- bash: |
+    GL=8.21.2
+    curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${GL}/gitleaks_${GL}_linux_x64.tar.gz" | tar -xz -C /tmp gitleaks
+    /tmp/gitleaks detect --source . --redact --verbose --exit-code 0
+  displayName: "Secret scan (gitleaks) [report-only]"
 
-  - task: AdvancedSecurity-Codeql-Analyze@1
+# ── CodeQL Init ──
+- task: AdvancedSecurity-Codeql-Init@1
+  displayName: "Initialize CodeQL"
+  inputs:
+    enableAutomaticCodeQLInstall: true
+    languages: 'javascript'
+    buildtype: 'none'
+    config: |
+      queries:
+        - uses: security-extended
+        - uses: security-and-quality
+      paths-ignore:
+        - node_modules
+        - .next
+        - prisma/migrations
+
+- task: NodeTool@0
+  displayName: "Use Node.js 22"
+  inputs:
+    versionSpec: '22.x'
+
+- bash: |
+    npm ci
+    npm audit --audit-level=high || true
+  displayName: "Secure Install"
+
+- bash: |
+    npx tsc --noEmit
+  displayName: "Type Check [blocking]"
+
+- bash: |
+    npm run lint || true
+  displayName: "ESLint [report-only]"
+
+# ── CodeQL Analyze ──
+- task: AdvancedSecurity-Codeql-Analyze@1
+  displayName: "Run CodeQL Analysis"
+  inputs:
+    checkers: 'strict'
+
+- task: AdvancedSecurity-Publish@1
+  displayName: "Publish CodeQL Results"
