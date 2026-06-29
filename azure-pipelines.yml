@@ -6,5 +6,10 @@ pool:
   vmImage: 'ubuntu-latest'
 
 steps:
-  - task: MicrosoftSecurityDevOps@1
-    displayName: 'Run Microsoft Security DevOps'
+  - task: AdvancedSecurity-Codeql-Init@1
+    inputs:
+      languages: 'javascript'
+
+  - task: AdvancedSecurity-Codeql-Autobuild@1
+
+  - task: AdvancedSecurity-Codeql-Analyze@1
