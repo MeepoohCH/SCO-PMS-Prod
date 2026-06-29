@@ -1,0 +1,452 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+// ── ENUMS ─────────────────────────────────────────────────────
+
+enum DeptEnum {
+  PUF
+  PU
+  IBC
+  Latex
+}
+
+enum BlenderStatus {
+  active
+  maintenance
+  retired
+}
+
+enum PackagingCategory {
+  drum
+  tote
+  ibc
+  isotank
+  flexibag
+}
+
+enum PlanStatus {
+  draft
+  active
+  completed
+  cancelled
+}
+
+enum DetailStatus {
+  draft
+  waiting
+  in_progress
+  paused_shift_end
+  paused_emergency
+  paused_issue
+  pl_review
+  submitted
+  head_approved
+  sl_rejected
+  completed
+  rejected
+}
+
+enum SessionStatus {
+  in_progress
+  paused
+  completed
+}
+
+
+enum FailReason {
+  underweight
+  overweight
+  drum_defect
+  other
+}
+
+enum Phase {
+  pre
+  post
+}
+
+enum ResponseType {
+  yes_no
+  select
+  text
+}
+
+enum DowntimeType {
+  emergency
+  issue
+}
+
+enum ApprovalAction {
+  submitted
+  pack_lead_approved
+  completed
+  rejected_by_pl
+  rejected_by_sl
+  pl_acknowledged_reject
+}
+
+// ── AUTH & RBAC ───────────────────────────────────────────────
+
+model roles {
+  id          Int       @id @default(autoincrement()) @db.UnsignedTinyInt
+  role_name   String    @unique @db.VarChar(50)
+  description String?   @db.VarChar(200)
+  created_at  DateTime? @db.DateTime(0)
+
+  user_roles      user_roles[]
+  users_last_role users[]      @relation("LastActiveRole")
+}
+
+model users {
+  id                  Int       @id @default(autoincrement()) @db.UnsignedInt
+  username            String    @unique @db.VarChar(50)
+  full_name           String    @db.VarChar(100)
+  password_hash       String    @db.VarChar(255)
+  pack_lead_id        Int?      @db.UnsignedInt
+  last_active_role_id Int?      @db.UnsignedTinyInt
+  is_active             Boolean   @default(true)
+  dept                  String?   @default("all")
+  allowed_depts         String?   @default("all")
+  must_change_password  Boolean   @default(false)
+  created_at            DateTime? @db.DateTime(0)
+  updated_at            DateTime? @db.DateTime(0)
+
+  // Self-reference (supervisor)
+  pack_lead        users?  @relation("PackLead", fields: [pack_lead_id], references: [id])
+  reports          users[] @relation("PackLead")
+
+  // FK → roles
+  last_active_role roles?  @relation("LastActiveRole", fields: [last_active_role_id], references: [id])
+
+  // Back-relations
+  user_roles                user_roles[]           @relation("UserHasRole")
+  granted_roles             user_roles[]           @relation("GrantedBy")
+  created_plans             production_plans[]     @relation("PlanCreatedBy")
+  updated_plans             production_plans[]     @relation("PlanUpdatedBy")
+  recorded_details          production_details[]   @relation("RecordedBy")
+  drumming_sessions         drumming_sessions[]
+  logged_recheck_logs       recheck_weight_logs[]  @relation("LoggedBy")
+  checked_verifications     scale_verifications[]  @relation("CheckedBy")
+  pl_approved_verifications scale_verifications[]  @relation("PlApprovedBy")
+  checklist_responses       checklist_responses[]
+  downtime_logs             downtime_logs[]
+  approval_logs             approval_logs[]
+}
+
+model user_roles {
+  user_id    Int       @db.UnsignedInt
+  role_id    Int       @db.UnsignedTinyInt
+  granted_by Int?      @db.UnsignedInt
+  granted_at DateTime? @db.DateTime(0)
+
+  user    users  @relation("UserHasRole", fields: [user_id], references: [id])
+  role    roles  @relation(fields: [role_id], references: [id])
+  grantor users? @relation("GrantedBy", fields: [granted_by], references: [id])
+
+  @@id([user_id, role_id])
+}
+
+// ── MASTER DATA ───────────────────────────────────────────────
+
+model blenders {
+  id          Int           @id @default(autoincrement()) @db.UnsignedInt
+  code        String        @unique @db.VarChar(20)
+  capacity_mt Decimal?      @db.Decimal(8, 2)
+  dept        DeptEnum
+  status      BlenderStatus
+  created_at  DateTime?     @db.DateTime(0)
+  updated_at  DateTime?     @db.DateTime(0)
+
+  production_plans production_plans[]
+}
+
+model products {
+  id                 Int        @id @default(autoincrement()) @db.UnsignedInt
+  product_name       String     @db.VarChar(100)
+  gmid               String     @unique @db.VarChar(30)
+  dept               DeptEnum
+  is_active          Boolean    @default(true)
+  created_at         DateTime?  @db.DateTime(0)
+  updated_at         DateTime?  @db.DateTime(0)
+
+  production_details production_details[]
+}
+
+model customers {
+  id            Int       @id @default(autoincrement()) @db.UnsignedInt
+  country_label String    @db.VarChar(100)
+  is_active     Boolean   @default(true)
+  created_at    DateTime? @db.DateTime(0)
+  updated_at    DateTime? @db.DateTime(0)
+
+  production_details production_details[]
+}
+
+model packaging_types {
+  id                 Int               @id @default(autoincrement()) @db.UnsignedInt
+  name               String            @unique @db.VarChar(60)
+  packaging_category PackagingCategory
+  standard_weight_kg Decimal?          @db.Decimal(8, 2)
+  drums_per_pallet   Int?              @db.SmallInt
+  is_active          Boolean           @default(true)
+  created_at         DateTime?         @db.DateTime(0)
+  updated_at         DateTime?         @db.DateTime(0)
+
+  production_details production_details[]
+}
+
+// ── PRODUCTION ────────────────────────────────────────────────
+
+model production_plans {
+  id           Int        @id @default(autoincrement()) @db.UnsignedInt
+  plan_date    DateTime   @db.Date
+  blender_id   Int        @db.UnsignedInt
+  form_type    DeptEnum
+  plan_status  PlanStatus
+  created_by   Int        @db.UnsignedInt
+  updated_by   Int?       @db.UnsignedInt
+  created_at   DateTime?  @db.DateTime(0)
+  updated_at   DateTime?  @db.DateTime(0)
+
+  blender            blenders           @relation(fields: [blender_id], references: [id])
+  creator            users              @relation("PlanCreatedBy", fields: [created_by], references: [id])
+  updater            users?             @relation("PlanUpdatedBy", fields: [updated_by], references: [id])
+  production_details production_details[]
+}
+
+model production_details {
+  id                      Int          @id @default(autoincrement()) @db.UnsignedInt
+  plan_id                 Int          @db.UnsignedInt
+  dept                    String?      @db.VarChar(20)
+  product_id              Int?         @db.UnsignedInt
+  customer_id             Int?         @db.UnsignedInt
+  packaging_type_id       Int?         @db.UnsignedInt
+  lot_no                  String       @unique @db.VarChar(30)
+  country_label           String?      @db.VarChar(100)
+  cut_off_date            DateTime?    @db.Date
+  draft_note              String?      @db.Text
+  special_comm            String?      @db.Text
+  label_no_start          String?      @db.VarChar(50)
+  label_no_end            String?      @db.VarChar(50)
+  label_count             Int?         @db.SmallInt
+  label_pkg_type          String?      @db.VarChar(50)
+  label_check             String?      @db.VarChar(10)
+  sl_follow               String?      @db.VarChar(20)
+  label_remark            String?      @db.Text
+  target_amount_mt        Decimal?     @db.Decimal(10, 3)
+  empty_drum_wt           Decimal?     @db.Decimal(6, 2)
+  flush_kg                Decimal?     @db.Decimal(8, 2)
+  flush_blender           String?      @db.VarChar(50)
+  purge_kg                Decimal?     @db.Decimal(8, 2)
+  drain_kg                Decimal?     @db.Decimal(8, 2)
+  planned_pallets         Int?         @db.SmallInt
+  export_on_pallet        Boolean?     @default(false)
+  empty_tank              Boolean?     @default(false)
+  actual_pallet_count     Int?         @db.SmallInt
+  container_drum          Int?         @db.SmallInt
+  container_tote          Int?         @db.SmallInt
+  cap_large               Int?         @db.SmallInt
+  cap_small               Int?         @db.SmallInt
+  batch_size_kg           Decimal?     @db.Decimal(10, 2)
+  operation_date          DateTime?    @db.Date
+  lot_drumming_start      DateTime?    @db.DateTime(0)
+  lot_drumming_end        DateTime?    @db.DateTime(0)
+  detail_status           DetailStatus @default(draft)
+  current_pk_step         Int?         @db.TinyInt
+  mdu_machine             String?      @db.VarChar(50)
+  drum_set                String?      @db.VarChar(50)
+  recalibration           String?      @db.VarChar(5)
+  sample_type             String?      @db.VarChar(100)
+  reject_remark           String?      @db.Text
+  pl_remark               String?      @db.Text
+  operators_json          String?      @db.Text
+  submitted_at            DateTime?    @db.DateTime(0)
+  recorded_by             Int?         @db.UnsignedInt
+  created_at              DateTime?    @db.DateTime(0)
+  updated_at              DateTime?    @db.DateTime(0)
+
+  plan           production_plans  @relation(fields: [plan_id], references: [id])
+  product        products?         @relation(fields: [product_id], references: [id])
+  customer       customers?        @relation(fields: [customer_id], references: [id])
+  packaging_type packaging_types?  @relation(fields: [packaging_type_id], references: [id])
+  recorder       users?            @relation("RecordedBy", fields: [recorded_by], references: [id])
+
+  drumming_sessions     drumming_sessions[]
+  scale_verifications   scale_verifications[]
+  checklist_responses   checklist_responses[]
+  downtime_logs         downtime_logs[]
+  approval_logs         approval_logs[]
+  latex_drumming_data   latex_drumming_data?
+  production_detail_ibc production_detail_ibc?
+}
+
+// ── DRUMMING OPERATIONS ───────────────────────────────────────
+
+model drumming_sessions {
+  id                   Int           @id @default(autoincrement()) @db.UnsignedInt
+  production_detail_id Int           @db.UnsignedInt
+  session_no           Int           @db.SmallInt
+  operator_id          Int?          @db.UnsignedInt
+  started_at           DateTime?     @db.DateTime(0)
+  finished_at          DateTime?     @db.DateTime(0)
+  session_status       SessionStatus
+  created_at           DateTime?     @db.DateTime(0)
+  updated_at           DateTime?     @db.DateTime(0)
+
+  production_detail production_details @relation(fields: [production_detail_id], references: [id])
+  operator          users?             @relation(fields: [operator_id], references: [id])
+
+  recheck_weight_logs  recheck_weight_logs[]
+}
+
+model recheck_weight_logs {
+  id                  Int         @id @default(autoincrement()) @db.UnsignedInt
+  drumming_session_id Int         @db.UnsignedInt
+  pallet_no           Int?        @db.SmallInt
+  attempt_no          Int?        @db.SmallInt
+  weight_kg           Decimal?    @db.Decimal(8, 2)
+  fail_reason         FailReason?
+  action_taken        String?     @db.VarChar(300)
+  logged_by           Int         @db.UnsignedInt
+  logged_at           DateTime?   @db.DateTime(0)
+
+  drumming_session drumming_sessions @relation(fields: [drumming_session_id], references: [id])
+  logger           users             @relation("LoggedBy", fields: [logged_by], references: [id])
+}
+
+model scale_verifications {
+  id                     Int       @id @default(autoincrement()) @db.UnsignedInt
+  production_detail_id   Int       @db.UnsignedInt
+  machine_code           String?   @db.VarChar(100)
+  standard_weight_kg     Decimal?  @db.Decimal(8, 2)
+  measured_weight_kg     Decimal?  @db.Decimal(8, 2)
+  recalibration_required Boolean?
+  is_locked              Boolean?
+  locked_at              DateTime? @db.DateTime(0)
+  round_no               Int?      @db.TinyInt
+  checked_by             Int?      @db.UnsignedInt
+  checked_at             DateTime? @db.DateTime(0)
+  pl_approved_by         Int?      @db.UnsignedInt
+  pl_approved_at         DateTime? @db.DateTime(0)
+
+  production_detail production_details @relation(fields: [production_detail_id], references: [id])
+  checker           users?             @relation("CheckedBy", fields: [checked_by], references: [id])
+  pl_approver       users?             @relation("PlApprovedBy", fields: [pl_approved_by], references: [id])
+}
+
+// ── CHECKLIST (lot level) ─────────────────────────────────────
+
+model checklist_items {
+  id             Int          @id @default(autoincrement()) @db.UnsignedInt
+  form_type      String       @db.VarChar(100)
+  phase          Phase
+  item_label     String       @db.VarChar(300)
+  response_type  ResponseType
+  select_options Json?
+  is_required    Boolean      @default(true)
+  is_active      Boolean      @default(true)
+  created_at     DateTime?    @db.DateTime(0)
+
+  checklist_responses checklist_responses[]
+}
+
+model checklist_responses {
+  id                   Int       @id @default(autoincrement()) @db.UnsignedInt
+  production_detail_id Int       @db.UnsignedInt
+  checklist_item_id    Int       @db.UnsignedInt
+  phase                Phase
+  pallet_no            Int?      @db.SmallInt
+  response_value       String?   @db.VarChar(500)
+  responded_by         Int       @db.UnsignedInt
+  responded_at         DateTime? @db.DateTime(0)
+
+  production_detail production_details @relation(fields: [production_detail_id], references: [id])
+  checklist_item    checklist_items    @relation(fields: [checklist_item_id], references: [id])
+  responder         users              @relation(fields: [responded_by], references: [id])
+}
+
+// ── OPERATIONS ────────────────────────────────────────────────
+
+model downtime_logs {
+  id                   Int          @id @default(autoincrement()) @db.UnsignedInt
+  production_detail_id Int          @db.UnsignedInt
+  downtime_type        DowntimeType
+  start_time           DateTime?    @db.DateTime(0)
+  end_time             DateTime?    @db.DateTime(0)
+  duration_min         Int?         @db.SmallInt
+  reason               String?      @db.VarChar(500)
+  logged_by            Int          @db.UnsignedInt
+  created_at           DateTime?    @db.DateTime(0)
+
+  production_detail production_details @relation(fields: [production_detail_id], references: [id])
+  logger            users              @relation(fields: [logged_by], references: [id])
+}
+
+// ── WORKFLOW ──────────────────────────────────────────────────
+
+model approval_logs {
+  id                   Int            @id @default(autoincrement()) @db.UnsignedInt
+  production_detail_id Int            @db.UnsignedInt
+  action               ApprovalAction
+  from_status          String?        @db.VarChar(50)
+  to_status            String?        @db.VarChar(50)
+  actor_id             Int            @db.UnsignedInt
+  remark               String?        @db.VarChar(500)
+  created_at           DateTime?      @db.DateTime(0)
+
+  production_detail production_details @relation(fields: [production_detail_id], references: [id])
+  actor             users              @relation(fields: [actor_id], references: [id])
+}
+
+// ── LATEX-SPECIFIC ────────────────────────────────────────────
+
+model latex_drumming_data {
+  id                       Int       @id @default(autoincrement()) @db.UnsignedInt
+  production_detail_id     Int       @unique @db.UnsignedInt
+  no_bacteria              Boolean?
+  no_bacteria_by           String?   @db.VarChar(100)
+  temp_below_40c           Boolean?
+  temp_by                  String?   @db.VarChar(100)
+  prev_product_loaded      String?   @db.VarChar(150)
+  weight_set_by            String?   @db.VarChar(100)
+  drummer_name             String?   @db.VarChar(100)
+  flush_before_drumming_kg Decimal?  @db.Decimal(8, 2)
+  product_purge_kg         Decimal?  @db.Decimal(8, 2)
+  drain_kg                 Decimal?  @db.Decimal(8, 2)
+  total_kg                 Decimal?  @db.Decimal(8, 2)
+  lab_sample_detail        String?   @db.VarChar(255)
+  lot1_qty                 Int?      @db.SmallInt
+  lot2_qty                 Int?      @db.SmallInt
+  storage_area_by          String?   @db.VarChar(100)
+  tag_status               String?   @db.VarChar(100)
+  tag_checked_by           String?   @db.VarChar(100)
+  latex_empty_tank_kg      Decimal?  @db.Decimal(8, 2)
+  created_at               DateTime? @db.DateTime(0)
+  updated_at               DateTime? @db.DateTime(0)
+
+  production_detail production_details @relation(fields: [production_detail_id], references: [id])
+}
+
+// ── IBC-SPECIFIC ──────────────────────────────────────────────
+
+model production_detail_ibc {
+  id                   Int       @id @default(autoincrement()) @db.UnsignedInt
+  production_detail_id Int       @unique @db.UnsignedInt
+  operator_name        String?   @db.VarChar(100)
+  quality_status_lab   String?   @db.VarChar(50)
+  residue_kg           String?   @db.VarChar(100)
+  empty_before_kg      Decimal?  @db.Decimal(8, 2)
+  with_product_kg      Decimal?  @db.Decimal(8, 2)
+  product_net_kg       Decimal?  @db.Decimal(8, 2)
+  created_at           DateTime? @db.DateTime(0)
+  updated_at           DateTime? @db.DateTime(0)
+
+  production_detail production_details @relation(fields: [production_detail_id], references: [id])
+}
+
+

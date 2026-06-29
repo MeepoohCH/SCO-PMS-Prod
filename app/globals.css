@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-roboto), var(--font-noto-thai), system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-roboto), var(--font-noto-thai), sans-serif;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* iOS Safari ignores plain `color` on the native mm/dd/yyyy segments of
+   <input type="date"> (and time/datetime-local) when empty — it needs
+   -webkit-text-fill-color set explicitly, or the placeholder renders
+   invisible (white-on-white) when the device is in Dark Mode. */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  -webkit-text-fill-color: #0E1117;
+}
+input[type="date"]:disabled,
+input[type="time"]:disabled,
+input[type="datetime-local"]:disabled {
+  -webkit-text-fill-color: #9BA3BA;
+}
+
+@media (min-width: 600px) and (max-width: 1366px) {
+  html {
+    font-size: 112%;
+  }
+}
