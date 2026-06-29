@@ -107,12 +107,12 @@ async function main() {
   }
 
   if (createdCredentials.length > 0) {
-    console.log('\n  ⚠️  TEMPORARY CREDENTIALS — save these now, shown only once:')
-    console.log('  ─────────────────────────────────────────────')
-    for (const c of createdCredentials) {
-      console.log(`  ${c.username.padEnd(12)} → ${c.tempPassword}`)
-    }
-    console.log('  ─────────────────────────────────────────────')
+    const fs = await import('fs')
+    const lines = createdCredentials.map(c => `${c.username.padEnd(12)} ${c.tempPassword}`)
+    const outPath = './temp-credentials.local.txt'
+    fs.writeFileSync(outPath, lines.join('\n') + '\n', { mode: 0o600 })
+    console.log(`\n  ⚠️  Temporary credentials written to ${outPath}`)
+    console.log('  Copy them now, then delete that file — it is not logged here for security.')
     console.log('  Each user must change password on first login.\n')
   } else {
     console.log('\n  No new users created — all usernames already existed.\n')

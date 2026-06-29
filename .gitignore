@@ -4,3 +4,4 @@ node_modules/
 .env
 .env.local
 MysqlflexGlobalRootCA.crt.pem
+temp-credentials.local.txt

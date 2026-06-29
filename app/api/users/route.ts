@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth, hasRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { randomInt } from "crypto";
 
 const USER_SELECT = {
   id: true,
@@ -52,7 +53,7 @@ function generateTempPassword(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
   const random = Array.from(
     { length: 6 },
-    () => chars[Math.floor(Math.random() * chars.length)],
+    () => chars[randomInt(chars.length)],
   ).join("");
   return `DOW-${random}`;
 }
