@@ -1,3 +1,4 @@
+import { safeLog } from '@/lib/utils'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, hasRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
       response_value:       string
       pallet_no?:           number | null
     }
-    console.log("👉 Received Checklist Payload:", body)
+    console.log("Received Checklist Payload:", safeLog(body))
 
     const { production_detail_id, checklist_item_id, phase, response_value, pallet_no } = body
 

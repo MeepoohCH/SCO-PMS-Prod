@@ -1,3 +1,4 @@
+import { safeLog } from '@/lib/utils'
 import { NextRequest, NextResponse } from "next/server";
 import { auth, hasRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -28,7 +29,7 @@ export async function GET(req: NextRequest) {
         )
       : items;
 
-    console.log('[GET /api/checklist-items] form_type:', form_type, 'phase:', phase, 'count:', filtered.length)
+    console.log('[GET /api/checklist-items]', safeLog({ form_type, phase, count: filtered.length }))
     return NextResponse.json(filtered);
   } catch (err) {
     console.error("[GET /api/checklist-items]", err);

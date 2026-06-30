@@ -1,3 +1,4 @@
+import { safeLog } from '@/lib/utils'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -45,7 +46,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       },
     })
 
-    console.log('[PATCH /api/scale-verifications/' + id + '] approved by user:', pl_approved_by)
+    console.log('[PATCH /api/scale-verifications/' + safeLog(id) + ']', safeLog({ pl_approved_by }))
     return NextResponse.json(updated)
   } catch (err) {
     console.error('[PATCH /api/scale-verifications/[id]]', err)

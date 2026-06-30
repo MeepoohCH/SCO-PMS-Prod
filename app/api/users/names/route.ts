@@ -1,3 +1,4 @@
+import { safeLog } from '@/lib/utils'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -39,7 +40,7 @@ export async function GET(req: NextRequest) {
         })
       : users
 
-    console.log('[GET /api/users/names] role:', roleFilter, 'dept:', deptFilter, 'count:', filtered.length)
+    console.log('[GET /api/users/names]', safeLog({ role: roleFilter, dept: deptFilter, count: filtered.length }))
     return NextResponse.json(filtered.map(u => ({ id: u.id, full_name: u.full_name, username: u.username })))
   } catch (err) {
     console.error('[GET /api/users/names]', err)

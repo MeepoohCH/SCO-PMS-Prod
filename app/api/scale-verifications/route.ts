@@ -1,3 +1,4 @@
+import { safeLog } from '@/lib/utils'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, hasRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -10,7 +11,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const production_detail_id = searchParams.get('production_detail_id')
 
-    console.log('[GET /api/scale-verifications] production_detail_id:', production_detail_id)
+    console.log('[GET /api/scale-verifications]', safeLog({ production_detail_id }))
 
     const records = await prisma.scale_verifications.findMany({
       where: {

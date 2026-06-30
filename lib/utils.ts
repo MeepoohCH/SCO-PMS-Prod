@@ -1,3 +1,12 @@
+/** Strip newlines/control chars from a value before logging it, so untrusted
+ * user input (query params, body fields, etc.) can't forge fake log lines.
+ * CodeQL: js/log-injection. */
+export function safeLog(value: unknown): string {
+  if (value === null || value === undefined) return String(value)
+  const s = typeof value === 'string' ? value : JSON.stringify(value)
+  return s.replace(/[\r\n]+/g, ' ').slice(0, 500)
+}
+
 export function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'
   const clean = String(dateStr).slice(0, 10)

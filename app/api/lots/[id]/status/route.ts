@@ -1,3 +1,4 @@
+import { safeLog } from '@/lib/utils'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -44,7 +45,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     const { id } = await params
     const body = await req.json() as { status: string; reject_remark?: string; pl_remark?: string }
     const { status: newStatus, reject_remark, pl_remark } = body
-    console.log('[PATCH /api/lots/' + id + '/status] status:', newStatus)
+    console.log('[PATCH /api/lots/' + safeLog(id) + '/status]', safeLog({ status: newStatus }))
 
     if (!newStatus) return NextResponse.json({ error: 'status is required' }, { status: 400 })
 

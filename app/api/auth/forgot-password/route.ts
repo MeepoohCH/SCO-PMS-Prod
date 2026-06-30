@@ -1,3 +1,4 @@
+import { safeLog } from '@/lib/utils'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
     otpStore.set(username, { otp, expires })
 
     // TODO: Replace with real email/LINE Notify in production
-    console.log(`[forgot-password] OTP for ${username}: ${otp}`)
+    console.log('[forgot-password] OTP issued for', safeLog(username))
 
     return NextResponse.json({ message: 'OTP sent', expires_in: '15m', dev_otp: otp })
   } catch (err) {
