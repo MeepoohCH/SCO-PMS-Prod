@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     otpStore.set(username, { otp, expires })
 
     // TODO: Replace with real email/LINE Notify in production
-    console.log('[forgot-password] OTP issued for', safeLog(username))
+    console.log('[forgot-password] OTP issued for', String(username).replace(/\r|\n/g, ''))
 
     return NextResponse.json({ message: 'OTP sent', expires_in: '15m', dev_otp: otp })
   } catch (err) {

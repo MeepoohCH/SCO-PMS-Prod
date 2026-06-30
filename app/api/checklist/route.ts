@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       response_value:       string
       pallet_no?:           number | null
     }
-    console.log("Received Checklist Payload:", safeLog(body))
+    console.log("Received Checklist Payload:", JSON.stringify(body).replace(/\r|\n/g, ""))
 
     const { production_detail_id, checklist_item_id, phase, response_value, pallet_no } = body
 
