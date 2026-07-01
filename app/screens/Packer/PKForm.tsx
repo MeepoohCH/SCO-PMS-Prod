@@ -39,9 +39,9 @@ function getTolerance(drumSet?: string, customTol?: string): number {
 }
 
 interface OperatorEntry {
-  name:   string
+  name: string
   action: 'start' | 'resume' | 'resubmit'
-  time:   string
+  time: string
 }
 
 interface PKFormProps {
@@ -65,34 +65,34 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
 
         // Step 0
         operation_date: opDate || null,
-        label_check:    labelCheck || null,
-        sl_follow:      slFollow || null,
-        label_remark:   labelRemark || null,
+        label_check: labelCheck || null,
+        sl_follow: slFollow || null,
+        label_remark: labelRemark || null,
 
         // Step 1
-        mdu_machine:   mduLocked || null,
-        drum_set:      mduVals.drumSet || null,
+        mdu_machine: mduLocked || null,
+        drum_set: mduVals.drumSet || null,
         recalibration: recalib || null,
 
         // Step 2
         empty_drum_wt: emptyDrumWt ? Number(emptyDrumWt) : null,
-        sample_type:   sampleType || null,
+        sample_type: sampleType || null,
 
         // Step 3
-        lot_drumming_start:  drumStart ? fromThaiInputToUTC(`${opDate}T${drumStart}`) : null,
-        batch_size_kg:       batchSizeKg ? Number(batchSizeKg) : null,
-        flush_kg:            flushKg ? Number(flushKg) : null,
-        purge_kg:            purgeKg ? Number(purgeKg) : null,
-        drain_kg:            drainKg ? Number(drainKg) : null,
+        lot_drumming_start: drumStart ? fromThaiInputToUTC(`${opDate}T${drumStart}`) : null,
+        batch_size_kg: batchSizeKg ? Number(batchSizeKg) : null,
+        flush_kg: flushKg ? Number(flushKg) : null,
+        purge_kg: purgeKg ? Number(purgeKg) : null,
+        drain_kg: drainKg ? Number(drainKg) : null,
         ...(isTote ? {
           container_tote: containerQty ? Number(containerQty) : null,
-          container_drum: capLarge     ? Number(capLarge)     : null,
+          container_drum: capLarge ? Number(capLarge) : null,
         } : {
           container_drum: containerQty ? Number(containerQty) : null,
-          container_tote: capLarge     ? Number(capLarge)     : null,
+          container_tote: capLarge ? Number(capLarge) : null,
         }),
-        cap_large:           capSmall  ? Number(capSmall)  : null,
-        cap_small:           capXSmall ? Number(capXSmall) : null,
+        cap_large: capSmall ? Number(capSmall) : null,
+        cap_small: capXSmall ? Number(capXSmall) : null,
         actual_pallet_count: sessions.length > 0 ? sessions.length : null,
 
         // Step 5
@@ -111,12 +111,12 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            operator_name:      ibcOperatorName    || null,
-            quality_status_lab: ibcQualityStatus   || null,
-            residue_kg:         ibcResidueKg       || null,
-            empty_before_kg:    ibcEmptyBeforeKg   || null,
-            with_product_kg:    ibcWithProductKg   || null,
-            product_net_kg:     ibcProductNetKg    || null,
+            operator_name: ibcOperatorName || null,
+            quality_status_lab: ibcQualityStatus || null,
+            residue_kg: ibcResidueKg || null,
+            empty_before_kg: ibcEmptyBeforeKg || null,
+            with_product_kg: ibcWithProductKg || null,
+            product_net_kg: ibcProductNetKg || null,
           }),
         }).catch(e => console.error('[PKForm] IBC save failed:', e))
       }
@@ -127,23 +127,23 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            no_bacteria:       latexNoBact          || null,
-            no_bacteria_by:    latexNoBactBy        || null,
-            temperature_ok:    latexTemp            || null,
-            temperature_by:    latexTempBy          || null,
-            prev_product:      latexPrevProductName || null,
-            weight_set_by:     latexPrevProduct     || null,
-            flush_kg:          latexFlushKg         || null,
-            product_purge_kg:  latexProductPurgeKg  || null,
-            drain_kg:          latexDrainKg         || null,
-            total_kg:          latexTotalKg         || null,
-            sample_collected:  latexSample          || null,
-            drummer_name:      latexDrummer         || null,
-            storage_area:      latexStorageArea     || null,
-            tag_status:        latexTagStatus       || null,
-            tag_checked_by:    latexTagBy           || null,
-            lot1_qty:          latexLot1Qty         || null,
-            lot2_qty:          latexLot2Qty         || null,
+            no_bacteria: latexNoBact || null,
+            no_bacteria_by: latexNoBactBy || null,
+            temperature_ok: latexTemp || null,
+            temperature_by: latexTempBy || null,
+            prev_product: latexPrevProductName || null,
+            weight_set_by: latexPrevProduct || null,
+            flush_kg: latexFlushKg || null,
+            product_purge_kg: latexProductPurgeKg || null,
+            drain_kg: latexDrainKg || null,
+            total_kg: latexTotalKg || null,
+            sample_collected: latexSample || null,
+            drummer_name: latexDrummer || null,
+            storage_area: latexStorageArea || null,
+            tag_status: latexTagStatus || null,
+            tag_checked_by: latexTagBy || null,
+            lot1_qty: latexLot1Qty || null,
+            lot2_qty: latexLot2Qty || null,
           }),
         }).catch(e => console.error('[PKForm] Latex save failed:', e))
       }
@@ -157,9 +157,9 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 production_detail_id: lot.id,
-                checklist_item_id:    Number(itemId),
-                phase:                'pre',
-                response_value:       value,
+                checklist_item_id: Number(itemId),
+                phase: 'pre',
+                response_value: value,
               }),
             })
           )
@@ -173,9 +173,9 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 production_detail_id: lot.id,
-                checklist_item_id:    Number(itemId),
-                phase:                'post',
-                response_value:       value,
+                checklist_item_id: Number(itemId),
+                phase: 'post',
+                response_value: value,
               }),
             })
           )
@@ -217,13 +217,13 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   const [showShiftEndConfirm, setShowShiftEndConfirm] = useState(false)
   const [downtimeLogs, setDowntimeLogs] = useState<DowntimeLog[]>([])
   const [approvalLogs, setApprovalLogs] = useState<any[]>([])
-  const [openDowntimeId,    setOpenDowntimeId]    = useState<number | null>(null)
+  const [openDowntimeId, setOpenDowntimeId] = useState<number | null>(null)
   const [openDowntimeStart, setOpenDowntimeStart] = useState<string>('')
 
   // ── Step 0 state ─────────────────────────────────────────────
   const todayDate = new Date().toISOString().slice(0, 10)
   const [opDate, setOpDate] = useState(todayDate)
-  const opAS = useAutosave(opDate, () => {})
+  const opAS = useAutosave(opDate, () => { })
   const [labelCheck, setLabelCheck] = useState('')
   const [slFollow, setSlFollow] = useState('')
   const [labelRemark, setLabelRemark] = useState('')
@@ -233,18 +233,18 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   const [latexTempBy, setLatexTempBy] = useState('')
 
   // ── IBC state (production_detail_ibc) ───────────────────────
-  const [ibcOperatorName,  setIbcOperatorName]  = useState('')
+  const [ibcOperatorName, setIbcOperatorName] = useState('')
   const [ibcQualityStatus, setIbcQualityStatus] = useState('')
-  const [ibcResidueKg,     setIbcResidueKg]     = useState('')
+  const [ibcResidueKg, setIbcResidueKg] = useState('')
   const [ibcEmptyBeforeKg, setIbcEmptyBeforeKg] = useState('')
   const [ibcWithProductKg, setIbcWithProductKg] = useState('')
-  const [ibcProductNetKg,  setIbcProductNetKg]  = useState('')
+  const [ibcProductNetKg, setIbcProductNetKg] = useState('')
 
   // ── Step 1 state ─────────────────────────────────────────────
   const [mduLocked, setMduLocked] = useState<string | null>(null)
   const [mduVals, setMduVals] = useState<MduVals>({})
   const stdWeight = getStandardWeight(mduVals.drumSet, mduVals.drumSetCustom)
-  const tolerance  = getTolerance(mduVals.drumSet, mduVals.customTolerance)
+  const tolerance = getTolerance(mduVals.drumSet, mduVals.customTolerance)
   const [recalib, setRecalib] = useState('')
   const [scaleApproved, setScaleApproved] = useState(false)
   const [scalePendingPL, setScalePendingPL] = useState(false)
@@ -262,7 +262,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
 
   // ── Step 2 state ─────────────────────────────────────────────
   const [preChk, setPreChk] = useState<Record<number, string>>({})
-  const preAS = useAutosave(preChk, () => {})
+  const preAS = useAutosave(preChk, () => { })
   const [emptyDrumWt, setEmptyDrumWt] = useState('')
   const [sampleType, setSampleType] = useState('')
 
@@ -281,14 +281,14 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   const [latexProductPurgeKg, setLatexProductPurgeKg] = useState('')
   const [latexDrainKg, setLatexDrainKg] = useState('')
   const [latexTotalKg, setLatexTotalKg] = useState('')
-  const drumAS = useAutosave({ drumStart, flushKg, purgeKg, drainKg }, () => {})
+  const drumAS = useAutosave({ drumStart, flushKg, purgeKg, drainKg }, () => { })
   const [sessions, setSessions] = useState<Session[]>([])
   const [drummingSessionId, setDrummingSessionId] = useState<number | null>(null)
   const [palletNo, setPalletNo] = useState(1)
-  const [wtMachine,  setWtMachine]  = useState<MduMachine | ''>('')
+  const [wtMachine, setWtMachine] = useState<MduMachine | ''>('')
   const [wtCategory, setWtCategory] = useState<LocalExportIbc | ''>('')
   const [wtDrumType, setWtDrumType] = useState<DrumMmType | ''>('')
-  const [wtIbcSub,   setWtIbcSub]   = useState<'Local' | 'Export' | ''>('')
+  const [wtIbcSub, setWtIbcSub] = useState<'Local' | 'Export' | ''>('')
   const [sessionWt, setSessionWt] = useState('')
   const [recheckList, setRecheckList] = useState<RecheckEntry[]>([])
   const [recheckDone, setRecheckDone] = useState(false)
@@ -298,10 +298,10 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   const [capLarge, setCapLarge] = useState('')
   const [capSmall, setCapSmall] = useState('')
   const [capXSmall, setCapXSmall] = useState('')
-  const lotRecordAS = useAutosave({ batchSizeKg, containerQty, capLarge, capSmall, capXSmall }, () => {})
+  const lotRecordAS = useAutosave({ batchSizeKg, containerQty, capLarge, capSmall, capXSmall }, () => { })
 
   // ── Checklist items from DB (keyed by item.id) ───────────────
-  const [preItemsDB,  setPreItemsDB]  = useState<ApiChecklistItem[]>([])
+  const [preItemsDB, setPreItemsDB] = useState<ApiChecklistItem[]>([])
   const [postItemsDB, setPostItemsDB] = useState<ApiChecklistItem[]>([])
 
   // ── Step 4 state ─────────────────────────────────────────────
@@ -309,11 +309,11 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   const [latexTagStatus, setLatexTagStatus] = useState('')
   const [latexTagBy, setLatexTagBy] = useState('')
   const [postChk, setPostChk] = useState<Record<number, string>>({})
-  const postAS = useAutosave(postChk, () => {})
+  const postAS = useAutosave(postChk, () => { })
 
   // ── Step 5 state ─────────────────────────────────────────────
   const [drumEnd, setDrumEnd] = useState('')
-  const drumEndAS = useAutosave(drumEnd, () => {})
+  const drumEndAS = useAutosave(drumEnd, () => { })
 
   // ── Init: load existing scale verification ────────────────────
   useEffect(() => {
@@ -381,15 +381,24 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           const latest = data[0]
           if (latest.measured_weight_kg)
             setMduVals(p => ({ ...p, w: String(latest.measured_weight_kg) }))
-          if (latest.machine_code)
+          if (latest.machine_code) {
             setMduLocked(latest.machine_code)
+            // Auto-fill wtMachine for PU/PUF from approved scale verification
+            if (lot.dept === 'PU' || lot.dept === 'PUF') {
+              const mc = String(latest.machine_code).replace(/\s/g, '')
+              if (mc === 'MDU2450' || mc === '2450') setWtMachine('MDU2450')
+              else if (mc === 'MDU2451' || mc === '2451' || mc === 'MDU2452' || mc === '2452' ||
+                mc.includes('2451') || mc.includes('2452'))
+                setWtMachine('MDU2451/52')
+            }
+          }
           if (latest.standard_weight_kg != null) {
             const stdW = Number(latest.standard_weight_kg)
             setMduVals(p => ({
               ...p,
               drumSet: stdW === 210 ? 'Drum Set 210.0 Kg'
-                     : stdW === 1000 ? 'Tote Set 1000.0 Kg'
-                     : 'อื่นๆ',
+                : stdW === 1000 ? 'Tote Set 1000.0 Kg'
+                  : 'อื่นๆ',
               ...(stdW !== 210 && stdW !== 1000 ? { drumSetCustom: String(stdW) } : {}),
             }))
           }
@@ -423,28 +432,56 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
         const data: any = await res.json()
         // Step 0
         if (data.operation_date) setOpDate(String(data.operation_date).slice(0, 10))
-        if (data.label_check)    setLabelCheck(data.label_check)
-        if (data.sl_follow)      setSlFollow(data.sl_follow)
-        if (data.label_remark)   setLabelRemark(data.label_remark)
+        if (data.label_check) setLabelCheck(data.label_check)
+        if (data.sl_follow) setSlFollow(data.sl_follow)
+        if (data.label_remark) setLabelRemark(data.label_remark)
 
         // Step 1
-        if (data.mdu_machine)  setMduLocked(data.mdu_machine)
+        if (data.mdu_machine) setMduLocked(data.mdu_machine)
         if (data.recalibration) setRecalib(data.recalibration)
-        if (data.drum_set)     setMduVals(p => ({ ...p, drumSet: data.drum_set }))
+        if (data.drum_set) setMduVals(p => ({ ...p, drumSet: data.drum_set }))
 
         // Step 2
         if (data.empty_drum_wt) setEmptyDrumWt(String(data.empty_drum_wt))
-        if (data.sample_type)   setSampleType(data.sample_type)
+        if (data.sample_type) setSampleType(data.sample_type)
 
         // Step 3
         if (data.lot_drumming_start) {
           const t = String(data.lot_drumming_start)
           setDrumStart(t.includes('T') ? toThaiTime(t) : t)
         }
-        if (data.batch_size_kg)  setBatchSizeKg(String(data.batch_size_kg))
-        if (data.flush_kg)       setFlushKg(String(data.flush_kg))
-        if (data.purge_kg)       setPurgeKg(String(data.purge_kg))
-        if (data.drain_kg)       setDrainKg(String(data.drain_kg))
+        if (data.batch_size_kg) setBatchSizeKg(String(data.batch_size_kg))
+        if (data.flush_kg) setFlushKg(String(data.flush_kg))
+        if (data.purge_kg) setPurgeKg(String(data.purge_kg))
+        if (data.drain_kg) setDrainKg(String(data.drain_kg))
+
+        // ── Auto-fill PU/PUF weight selection from lot data ──────
+        // ดึงชื่อ packaging type จาก join relation
+        const dept = data.dept || lot.dept
+        if (dept === 'PU' || dept === 'PUF') {
+          const pkgName: string =
+            (data.packaging_type as any)?.name ??
+            data.packaging ??
+            ''
+          const pkgLower = pkgName.toLowerCase()
+          const isTotePkg = pkgLower.includes('tote') || pkgLower.includes('ibc')
+
+          if (isTotePkg) {
+            // Tote: wtCategory = 'IBC Tote', Local/Export ไปที่ wtIbcSub แทน
+            setWtCategory('IBC Tote')
+            if (data.export_on_pallet != null) {
+              setWtIbcSub(data.export_on_pallet ? 'Export' : 'Local')
+            }
+          } else {
+            // Drum: wtCategory = Local/Export, wtDrumType จากชื่อ packaging
+            if (data.export_on_pallet != null) {
+              setWtCategory(data.export_on_pallet ? 'Export' : 'Local')
+            }
+            if (pkgName.includes('1.0')) setWtDrumType('Drum 1.0mm')
+            else if (pkgName.includes('1.2')) setWtDrumType('Drum 1.2mm')
+            else if (pkgName.includes('1.5')) setWtDrumType('Drum 1.5mm')
+          }
+        }
         if (isTote) {
           if (data.container_tote) setContainerQty(String(data.container_tote))
           if (data.container_drum) setCapLarge(String(data.container_drum))
@@ -468,15 +505,15 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           try {
             const ops = JSON.parse(data.operators_json)
             if (Array.isArray(ops)) restoredOps = ops
-          } catch {}
+          } catch { }
         }
         if (restoredOps.length > 0) {
           setOperators(restoredOps)
         } else if (lot.status === 'in_progress' && currentUser) {
           const entry: OperatorEntry = {
-            name:   currentUser,
+            name: currentUser,
             action: 'start',
-            time:   new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+            time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
           }
           setOperators([entry])
           await saveOperators([entry])
@@ -486,12 +523,12 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
         if (data.production_detail_ibc) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const ibc: any = data.production_detail_ibc
-          if (ibc.operator_name)      setIbcOperatorName(ibc.operator_name)
+          if (ibc.operator_name) setIbcOperatorName(ibc.operator_name)
           if (ibc.quality_status_lab) setIbcQualityStatus(ibc.quality_status_lab)
-          if (ibc.residue_kg)         setIbcResidueKg(String(ibc.residue_kg))
-          if (ibc.empty_before_kg)    setIbcEmptyBeforeKg(String(ibc.empty_before_kg))
-          if (ibc.with_product_kg)    setIbcWithProductKg(String(ibc.with_product_kg))
-          if (ibc.product_net_kg)     setIbcProductNetKg(String(ibc.product_net_kg))
+          if (ibc.residue_kg) setIbcResidueKg(String(ibc.residue_kg))
+          if (ibc.empty_before_kg) setIbcEmptyBeforeKg(String(ibc.empty_before_kg))
+          if (ibc.with_product_kg) setIbcWithProductKg(String(ibc.with_product_kg))
+          if (ibc.product_net_kg) setIbcProductNetKg(String(ibc.product_net_kg))
         }
 
         // Latex fields (from latex_drumming_data nested object)
@@ -499,23 +536,23 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
         if (data.latex_drumming_data) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const lx: any = data.latex_drumming_data
-          if (lx.no_bacteria      !== null && lx.no_bacteria      !== undefined) setLatexNoBact(lx.no_bacteria ? 'ใช่' : 'ไม่ใช่')
-          if (lx.no_bacteria_by)           setLatexNoBactBy(lx.no_bacteria_by)
-          if (lx.temp_below_40c   !== null && lx.temp_below_40c   !== undefined) setLatexTemp(lx.temp_below_40c ? 'ใช่' : 'ไม่ใช่')
-          if (lx.temp_by)                  setLatexTempBy(lx.temp_by)
-          if (lx.prev_product_loaded)      setLatexPrevProductName(lx.prev_product_loaded)
-          if (lx.weight_set_by)            setLatexPrevProduct(lx.weight_set_by)
-          if (lx.drummer_name)             setLatexDrummer(lx.drummer_name)
+          if (lx.no_bacteria !== null && lx.no_bacteria !== undefined) setLatexNoBact(lx.no_bacteria ? 'ใช่' : 'ไม่ใช่')
+          if (lx.no_bacteria_by) setLatexNoBactBy(lx.no_bacteria_by)
+          if (lx.temp_below_40c !== null && lx.temp_below_40c !== undefined) setLatexTemp(lx.temp_below_40c ? 'ใช่' : 'ไม่ใช่')
+          if (lx.temp_by) setLatexTempBy(lx.temp_by)
+          if (lx.prev_product_loaded) setLatexPrevProductName(lx.prev_product_loaded)
+          if (lx.weight_set_by) setLatexPrevProduct(lx.weight_set_by)
+          if (lx.drummer_name) setLatexDrummer(lx.drummer_name)
           if (lx.flush_before_drumming_kg) setLatexFlushKg(String(lx.flush_before_drumming_kg))
-          if (lx.product_purge_kg)         setLatexProductPurgeKg(String(lx.product_purge_kg))
-          if (lx.drain_kg)                 setLatexDrainKg(String(lx.drain_kg))
-          if (lx.total_kg)                 setLatexTotalKg(String(lx.total_kg))
-          if (lx.lab_sample_detail)        setLatexSample(lx.lab_sample_detail)
-          if (lx.storage_area_by)          setLatexStorageArea(lx.storage_area_by)
-          if (lx.tag_status)               setLatexTagStatus(lx.tag_status)
-          if (lx.tag_checked_by)           setLatexTagBy(lx.tag_checked_by)
-          if (lx.lot1_qty)                 setLatexLot1Qty(String(lx.lot1_qty))
-          if (lx.lot2_qty)                 setLatexLot2Qty(String(lx.lot2_qty))
+          if (lx.product_purge_kg) setLatexProductPurgeKg(String(lx.product_purge_kg))
+          if (lx.drain_kg) setLatexDrainKg(String(lx.drain_kg))
+          if (lx.total_kg) setLatexTotalKg(String(lx.total_kg))
+          if (lx.lab_sample_detail) setLatexSample(lx.lab_sample_detail)
+          if (lx.storage_area_by) setLatexStorageArea(lx.storage_area_by)
+          if (lx.tag_status) setLatexTagStatus(lx.tag_status)
+          if (lx.tag_checked_by) setLatexTagBy(lx.tag_checked_by)
+          if (lx.lot1_qty) setLatexLot1Qty(String(lx.lot1_qty))
+          if (lx.lot2_qty) setLatexLot2Qty(String(lx.lot2_qty))
         }
 
       } catch (err) {
@@ -524,7 +561,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
     }
 
     loadLotData()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lot.id])
 
   // ── Init: restore drumming session + pallet rechecks ──────────
@@ -570,7 +607,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
               }
             })
           }
-        } catch {}
+        } catch { }
 
         const attemptsByPallet = new Map<number, any[]>()
         weights.forEach((w: any) => {
@@ -626,7 +663,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
     }
 
     restoreDrummingSession()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lot.id])
 
   // ── Init: load saved checklist responses from DB ──────────────
@@ -651,12 +688,12 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
         setPreItemsDB(items.filter(i => i.phase === 'pre'))
         setPostItemsDB(items.filter(i => i.phase === 'post'))
 
-        const preMap:  Record<number, string> = {}
+        const preMap: Record<number, string> = {}
         const postMap: Record<number, string> = {}
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         responses.forEach((resp: any) => {
-          if (resp.phase === 'pre')  preMap[resp.checklist_item_id]  = resp.response_value
+          if (resp.phase === 'pre') preMap[resp.checklist_item_id] = resp.response_value
           if (resp.phase === 'post') postMap[resp.checklist_item_id] = resp.response_value
         })
 
@@ -672,7 +709,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
     }
 
     loadChecklists()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lot.id, lot.dept])
 
   // ── Init: restore pause state from lot.status on mount ──
@@ -695,8 +732,8 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           setOpenDowntimeStart(log.start_time)
         }
       })
-      .catch(() => {})
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+      .catch(() => { })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lot.id])
 
   // ── Init: fetch all historical downtime logs ──────────────────
@@ -710,14 +747,14 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
         setDowntimeLogs(data
           .filter(d => d.end_time != null)
           .map(d => ({
-            start:  d.start_time,
-            end:    d.end_time,
-            type:   d.downtime_type,
+            start: d.start_time,
+            end: d.end_time,
+            type: d.downtime_type,
             reason: d.reason || '',
           })))
       })
-      .catch(() => {})
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+      .catch(() => { })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lot.id])
 
   // ── Init: fetch approval logs for PL rejection history ────────
@@ -726,8 +763,8 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
     fetch(`/api/approval-logs?production_detail_id=${lot.id}`)
       .then(r => r.json())
       .then((data: any[]) => { if (Array.isArray(data)) setApprovalLogs(data) })
-      .catch(() => {})
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+      .catch(() => { })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lot.id])
 
   // ── Scale approval polling ────────────────────────────────────
@@ -740,7 +777,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   // ── Derived checklist data (keyed by item.id) ────────────────
   // Items #4 and #5 (item_order 4, 5) are per-pallet, asked only on Pallet #1.
   // PUF/PU/IBC have 5 pre items; Latex has only 3 and no per-pallet items.
-  const preItems   = preItemsDB.filter(i => !isPerPalletChecklistItem(i.item_label))
+  const preItems = preItemsDB.filter(i => !isPerPalletChecklistItem(i.item_label))
   const preItems45 = preItemsDB.filter(i => isPerPalletChecklistItem(i.item_label))
 
   const preOk = preItems.length > 0 && preItems.every((item, i) => {
@@ -772,11 +809,11 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
       : (wtMachine === 'MDU2450' || !!wtIbcSub))
   )
     ? getWtStandard(
-        wtMachine as MduMachine,
-        wtCategory as LocalExportIbc,
-        wtCategory === 'IBC Tote' ? null : (wtDrumType as DrumMmType),
-        wtIbcSub as 'Local' | 'Export' | undefined || undefined,
-      )
+      wtMachine as MduMachine,
+      wtCategory as LocalExportIbc,
+      wtCategory === 'IBC Tote' ? null : (wtDrumType as DrumMmType),
+      wtIbcSub as 'Local' | 'Export' | undefined || undefined,
+    )
     : null
   const wPass = wtStandard != null && sessionWt !== '' &&
     Math.abs(Number(sessionWt) - wtStandard.ref) <= wtStandard.tol
@@ -786,11 +823,11 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   const latexPostOk = lot.dept !== 'Latex' || (
     !!latexStorageArea.trim() && !!latexTagStatus.trim() && !!latexTagBy.trim()
   )
-  const postOk     = postItemsDB.length > 0 && postItemsDB.every(item => !!postChk[item.id]) && latexPostOk
-  const totalP     = lot.planned_pallets || 0
-  const isTote     = (lot.packaging || '').toLowerCase().includes('tote') || (lot.packaging || '').toLowerCase().includes('ibc')
-  const showPause  = !paused && lot.status !== 'pl_review' && (pkStep <= 2 || pkStep === 3 || pkStep === 4)
-  const pausePre   = pkStep !== 3
+  const postOk = postItemsDB.length > 0 && postItemsDB.every(item => !!postChk[item.id]) && latexPostOk
+  const totalP = lot.planned_pallets || 0
+  const isTote = (lot.packaging || '').toLowerCase().includes('tote') || (lot.packaging || '').toLowerCase().includes('ibc')
+  const showPause = !paused && lot.status !== 'pl_review' && (pkStep <= 2 || pkStep === 3 || pkStep === 4)
+  const pausePre = pkStep !== 3
 
   // ── Step 0 validation (mirrors Step0Date.tsx nextDisabled exactly) ──
   const latexPreScaleOk = lot.dept !== 'Latex' || (
@@ -809,16 +846,16 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   if (!drumStart) step3MissingFields.push('Drumming start time')
   if (isCompletingLastPallet) {
     if (lot.dept === 'Latex') {
-      if (!latexPrevProduct.trim())     step3MissingFields.push('Set น้ำหนักที่ Auto Drumming โดย')
+      if (!latexPrevProduct.trim()) step3MissingFields.push('Set น้ำหนักที่ Auto Drumming โดย')
       if (!latexPrevProductName.trim()) step3MissingFields.push('Product ที่โหลดก่อนหน้านี้')
-      if (!latexSample.trim())          step3MissingFields.push('เก็บ Sample ส่ง Lab')
-      if (!latexDrummer.trim())         step3MissingFields.push('ผู้ที่ทำการ drumming')
-      if (!latexFlushKg.trim())         step3MissingFields.push('จำนวน Product ที่ flush ก่อนการ drumming (kg)')
+      if (!latexSample.trim()) step3MissingFields.push('เก็บ Sample ส่ง Lab')
+      if (!latexDrummer.trim()) step3MissingFields.push('ผู้ที่ทำการ drumming')
+      if (!latexFlushKg.trim()) step3MissingFields.push('จำนวน Product ที่ flush ก่อนการ drumming (kg)')
     }
     if (lot.dept === 'Latex') {
       if (!latexProductPurgeKg.trim()) step3MissingFields.push('Product Purge (kg)')
-      if (!latexDrainKg.trim())        step3MissingFields.push('Drain (kg)')
-      if (!latexTotalKg.trim())        step3MissingFields.push('Total (kg)')
+      if (!latexDrainKg.trim()) step3MissingFields.push('Drain (kg)')
+      if (!latexTotalKg.trim()) step3MissingFields.push('Total (kg)')
     } else {
       if (!flushKg.trim()) step3MissingFields.push('Flush (kg)')
       if (!purgeKg.trim()) step3MissingFields.push('Purge (kg)')
@@ -830,9 +867,9 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
       if (!latexLot2Qty.trim()) step3MissingFields.push('Lot 2 — Drum/Tote (ใบ)')
     } else {
       if (!containerQty.trim()) step3MissingFields.push(isTote ? 'Tote (ใบ)' : 'Drum (ใบ)')
-      if (!capLarge.trim())     step3MissingFields.push(isTote ? 'Drum (ใบ)' : 'Tote (ใบ)')
-      if (!capSmall.trim())     step3MissingFields.push('ฝา Cap ใหญ่ (ใบ)')
-      if (!capXSmall.trim())    step3MissingFields.push('ฝา Cap เล็ก (ใบ)')
+      if (!capLarge.trim()) step3MissingFields.push(isTote ? 'Drum (ใบ)' : 'Tote (ใบ)')
+      if (!capSmall.trim()) step3MissingFields.push('ฝา Cap ใหญ่ (ใบ)')
+      if (!capXSmall.trim()) step3MissingFields.push('ฝา Cap เล็ก (ใบ)')
     }
   }
 
@@ -873,9 +910,9 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           production_detail_id: lot.id,
-          downtime_type:        downtimeType,
-          start_time:           new Date().toISOString(),
-          reason:               '',
+          downtime_type: downtimeType,
+          start_time: new Date().toISOString(),
+          reason: '',
         }),
       }).catch(err => { console.error('[PKForm] downtime log failed:', err); return null })
       if (dtRes?.ok) {
@@ -907,7 +944,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             end_time: dtData.end || new Date().toISOString(),
-            reason:   dtData.reason,
+            reason: dtData.reason,
           }),
         }).catch(err => { console.error('[PKForm] close downtime log failed:', err) })
       } else {
@@ -922,7 +959,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               end_time: dtData.end || new Date().toISOString(),
-              reason:   dtData.reason,
+              reason: dtData.reason,
             }),
           }).catch(err => { console.error('[PKForm] fallback close downtime log failed:', err) })
         }
@@ -949,9 +986,9 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
 
     // Record resuming operator — compute array explicitly so we can await the save
     const resumeEntry: OperatorEntry = {
-      name:   dtData?.newOperator || currentUser,
+      name: dtData?.newOperator || currentUser,
       action: 'resume',
-      time:   new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+      time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
     }
     const updatedOperators = [...operators, resumeEntry]
     setOperators(updatedOperators)
@@ -959,9 +996,9 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   }
   async function recordResubmitOperator() {
     const entry: OperatorEntry = {
-      name:   currentUser,
+      name: currentUser,
       action: 'resubmit',
-      time:   new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+      time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
     }
     const updatedOperators = [...operators, entry]
     setOperators(updatedOperators)
@@ -976,7 +1013,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           production_detail_id: lot.id,
-          session_no:           1,
+          session_no: 1,
         }),
       })
       if (res.ok) {
@@ -992,10 +1029,45 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
 
   function doRecheck() {
     const isLastPallet = sessions.length + 1 === totalP
-    const pass = isLastPallet ? true : !!wPass
+    const skipWeightCheck = lot.dept === 'IBC' || lot.dept === 'Latex'
+    const pass = isLastPallet || skipWeightCheck ? true : !!wPass
     setRecheckList(p => [...p, { no: p.length + 1, wt: sessionWt, pass }])
     if (pass) setRecheckDone(true)
     else setSessionWt('')
+  }
+
+  async function undoLastRecheck() {
+    if (!drummingSessionId) return
+    try {
+      // ดึงรายการ recheck_weight_logs ของ session นี้ แล้วลบรายการล่าสุดออก
+      const res = await fetch(`/api/recheck-weights?drumming_session_id=${drummingSessionId}`)
+      if (!res.ok) return
+      const logs: { id: number }[] = await res.json()
+      if (logs.length === 0) return
+      const lastId = logs[logs.length - 1].id
+      await fetch(`/api/recheck-weights/${lastId}`, { method: 'DELETE' })
+    } catch (err) {
+      console.error('[undoLastRecheck]', err)
+    }
+    // Reset UI ให้กรอกน้ำหนักใหม่ได้
+    setRecheckList(p => p.slice(0, -1))
+    setRecheckDone(false)
+    setSessionWt('')
+  }
+
+  async function clearAllWeights() {
+    try {
+      await fetch(`/api/recheck-weights?production_detail_id=${lot.id}`, { method: 'DELETE' })
+    } catch (err) {
+      console.error('[clearAllWeights]', err)
+    }
+    // reset state ทั้งหมดกลับจุดเริ่มต้น Step 3
+    setSessions([])
+    setPalletNo(1)
+    setSessionWt('')
+    setRecheckList([])
+    setRecheckDone(false)
+    setDrummingSessionId(null)
   }
 
   async function completePallet() {
@@ -1009,129 +1081,129 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
     }
     setIsCompletingPallet(true)
     try {
-    // Capture checklist items 4-5 snapshot — pallet #1 only
-    const preChk45Snapshot: Record<number, string> = {}
-    if (palletNo === 1) {
-      for (const item of preItems45) {
-        if (preChk[item.id]) preChk45Snapshot[item.id] = preChk[item.id]
+      // Capture checklist items 4-5 snapshot — pallet #1 only
+      const preChk45Snapshot: Record<number, string> = {}
+      if (palletNo === 1) {
+        for (const item of preItems45) {
+          if (preChk[item.id]) preChk45Snapshot[item.id] = preChk[item.id]
+        }
       }
-    }
 
-    const s: Session = {
-      no: palletNo, recheck: recheckList,
-      startTime: drumStart, pass: true,
-      wt: sessionWt || undefined,
-      preChk45: palletNo === 1 && Object.keys(preChk45Snapshot).length > 0 ? preChk45Snapshot : undefined,
-      sampleType: palletNo === 1 ? (sampleType || undefined) : undefined,
-    }
-    const updatedSessions = [...sessions, s]
-    setSessions(updatedSessions)
+      const s: Session = {
+        no: palletNo, recheck: recheckList,
+        startTime: drumStart, pass: true,
+        wt: sessionWt || undefined,
+        preChk45: palletNo === 1 && Object.keys(preChk45Snapshot).length > 0 ? preChk45Snapshot : undefined,
+        sampleType: palletNo === 1 ? (sampleType || undefined) : undefined,
+      }
+      const updatedSessions = [...sessions, s]
+      setSessions(updatedSessions)
 
-    const sessionId = await ensureDrummingSession()
+      const sessionId = await ensureDrummingSession()
 
-    if (sessionId) {
-      // Save final pass weight for this pallet
-      await fetch('/api/recheck-weights', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          drumming_session_id: sessionId,
-          pallet_no:           palletNo,
-          attempt_no:          recheckList.length + 1,
-          weight_kg:           Number(sessionWt) || null,
-          fail_reason:         null,
-          action_taken:        null,
-        }),
-      }).catch(err => console.error('[completePallet] recheck save:', err))
+      if (sessionId) {
+        // Save final pass weight for this pallet
+        await fetch('/api/recheck-weights', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            drumming_session_id: sessionId,
+            pallet_no: palletNo,
+            attempt_no: recheckList.length + 1,
+            weight_kg: Number(sessionWt) || null,
+            fail_reason: null,
+            action_taken: null,
+          }),
+        }).catch(err => console.error('[completePallet] recheck save:', err))
 
-      // Also save failed recheck attempts leading up to the pass
-      if (recheckList.length > 0) {
+        // Also save failed recheck attempts leading up to the pass
+        if (recheckList.length > 0) {
+          await Promise.all(
+            recheckList
+              .filter(r => !r.pass)
+              .map((r, i) =>
+                fetch('/api/recheck-weights', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    drumming_session_id: sessionId,
+                    pallet_no: palletNo,
+                    attempt_no: i + 1,
+                    weight_kg: Number(r.wt) || null,
+                    fail_reason: wtStandard && Number(r.wt) < wtStandard.ref ? 'underweight' : 'overweight',
+                    action_taken: 'adjusted',
+                  }),
+                })
+              )
+          )
+        }
+      }
+
+      // Save per-pallet checklist items 4-5
+      if (Object.keys(preChk45Snapshot).length > 0) {
         await Promise.all(
-          recheckList
-            .filter(r => !r.pass)
-            .map((r, i) =>
-              fetch('/api/recheck-weights', {
+          preItems45
+            .filter(item => preChk45Snapshot[item.id])
+            .map(item =>
+              fetch('/api/checklist', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  drumming_session_id: sessionId,
-                  pallet_no:           palletNo,
-                  attempt_no:          i + 1,
-                  weight_kg:           Number(r.wt) || null,
-                  fail_reason:         wtStandard && Number(r.wt) < wtStandard.ref ? 'underweight' : 'overweight',
-                  action_taken:        'adjusted',
+                  production_detail_id: lot.id,
+                  checklist_item_id: item.id,
+                  phase: 'pre',
+                  response_value: preChk45Snapshot[item.id],
+                  pallet_no: palletNo,
                 }),
               })
             )
-        )
+        ).catch(err => console.error('[completePallet] checklist save:', err))
       }
-    }
 
-    // Save per-pallet checklist items 4-5
-    if (Object.keys(preChk45Snapshot).length > 0) {
-      await Promise.all(
-        preItems45
-          .filter(item => preChk45Snapshot[item.id])
-          .map(item =>
-            fetch('/api/checklist', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                production_detail_id: lot.id,
-                checklist_item_id:    item.id,
-                phase:                'pre',
-                response_value:       preChk45Snapshot[item.id],
-                pallet_no:            palletNo,
-              }),
-            })
-          )
-      ).catch(err => console.error('[completePallet] checklist save:', err))
-    }
-
-    // ← save ทุกครั้ง ไม่ว่าจะครบหรือยังไม่ครบ
-    try {
-      await fetch(`/api/lots/${lot.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lot_drumming_start: drumStart ? fromThaiInputToUTC(`${opDate}T${drumStart}`) : null,
-          batch_size_kg: Number(batchSizeKg) || null,
-          flush_kg: Number(flushKg) || null,
-          purge_kg: Number(purgeKg) || null,
-          drain_kg: Number(drainKg) || null,
-          ...(isTote ? {
-            container_tote: containerQty ? Number(containerQty) : null,
-            container_drum: capLarge     ? Number(capLarge)     : null,
-          } : {
-            container_drum: containerQty ? Number(containerQty) : null,
-            container_tote: capLarge     ? Number(capLarge)     : null,
-          }),
-          cap_large: capSmall  ? Number(capSmall)  : null,
-          cap_small: capXSmall ? Number(capXSmall) : null,
-          actual_pallet_count: updatedSessions.length,
-          current_pk_step: updatedSessions.length < totalP ? 3 : 4,
-        }),
-      })
-    } catch (err) {
-      console.error('[PKForm] drumming save failed:', err)
-    }
-
-    if (updatedSessions.length < totalP) {
-      setPalletNo(n => n + 1)
-      setSessionWt('')
-      setRecheckList([])
-      setRecheckDone(false)
-    } else {
-      // Close drumming session
-      if (sessionId) {
-        await fetch(`/api/drumming-sessions/${sessionId}`, {
+      // ← save ทุกครั้ง ไม่ว่าจะครบหรือยังไม่ครบ
+      try {
+        await fetch(`/api/lots/${lot.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_status: 'completed' }),
-        }).catch(err => console.error('[completePallet] close session:', err))
+          body: JSON.stringify({
+            lot_drumming_start: drumStart ? fromThaiInputToUTC(`${opDate}T${drumStart}`) : null,
+            batch_size_kg: Number(batchSizeKg) || null,
+            flush_kg: Number(flushKg) || null,
+            purge_kg: Number(purgeKg) || null,
+            drain_kg: Number(drainKg) || null,
+            ...(isTote ? {
+              container_tote: containerQty ? Number(containerQty) : null,
+              container_drum: capLarge ? Number(capLarge) : null,
+            } : {
+              container_drum: containerQty ? Number(containerQty) : null,
+              container_tote: capLarge ? Number(capLarge) : null,
+            }),
+            cap_large: capSmall ? Number(capSmall) : null,
+            cap_small: capXSmall ? Number(capXSmall) : null,
+            actual_pallet_count: updatedSessions.length,
+            current_pk_step: updatedSessions.length < totalP ? 3 : 4,
+          }),
+        })
+      } catch (err) {
+        console.error('[PKForm] drumming save failed:', err)
       }
-      setPkStep(4)
-    }
+
+      if (updatedSessions.length < totalP) {
+        setPalletNo(n => n + 1)
+        setSessionWt('')
+        setRecheckList([])
+        setRecheckDone(false)
+      } else {
+        // Close drumming session
+        if (sessionId) {
+          await fetch(`/api/drumming-sessions/${sessionId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_status: 'completed' }),
+          }).catch(err => console.error('[completePallet] close session:', err))
+        }
+        setPkStep(4)
+      }
     } finally {
       setIsCompletingPallet(false)
     }
@@ -1180,9 +1252,9 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               production_detail_id: lot.id,
-              checklist_item_id:    Number(itemId),
-              phase:                'post',
-              response_value:       value,
+              checklist_item_id: Number(itemId),
+              phase: 'post',
+              response_value: value,
             }),
           })
         )
@@ -1222,8 +1294,8 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
       {isIssueMode && (
         <div className="rounded-xl border-2 px-4 py-3 mb-4 flex items-start gap-3"
           style={{
-            background:   lot.status === 'paused_issue' ? '#FEF3C7' : '#FCEBEB',
-            borderColor:  lot.status === 'paused_issue' ? '#EF9F27' : '#E24B4A',
+            background: lot.status === 'paused_issue' ? '#FEF3C7' : '#FCEBEB',
+            borderColor: lot.status === 'paused_issue' ? '#EF9F27' : '#E24B4A',
           }}>
           {lot.status === 'paused_emergency'
             ? <AlertOctagon size={20} className="flex-shrink-0 mt-0.5" style={{ color: '#E24B4A' }} />
@@ -1272,9 +1344,9 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
         <div className="flex items-center gap-2 mb-2">
           <div className="text-[12px] font-medium uppercase tracking-widest" style={{ color: dc }}>Plan from Site Logistics</div>
         </div>
-          <div className="flex gap-1.5 mb-2 flex-wrap">
-                  <DeptBadge dept={lot.dept} /> <Badge s={lot.status} />
-                </div>
+        <div className="flex gap-1.5 mb-2 flex-wrap">
+          <DeptBadge dept={lot.dept} /> <Badge s={lot.status} />
+        </div>
         <div className="grid grid-cols-2 gap-2 mb-3">
           {planFields.map(r => (
             <div key={r.l} className="bg-white/85 rounded-lg p-2">
@@ -1325,7 +1397,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
                 <span className="text-[10px] text-blue-500">
                   ({op.action === 'start' ? `เริ่ม ${op.time}`
                     : op.action === 'resubmit' ? `resubmit ${op.time}`
-                    : `resume ${op.time}`})
+                      : `resume ${op.time}`})
                 </span>
                 {i < operators.length - 1 && (
                   <span className="text-[#9BA3BA] mx-0.5">→</span>
@@ -1506,6 +1578,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           sessionWt={sessionWt} setSessionWt={setSessionWt}
           recheckList={recheckList} recheckDone={recheckDone}
           wPass={wPass} wFail={wFail}
+          skipWeightCheck={lot.dept === 'IBC' || lot.dept === 'Latex'}
           drumStart={drumStart} setDrumStart={setDrumStart} drumAS={drumAS}
           flushKg={flushKg} setFlushKg={setFlushKg}
           purgeKg={purgeKg} setPurgeKg={setPurgeKg}
@@ -1531,6 +1604,8 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           missingFields={step3MissingFields}
           isCompletingPallet={isCompletingPallet}
           doPause={doPause} doRecheck={doRecheck} completePallet={completePallet}
+          undoLastRecheck={undoLastRecheck}
+          onClearAllWeights={lot.dept === 'IBC' || lot.dept === 'Latex' ? clearAllWeights : undefined}
           readOnly={forceReadOnly}
           canClearDrumming={!['submitted', 'head_approved', 'sl_rejected', 'completed', 'paused_shift_end', 'paused_issue', 'paused_emergency'].includes(lot.status)}
           onClearDrumming={async () => {
@@ -1590,7 +1665,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
             onClick={() => setPkStep(Math.max(0, pkStep - 1))}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium border border-gray-300 text-gray-500 cursor-pointer disabled:opacity-40 bg-white">
             <ChevronLeft className="w-5 h-5" />
-             Previous
+            Previous
           </button>
           <div className="flex-1 text-center">
             <div className="text-[12px] text-[#9BA3BA]">Step {pkStep + 1} of 6</div>

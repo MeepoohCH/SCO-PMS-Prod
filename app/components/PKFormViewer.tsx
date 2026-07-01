@@ -298,8 +298,8 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
                 setMduVals(p => ({
                   ...p,
                   drumSet: stdW === 210 ? 'Drum Set 210.0 Kg'
-                         : stdW === 1000 ? 'Tote Set 1000.0 Kg'
-                         : 'อื่นๆ',
+                    : stdW === 1000 ? 'Tote Set 1000.0 Kg'
+                      : 'อื่นๆ',
                   ...(stdW !== 210 && stdW !== 1000 ? { drumSetCustom: String(stdW) } : {}),
                 }))
               }
@@ -583,7 +583,7 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
                       <span className="text-[10px] text-[#9BA3BA]">
                         ({op.action === 'start' ? `เริ่ม ${op.time}`
                           : op.action === 'resubmit' ? `resubmit ${op.time}`
-                          : `resume ${op.time}`})
+                            : `resume ${op.time}`})
                       </span>
                       {i < operatorsJson.length - 1 && (
                         <span className="text-[#DDE2EE] mx-0.5">→</span>
@@ -758,6 +758,7 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
           sessionWt={''} setSessionWt={() => { }}
           recheckList={[]} recheckDone={false}
           wPass={false} wFail={false}
+          skipWeightCheck={lot.dept === 'IBC' || lot.dept === 'Latex'}
           drumStart={drumStart} setDrumStart={() => { }} drumAS={null}
           flushKg={flushKg} setFlushKg={() => { }}
           purgeKg={purgeKg} setPurgeKg={() => { }}
@@ -783,6 +784,7 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
           sampleType={sampleType} setSampleType={() => { }}
           missingFields={[]}
           doPause={() => { }} doRecheck={() => { }} completePallet={async () => { }}
+          undoLastRecheck={async () => { }}
           readOnly={true}
         />
       )}
@@ -875,8 +877,8 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
               </div>
             ) : (
               <div className={`grid gap-2 ${onEditPlan && onReject && onApprove ? 'grid-cols-[1fr_1fr_2fr]'
-                  : onReject && onApprove ? 'grid-cols-[1fr_2fr]'
-                    : 'grid-cols-1'
+                : onReject && onApprove ? 'grid-cols-[1fr_2fr]'
+                  : 'grid-cols-1'
                 }`}>
                 {onReject && (
                   <button
