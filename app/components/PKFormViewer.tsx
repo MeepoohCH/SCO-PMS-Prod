@@ -67,8 +67,6 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
   // Step 0
   const [opDate, setOpDate] = useState('')
   const [labelCheck, setLabelCheck] = useState('')
-  const [slFollow, setSlFollow] = useState('')
-  const [labelRemark, setLabelRemark] = useState('')
   // Latex Step 0
   const [latexNoBact, setLatexNoBact] = useState('')
   const [latexNoBactBy, setLatexNoBactBy] = useState('')
@@ -166,8 +164,6 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
           // Step 0
           if (data.operation_date) setOpDate(String(data.operation_date).slice(0, 10))
           if (data.label_check) setLabelCheck(data.label_check)
-          if (data.sl_follow) setSlFollow(data.sl_follow)
-          if (data.label_remark) setLabelRemark(data.label_remark)
 
           // Step 1
           if (data.mdu_machine) setMduLocked(data.mdu_machine)
@@ -488,11 +484,19 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
           ))}
           {downtimeLogs.map((l, i) => (
             <div key={i} className="bg-white border border-amber-300 rounded-lg p-2.5 mb-2 last:mb-0">
-              <div className="text-[10px] font-semibold text-amber-800 mb-0.5">
-                {l.type === 'emergency' ? 'Emergency' : 'Issue'} — {formatDowntimeDate(l.start)} {toThaiTime(l.start)}–{toThaiTime(l.end)}
-                {formatDuration(l.start, l.end) && ` (${formatDuration(l.start, l.end)})`}
+              <div className="flex justify-between items-start gap-2">
+                <div className="flex-1">
+                  <div className="text-[10px] font-semibold text-amber-800 mb-0.5">
+                    {l.type.replace(/_/g, ' ')}
+                  </div>
+                  <div className="text-xs text-amber-700">{l.reason || '—'}</div>
+                </div>
+                <div className="text-[10px] text-amber-500 flex-shrink-0 text-right">
+                  {formatDowntimeDate(l.start)} {toThaiTime(l.start)}
+                  {l.end && l.end !== l.start && `–${toThaiTime(l.end)}`}
+                  {formatDuration(l.start, l.end) && ` (${formatDuration(l.start, l.end)})`}
+                </div>
               </div>
-              <div className="text-xs text-amber-700">{l.reason}</div>
             </div>
           ))}
         </div>
@@ -691,8 +695,6 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
           lot={packerLot} dc={dc}
           opDate={opDate} setOpDate={() => { }} opAS={null}
           labelCheck={labelCheck} setLabelCheck={() => { }}
-          slFollow={slFollow} setSlFollow={() => { }}
-          labelRemark={labelRemark} setLabelRemark={() => { }}
           latexNoBact={latexNoBact} setLatexNoBact={() => { }}
           latexNoBactBy={latexNoBactBy} setLatexNoBactBy={() => { }}
           latexTemp={latexTemp} setLatexTemp={() => { }}
@@ -811,7 +813,7 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
           isIssueMode={false} pkStep={5}
           drumEnd={drumEnd} setDrumEnd={() => { }} drumEndAS={null}
           drumStart={drumStart} sessions={sessions}
-          downtimeLogs={[]} labelRemark={labelRemark}
+          downtimeLogs={[]}
           currentUser={operatorsJson.length > 0 ? operatorsJson[0].name : ''}
           setPkStep={setPkStep}
           onSubmit={() => { }}

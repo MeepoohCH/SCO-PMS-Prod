@@ -20,10 +20,6 @@ export interface Step0DateProps {
   setLatexTempBy: (v: string) => void
   labelCheck: string
   setLabelCheck: (v: string) => void
-  slFollow: string
-  setSlFollow: (v: string) => void
-  labelRemark: string
-  setLabelRemark: (v: string) => void
   onNext: () => void
   onNextSkipSave?: () => void
   readOnly?: boolean
@@ -35,8 +31,6 @@ export function Step0Date({
   latexNoBact, setLatexNoBact, latexNoBactBy, setLatexNoBactBy,
   latexTemp, setLatexTemp, latexTempBy, setLatexTempBy,
   labelCheck, setLabelCheck,
-  slFollow, setSlFollow,
-  labelRemark, setLabelRemark,
   onNext,
   onNextSkipSave,
   readOnly,
@@ -45,8 +39,6 @@ export function Step0Date({
 
   const labelOk = labelCheck === 'yes'
   const labelNo = labelCheck === 'no'
-  const slFollowOk = labelNo && slFollow === 'system'
-  const labelFollowOk = labelNo && slFollow === 'label'
 
   const latexPreScaleOk = lot.dept !== 'Latex' || (
     !!latexNoBact && !!latexNoBactBy &&
@@ -56,7 +48,7 @@ export function Step0Date({
   const nextDisabled =
     !opDate ||
     !labelCheck ||
-    (labelCheck === 'no' && (!slFollow || (slFollow === 'label' && !labelRemark) || slFollow === 'system')) ||
+    labelNo ||        // No = ล็อคไว้จนกว่าจะเปลี่ยนเป็น Yes
     !latexPreScaleOk
 
   async function handleNext() {
@@ -66,8 +58,7 @@ export function Step0Date({
       body: JSON.stringify({
         operation_date: opDate,
         label_check: labelCheck,
-        sl_follow: slFollow,
-        label_remark: labelRemark || null,
+        sl_follow: null,
         current_pk_step: 1,
       }),
     }).catch(err => console.error('[Step0Date] save failed:', err))
@@ -125,7 +116,7 @@ export function Step0Date({
       {/* Label verification */}
       {opDate && (
         <div className="mb-3">
-          <div className={`bg-white border-2 rounded-xl p-4 ${labelCheck ? labelOk ? 'border-green-700' : 'border-red-400' : 'border-gray-200'}`}>
+          <div className={`bg-white border-2 rounded-xl p-4 ${labelCheck ? labelOk ? 'border-green-700' : labelNo ? 'border-red-400' : 'border-gray-200' : 'border-gray-200'}`}>
             <div className="text-sm font-semibold text-gray-900 mb-1">Label ที่รับมาตรงกับ Plan ในระบบหรือไม่?</div>
             <div className="text-[11px] text-gray-400 mb-3">
               {lot.label_no_start && lot.label_no_end
@@ -134,7 +125,7 @@ export function Step0Date({
             </div>
             <div className="grid grid-cols-2 gap-2">
               {[['yes', 'Yes - ตรงกัน', '#27500A', '#EAF3DE'], ['no', 'No - ไม่ตรง', '#E24B4A', '#FCEBEB']].map(([k, lb, color, bg]) => (
-                <button key={k} onClick={() => { setLabelCheck(k); setSlFollow(''); setLabelRemark('') }}
+                <button key={k} onClick={() => setLabelCheck(k)}
                   className="p-3 rounded-xl text-sm font-semibold cursor-pointer border-2 min-h-[48px]"
                   style={{ borderColor: labelCheck === k ? color : '#DDE2EE', background: labelCheck === k ? bg : '#F4F5F7', color: labelCheck === k ? color : '#9BA3BA' }}>
                   {lb}
@@ -142,52 +133,15 @@ export function Step0Date({
               ))}
             </div>
           </div>
-          {labelNo && !slFollow && (
+
+          {/* No = ล็อค แสดงข้อความให้ไปเปลี่ยน Label */}
+          {labelNo && (
             <div className="bg-red-50 border-2 border-red-400 rounded-xl p-4 mt-3">
-              <div className="text-sm font-semibold text-red-800 mb-1">Label ไม่ตรงกับระบบ - แจ้ง SL</div>
-              <div className="text-xs text-red-800 mb-3">แจ้ง SL แล้วให้ยืนยันว่าจะยึดข้อมูลที่ใด</div>
-              <div className="grid grid-cols-2 gap-2">
-                {[['label', 'ยึดที่ Label', '#854F0B', '#FEF3C7', '#EF9F27'], ['system', 'ยึดในระบบ', '#042C53', '#E6F1FB', '#BFCFF7']].map(([k, lb, color, bg, border]) => (
-                  <button key={k} onClick={() => setSlFollow(k)}
-                    className="p-3 rounded-xl text-sm font-semibold cursor-pointer border-2 min-h-[48px]"
-                    style={{ borderColor: border, background: bg, color }}>
-                    {lb}
-                  </button>
-                ))}
+              <div className="text-sm font-bold text-red-800 mb-1">⚠ Label ไม่ตรงกับระบบ</div>
+              <div className="text-xs text-red-700 leading-relaxed">
+                กรุณานำ Label เดิมคืน แล้วรับ Label ใหม่ให้ตรงกับข้อมูลในระบบ
+                จากนั้นกลับมากด <strong>Yes</strong> เพื่อดำเนินการต่อ
               </div>
-            </div>
-          )}
-          {labelFollowOk && (
-            <div className="bg-amber-50 border-2 border-amber-400 rounded-xl p-4 mt-3">
-              <div className="text-sm font-semibold text-amber-800 mb-1">SL ยึดที่ Label - บันทึกหมายเหตุ</div>
-              <textarea value={labelRemark} onChange={e => setLabelRemark(e.target.value)} rows={3}
-                placeholder="ระบุรายละเอียดที่ไม่ตรงกัน..."
-                className="w-full text-sm p-3 border border-gray-200 rounded-lg resize-none outline-none mt-2" />
-            </div>
-          )}
-          {slFollowOk && (
-            <div className="bg-red-50 border-2 border-red-400 rounded-xl p-4 mt-3">
-              <div className="text-sm font-semibold text-red-800 mb-1">ยึดข้อมูลในระบบ - รับ Label ใหม่ก่อน</div>
-              <div className="text-xs text-red-800 leading-relaxed mb-3">กรุณานำ Label เดิมคืน แล้วรับ Label ใหม่ให้ตรงกับข้อมูลในระบบ</div>
-              <button onClick={async () => {
-                setSlFollow('system_confirmed')
-                setLabelCheck('yes')
-                await fetch(`/api/lots/${lot.id}`, {
-                  method: 'PATCH',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    operation_date: opDate,
-                    label_check: 'yes',
-                    sl_follow: 'system_confirmed',
-                    current_pk_step: 1,
-                  }),
-                }).catch(err => console.error('[Step0Date] confirm new label save failed:', err))
-                if (onNextSkipSave) onNextSkipSave()
-                else onNext()
-              }}
-                className="w-full py-3 rounded-lg bg-red-500 text-white text-sm font-semibold cursor-pointer border-none min-h-[48px]">
-                รับ Label ใหม่แล้ว - พร้อมเริ่ม
-              </button>
             </div>
           )}
         </div>

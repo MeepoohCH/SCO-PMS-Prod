@@ -39,13 +39,6 @@ export function Step4PostCheck({
   return (
     <fieldset disabled={readOnly} className="border-0 p-0 m-0">
     <div>
-      <div className="bg-pink-50 border border-pink-300 rounded-xl p-3 mb-3 flex justify-between items-center">
-        <div className="text-xs text-pink-700">Post-Drumming Checklist · once per lot</div>
-        <AutosaveTag status={postAS} />
-      </div>
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-3 text-xs text-blue-900">
-        After you answer all items, <strong>lot_drumming_end will be auto-captured</strong>.
-      </div>
       {lotDept === 'Latex' && (
         <Card className="mb-3" style={{ borderTop: '3px solid #1D9E75' }}>
           <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-3">Latex - ขั้นตอนการจัดเก็บ</div>

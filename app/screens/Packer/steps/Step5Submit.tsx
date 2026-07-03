@@ -15,7 +15,6 @@ export interface Step5SubmitProps {
   drumStart: string
   sessions: Session[]
   downtimeLogs: DowntimeLog[]
-  labelRemark: string
   currentUser: string
   setPkStep: (s: number) => void
   onSubmit: (data: Record<string, unknown>) => void
@@ -28,7 +27,7 @@ export interface Step5SubmitProps {
 export function Step5Submit({
   lot, dc, isIssueMode, pkStep,
   drumEnd, setDrumEnd, drumEndAS,
-  drumStart, sessions, downtimeLogs, labelRemark,
+  drumStart, sessions, downtimeLogs,
   currentUser, setPkStep, onSubmit, setLots, onBackToList,
   readOnly,
   onResubmitOperator,
@@ -67,7 +66,7 @@ export function Step5Submit({
                 } catch (err) {
                   console.error('[Step5Submit] submit failed:', err)
                 }
-                onSubmit({ drumEnd, sessions, downtimeLogs, label_remark: labelRemark || null })
+                onSubmit({ drumEnd, sessions, downtimeLogs })
               }} />
           </div>
           )}

@@ -66,8 +66,6 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
         // Step 0
         operation_date: opDate || null,
         label_check: labelCheck || null,
-        sl_follow: slFollow || null,
-        label_remark: labelRemark || null,
 
         // Step 1
         mdu_machine: mduLocked || null,
@@ -225,8 +223,6 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   const [opDate, setOpDate] = useState(todayDate)
   const opAS = useAutosave(opDate, () => { })
   const [labelCheck, setLabelCheck] = useState('')
-  const [slFollow, setSlFollow] = useState('')
-  const [labelRemark, setLabelRemark] = useState('')
   const [latexNoBact, setLatexNoBact] = useState('')
   const [latexNoBactBy, setLatexNoBactBy] = useState('')
   const [latexTemp, setLatexTemp] = useState('')
@@ -433,8 +429,6 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
         // Step 0
         if (data.operation_date) setOpDate(String(data.operation_date).slice(0, 10))
         if (data.label_check) setLabelCheck(data.label_check)
-        if (data.sl_follow) setSlFollow(data.sl_follow)
-        if (data.label_remark) setLabelRemark(data.label_remark)
 
         // Step 1
         if (data.mdu_machine) setMduLocked(data.mdu_machine)
@@ -745,7 +739,6 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
       .then((data: any[]) => {
         if (!Array.isArray(data)) return
         setDowntimeLogs(data
-          .filter(d => d.end_time != null)
           .map(d => ({
             start: d.start_time,
             end: d.end_time,
@@ -836,7 +829,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   const step0NextDisabled =
     !opDate ||
     !labelCheck ||
-    (labelCheck === 'no' && (!slFollow || (slFollow === 'label' && !labelRemark) || slFollow === 'system')) ||
+    labelCheck === 'no' ||
     !latexPreScaleOk
 
   // ── Step 3 validation (lifted from Step3Drumming.tsx) ────────
@@ -1027,19 +1020,70 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
     return null
   }
 
+  // ── Weight issue reason modal ─────────────────────────────────
+  const [weightIssueModal, setWeightIssueModal] = useState<{
+    open: boolean
+    baseReason: string
+    onConfirm: (reason: string) => void
+  }>({ open: false, baseReason: '', onConfirm: () => { } })
+  const [weightIssueReason, setWeightIssueReason] = useState('')
+
+  async function logWeightIssue(reason: string) {
+    try {
+      await fetch('/api/downtime', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          production_detail_id: lot.id,
+          downtime_type: 'issue',
+          start_time: new Date().toISOString(),
+          end_time: new Date().toISOString(),
+          reason,
+        }),
+      })
+      // Refetch logs ให้แสดงทันที
+      const res = await fetch(`/api/downtime?production_detail_id=${lot.id}`)
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        setDowntimeLogs(data
+          .map((d: any) => ({
+            start: d.start_time,
+            end: d.end_time,
+            type: d.downtime_type,
+            reason: d.reason || '',
+          })))
+      }
+    } catch (err) {
+      console.error('[logWeightIssue]', err)
+    }
+  }
+
   function doRecheck() {
     const isLastPallet = sessions.length + 1 === totalP
     const skipWeightCheck = lot.dept === 'IBC' || lot.dept === 'Latex'
     const pass = isLastPallet || skipWeightCheck ? true : !!wPass
+    const attemptNo = recheckList.length + 1
     setRecheckList(p => [...p, { no: p.length + 1, wt: sessionWt, pass }])
-    if (pass) setRecheckDone(true)
-    else setSessionWt('')
+    if (pass) {
+      setRecheckDone(true)
+    } else {
+      // PU/PUF น้ำหนัก FAIL → เปิด modal ให้กรอก reason
+      setSessionWt('')
+      const baseReason = `Weight recheck FAIL — Pallet #${palletNo} Attempt #${attemptNo}: ${sessionWt} kg`
+      setWeightIssueReason('')
+      setWeightIssueModal({
+        open: true,
+        baseReason,
+        onConfirm: (reason) => logWeightIssue(reason),
+      })
+    }
   }
 
   async function undoLastRecheck() {
     if (!drummingSessionId) return
+    const attemptNo = recheckList.length
+    const lastWt = recheckList[recheckList.length - 1]?.wt ?? '-'
     try {
-      // ดึงรายการ recheck_weight_logs ของ session นี้ แล้วลบรายการล่าสุดออก
       const res = await fetch(`/api/recheck-weights?drumming_session_id=${drummingSessionId}`)
       if (!res.ok) return
       const logs: { id: number }[] = await res.json()
@@ -1049,10 +1093,17 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
     } catch (err) {
       console.error('[undoLastRecheck]', err)
     }
-    // Reset UI ให้กรอกน้ำหนักใหม่ได้
     setRecheckList(p => p.slice(0, -1))
     setRecheckDone(false)
     setSessionWt('')
+    // IBC/Latex กด แก้ไข → เปิด modal ให้กรอก reason
+    const baseReason = `Weight edited — Pallet #${palletNo} Attempt #${attemptNo} cancelled: ${lastWt} kg`
+    setWeightIssueReason('')
+    setWeightIssueModal({
+      open: true,
+      baseReason,
+      onConfirm: (reason) => logWeightIssue(reason),
+    })
   }
 
   async function clearAllWeights() {
@@ -1449,13 +1500,21 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
               </div>
             ))}
             {downtimeLogs.length > 0 && (
-              <div className="mt-1">
-                <div className="text-[10px] font-semibold text-amber-800 mb-1">Downtime ({downtimeLogs.length})</div>
+              <div className="mt-1 flex flex-col gap-1.5">
+                <div className="text-[10px] font-semibold text-amber-800">Issue / Downtime Log ({downtimeLogs.length})</div>
                 {downtimeLogs.map((l, i) => (
-                  <div key={i} className="text-[11px] text-amber-700 py-0.5">
-                    {formatDowntimeDate(l.start)} {toThaiTime(l.start)}–{toThaiTime(l.end)}
-                    {formatDuration(l.start, l.end) && ` (${formatDuration(l.start, l.end)})`}
-                    {' · '}<strong>{l.type.replace(/_/g, ' ')}</strong> · {l.reason}
+                  <div key={i} className="bg-white border border-amber-200 rounded-lg px-2.5 py-1.5">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="text-[11px] text-amber-900 leading-relaxed flex-1">
+                        <span className="font-semibold">{l.type.replace(/_/g, ' ')}</span>
+                        {l.reason ? ` — ${l.reason}` : ''}
+                      </div>
+                      <div className="text-[10px] text-amber-500 flex-shrink-0">
+                        {formatDowntimeDate(l.start)} {toThaiTime(l.start)}
+                        {l.end && l.end !== l.start && `–${toThaiTime(l.end)}`}
+                        {formatDuration(l.start, l.end) && ` (${formatDuration(l.start, l.end)})`}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1474,8 +1533,6 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           latexTemp={latexTemp} setLatexTemp={setLatexTemp}
           latexTempBy={latexTempBy} setLatexTempBy={setLatexTempBy}
           labelCheck={labelCheck} setLabelCheck={setLabelCheck}
-          slFollow={slFollow} setSlFollow={setSlFollow}
-          labelRemark={labelRemark} setLabelRemark={setLabelRemark}
           onNext={async () => {
             if (lot.status === 'waiting') {
               await fetch(`/api/lots/${lot.id}/status`, {
@@ -1608,6 +1665,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           onClearAllWeights={lot.dept === 'IBC' || lot.dept === 'Latex' ? clearAllWeights : undefined}
           readOnly={forceReadOnly}
           canClearDrumming={!['submitted', 'head_approved', 'sl_rejected', 'completed', 'paused_shift_end', 'paused_issue', 'paused_emergency'].includes(lot.status)}
+          downtimeLogs={downtimeLogs}
           onClearDrumming={async () => {
             await fetch(`/api/recheck-weights?production_detail_id=${lot.id}`, { method: 'DELETE' })
               .catch(e => console.error('[clear drumming]', e))
@@ -1646,7 +1704,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           lot={lot} dc={dc} isIssueMode={isIssueMode} pkStep={pkStep}
           drumEnd={drumEnd} setDrumEnd={setDrumEnd} drumEndAS={drumEndAS}
           drumStart={drumStart} sessions={sessions}
-          downtimeLogs={downtimeLogs} labelRemark={labelRemark}
+          downtimeLogs={downtimeLogs}
           currentUser={currentUser}
           setPkStep={setPkStep}
           onSubmit={onSubmit}
@@ -1701,6 +1759,43 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
         }}
       />
 
+      {/* Weight issue reason modal */}
+      {weightIssueModal.open && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <div className="text-base font-bold text-[#791F1F] mb-1">⚠ บันทึก Issue Log</div>
+            <div className="text-[11px] text-gray-500 mb-4">{weightIssueModal.baseReason}</div>
+            <div className="text-xs font-medium text-gray-600 mb-1.5">ระบุสาเหตุ <span className="text-red-500">*</span></div>
+            <textarea
+              value={weightIssueReason}
+              onChange={e => setWeightIssueReason(e.target.value)}
+              placeholder="เช่น น้ำหนักน้อยเกิน / กรอกผิด / เครื่องชั่งผิดปกติ..."
+              rows={3}
+              className="w-full text-sm p-3 border-2 border-gray-200 rounded-xl outline-none resize-none focus:border-red-300 min-h-[80px]"
+              autoFocus
+            />
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              <button
+                onClick={() => setWeightIssueModal(m => ({ ...m, open: false }))}
+                className="h-11 rounded-xl text-sm font-medium border border-gray-300 text-gray-500 bg-white cursor-pointer">
+                ข้ามการบันทึก
+              </button>
+              <button
+                disabled={!weightIssueReason.trim()}
+                onClick={async () => {
+                  const fullReason = `${weightIssueModal.baseReason} — สาเหตุ: ${weightIssueReason.trim()}`
+                  weightIssueModal.onConfirm(fullReason)
+                  setWeightIssueModal(m => ({ ...m, open: false }))
+                  setWeightIssueReason('')
+                }}
+                className="h-11 rounded-xl text-sm font-bold bg-[#CC0000] text-white cursor-pointer border-none disabled:opacity-40">
+                บันทึก Issue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* In-progress: Previous / Step X of 6 / Next navigation bar */}
       {!isIssueMode && !paused && !isLockedByPause && lot.status === 'in_progress' && (
         <div className="sticky bottom-0 z-50 bg-[#F5F5F5] border-t border-[#DDE2EE] px-4 py-3 flex items-center gap-2 mt-4">
@@ -1721,13 +1816,23 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
             </div>
           </div>
           {pkStep < 5 && (
-            <button
-              disabled={!canProceed}
-              onClick={handleNextStep}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#1a3a6c] text-white cursor-pointer disabled:opacity-40 border-none hover:bg-[#0f2347] transition-colors min-h-[48px]">
-              Next
-              <ChevronRight className="w-5 h-5" />
-            </button>
+            pkStep === 3 && !allPalletsDone ? (
+              <button
+                disabled={isCompletingPallet || (pre45Asked && !pre45Ok) || step3MissingFields.length > 0 || !recheckDone}
+                onClick={completePallet}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium text-white cursor-pointer disabled:opacity-40 border-none transition-colors min-h-[48px]"
+                style={{ background: sessions.length + 1 >= totalP ? '#9D174D' : dc }}>
+                {sessions.length + 1 < totalP ? `Pallet #${sessions.length + 1} done →` : 'All pallets done →'}
+              </button>
+            ) : (
+              <button
+                disabled={!canProceed}
+                onClick={handleNextStep}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#1a3a6c] text-white cursor-pointer disabled:opacity-40 border-none hover:bg-[#0f2347] transition-colors min-h-[48px]">
+                Next
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            )
           )}
         </div>
       )}

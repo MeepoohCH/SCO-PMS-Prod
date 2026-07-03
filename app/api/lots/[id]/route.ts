@@ -184,9 +184,32 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       empty_tank,
     } = body;
 
+    // ── Auto-find or create product from product_name (free text) ──────────
+    let resolvedProductId: number | null | undefined = product_id as number | null | undefined
+    const product_name = body.product_name as string | undefined
+    if (resolvedProductId == null && product_name?.trim()) {
+      const dept = (body.dept as string) || existing.dept || undefined
+      const existingProduct = await prisma.products.findFirst({
+        where: { product_name: product_name.trim(), ...(dept && { dept: dept as any }) },
+      })
+      if (existingProduct) {
+        resolvedProductId = existingProduct.id
+      } else {
+        const newProduct = await prisma.products.create({
+          data: {
+            product_name: product_name.trim(),
+            dept: dept as any,
+            is_active: true,
+          },
+        })
+        resolvedProductId = newProduct.id
+        console.log('[PATCH /api/lots/' + id + '] auto-created product:', newProduct.id, product_name)
+      }
+    }
+
     const safeProductId =
-      product_id !== undefined
-        ? await validFk("products", product_id)
+      resolvedProductId !== undefined
+        ? await validFk("products", resolvedProductId)
         : undefined;
     const safeCustomerId =
       customer_id !== undefined
@@ -295,7 +318,6 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         ...(body.label_check !== undefined && {
           label_check: body.label_check,
         }),
-        ...(body.sl_follow !== undefined && { sl_follow: body.sl_follow }),
         ...(body.mdu_machine !== undefined && {
           mdu_machine: body.mdu_machine,
         }),

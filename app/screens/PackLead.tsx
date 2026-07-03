@@ -90,8 +90,9 @@ function ScaleCard({ lot, onApprove, onReject }: ScaleCardProps) {
   const wOk = sd.wt ? Math.abs(+sd.wt - stdWeight) <= 0.5 : false;
 
   return (
-    <div className="bg-white border border-gray-200 border-l-4 rounded-r-xl p-4 mb-3"
-      style={{ borderLeftColor: DC[lot.dept] || "#534AB7" }}>
+    <div className="bg-white border border-gray-200 border-l-4 rounded-r-xl p-4 mb-3 cursor-pointer"
+      style={{ borderLeftColor: DC[lot.dept] || "#534AB7" }}
+      onClick={() => onApprove(lot)}>
       <div className="flex justify-between items-start mb-2">
         <div className="flex gap-1.5 flex-wrap">
           <DeptBadge dept={lot.dept} />
@@ -125,13 +126,15 @@ function ScaleCard({ lot, onApprove, onReject }: ScaleCardProps) {
       </div>
 
       <div className="grid grid-cols-[1fr_2fr] gap-3">
-        <button onClick={() => onReject(lot)}
+        <button
+          onClick={e => { e.stopPropagation(); onReject(lot); }}
           className="flex items-center justify-center gap-2 h-12 rounded-xl text-sm font-bold cursor-pointer border-none bg-[#CC0000] text-white">
           <XCircle size={16} />Reject
         </button>
-        <button onClick={() => onApprove(lot)}
+        <button
+          onClick={e => { e.stopPropagation(); onApprove(lot); }}
           className="flex items-center justify-center gap-2 h-12 rounded-xl text-sm font-bold cursor-pointer border-none bg-[#27500A] text-white">
-          <CheckCircle2 size={16} />Approve Scale
+          <CheckCircle2 size={16} />Review
         </button>
       </div>
     </div>
@@ -143,9 +146,10 @@ function ScaleCard({ lot, onApprove, onReject }: ScaleCardProps) {
 interface ScaleApprovalCardProps {
   lot: PLLot;
   onApprove: () => Promise<void>;
+  onReject: () => void;
 }
 
-function ScaleApprovalCard({ lot, onApprove }: ScaleApprovalCardProps) {
+function ScaleApprovalCard({ lot, onApprove, onReject }: ScaleApprovalCardProps) {
   const [scaleData, setScaleData] = useState<Record<string, unknown> | null>(null);
   const [approving, setApproving] = useState(false);
 
@@ -170,7 +174,7 @@ function ScaleApprovalCard({ lot, onApprove }: ScaleApprovalCardProps) {
       })
   }, [lot.id]);
 
-  const measured  = scaleData ? Number(scaleData.measured_weight_kg) : NaN;
+  const measured = scaleData ? Number(scaleData.measured_weight_kg) : NaN;
   const stdWeight = scaleData ? Number(scaleData.standard_weight_kg || 210) : 210;
   const wOk = !isNaN(measured) && Math.abs(measured - stdWeight) <= 0.5;
 
@@ -182,12 +186,12 @@ function ScaleApprovalCard({ lot, onApprove }: ScaleApprovalCardProps) {
       {scaleData ? (
         <div className="grid grid-cols-2 gap-1.5 mb-3">
           {([
-            ["Machine",       getMachineLabel(lot, scaleData)],
-            ["Measured",      !isNaN(measured) ? `${measured} kg` : "-"],
-            ["Standard",      !isNaN(stdWeight) ? `${stdWeight} ± 0.5 kg` : "210 ± 0.5 kg"],
-            ["Result",        !isNaN(measured) ? (wOk ? "PASS" : "FAIL") : "-"],
+            ["Machine", getMachineLabel(lot, scaleData)],
+            ["Measured", !isNaN(measured) ? `${measured} kg` : "-"],
+            ["Standard", !isNaN(stdWeight) ? `${stdWeight} ± 0.5 kg` : "210 ± 0.5 kg"],
+            ["Result", !isNaN(measured) ? (wOk ? "PASS" : "FAIL") : "-"],
             ["Recalibration", scaleData.recalibration_required ? "Required" : "Not required"],
-            ["Checked by",    String((scaleData.checker as { full_name?: string } | null)?.full_name ?? "-")],
+            ["Checked by", String((scaleData.checker as { full_name?: string } | null)?.full_name ?? "-")],
           ] as [string, string][]).map(([l, v]) => (
             <div key={l} className="bg-white rounded-lg px-2.5 py-1.5">
               <div className="text-[10px] text-[#534AB7] font-medium mb-0.5">{l}</div>
@@ -201,17 +205,24 @@ function ScaleApprovalCard({ lot, onApprove }: ScaleApprovalCardProps) {
       ) : (
         <div className="text-[11px] text-[#9BA3BA] mb-3">Loading scale data...</div>
       )}
-      <Btn
-        label={approving ? "Approving..." : "Approve Scale MDU"}
-        color="#534AB7"
-        full
-        disabled={approving}
-        onClick={async () => {
-          setApproving(true);
-          try { await onApprove(); }
-          finally { setApproving(false); }
-        }}
-      />
+      <div className="grid grid-cols-[1fr_2fr] gap-2">
+        <button
+          onClick={onReject}
+          className="flex items-center justify-center gap-2 h-12 rounded-xl text-sm font-bold cursor-pointer border-none bg-[#CC0000] text-white">
+          <XCircle size={16} />Reject
+        </button>
+        <Btn
+          label={approving ? "Approving..." : "Approve Scale MDU"}
+          color="#534AB7"
+          full
+          disabled={approving}
+          onClick={async () => {
+            setApproving(true);
+            try { await onApprove(); }
+            finally { setApproving(false); }
+          }}
+        />
+      </div>
     </div>
   );
 }
@@ -281,11 +292,11 @@ export default function PackLeadScreen() {
       const hasUnapprovedScale = svList.length > 0 && svList.some(s => !s.pl_approved_at)
       return {
         ...l,
-        target:    l.target_mt || 0,
-        date:      l.packing_date || '',
-        pkg:       l.packaging_type?.name ?? '',
+        target: l.target_mt || 0,
+        date: l.packing_date || '',
+        pkg: l.packaging_type?.name ?? '',
         scPending: ['in_progress', 'rejected'].includes(l.status) && hasUnapprovedScale,
-        scOk:      svList.some(s => !!s.pl_approved_at),
+        scOk: svList.some(s => !!s.pl_approved_at),
       }
     }))
   }
@@ -294,12 +305,12 @@ export default function PackLeadScreen() {
 
   const deptOk = (l: PLLot) => allowedDepts.includes(l.dept) && (deptFilter.length === 0 || deptFilter.includes(l.dept));
   const scalePending = lots.filter(l => l.scPending && !l.scOk && deptOk(l));
-  const queue    = lots.filter(l => l.status === "submitted"    && deptOk(l));
+  const queue = lots.filter(l => l.status === "submitted" && deptOk(l));
   const approved = lots.filter(l => l.status === "head_approved" && deptOk(l));
-  const plReview   = lots.filter(l => l.status === "pl_review"   && deptOk(l));
+  const plReview = lots.filter(l => l.status === "pl_review" && deptOk(l));
   const slRejected = lots.filter(l => l.status === "sl_rejected" && deptOk(l));
-  const rejected   = lots.filter(l => l.status === "rejected"    && deptOk(l));
-  const completed  = lots.filter(l => l.status === "completed"   && deptOk(l));
+  const rejected = lots.filter(l => l.status === "rejected" && deptOk(l));
+  const completed = lots.filter(l => l.status === "completed" && deptOk(l));
 
   async function approveScale(lot: PLLot) {
     console.log('[PL] action: approveScale lot id:', lot.id);
@@ -321,7 +332,7 @@ export default function PackLeadScreen() {
       body: JSON.stringify({
         pl_approved_by: Number(session?.user?.id),
         pl_approved_at: new Date().toISOString(),
-        is_locked:      true,
+        is_locked: true,
       }),
     });
     console.log('[PL] API status:', res.status);
@@ -334,9 +345,17 @@ export default function PackLeadScreen() {
       console.error('[PL] error:', err);
     }
   }
-  function rejectScale(lot: PLLot) {
-    console.log('[PL] action: rejectScale lot id:', lot.id);
-    setLots(p => p.map(l => l.id === lot.id ? { ...l, scPending: false, scOk: false } : l));
+  async function rejectScale(lot: PLLot) {
+    console.log('[PL] rejectScale lot id:', lot.id);
+    // เปลี่ยน status กลับเป็น in_progress ให้ Packer ทำ Scale ใหม่
+    await fetch(`/api/lots/${lot.id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'in_progress' }),
+    });
+    setLots(p => p.map(l =>
+      l.id === lot.id ? { ...l, status: 'in_progress', scPending: false, scOk: false } : l
+    ));
   }
   async function approveLot(lot: PLLot) {
     console.log('[PL] action: approveLot lot id:', lot.id);
@@ -501,9 +520,9 @@ export default function PackLeadScreen() {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                      status:        'rejected',
+                      status: 'rejected',
                       reject_remark: progressLot.remark,
-                      pl_remark:     plAckRemark || null,
+                      pl_remark: plAckRemark || null,
                     }),
                   });
                   setLots(p => p.map(l =>
@@ -599,8 +618,8 @@ export default function PackLeadScreen() {
                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium cursor-pointer border-[0.5px]"
                 style={{
                   borderColor: on ? dc : "#DDE2EE",
-                  background:  on ? DEPT[d].badge.bg : "#F4F5F7",
-                  color:       on ? dc : "#9BA3BA",
+                  background: on ? DEPT[d].badge.bg : "#F4F5F7",
+                  color: on ? dc : "#9BA3BA",
                 }}>
                 {on && <span className="text-[10px] font-bold" style={{ color: dc }}>✓</span>}
                 {DEPT[d]?.icon} {d}
@@ -629,8 +648,8 @@ export default function PackLeadScreen() {
       {/* 3. รายการ Content ต่าง ๆ ด้านล่าง */}
       <div className="pb-20 px-6">
 
-        {/* Scale MDU Pending Approval Banner — shows regardless of active tab */}
-        {plReview.length > 0 && (
+        {/* Scale MDU Pending Approval Banner — shows only in scale tab */}
+        {plReview.length > 0 && tab === "scale" && (
           <div className="mb-4">
             <div className="text-[11px] font-bold text-[#534AB7] uppercase tracking-wide mb-2 flex items-center gap-1.5">
               <AlertCircle size={14} className="text-[#534AB7]" />
@@ -678,7 +697,7 @@ export default function PackLeadScreen() {
                       body: JSON.stringify({
                         pl_approved_by: Number(session?.user?.id),
                         pl_approved_at: new Date().toISOString(),
-                        is_locked:      true,
+                        is_locked: true,
                       }),
                     });
 
@@ -702,6 +721,7 @@ export default function PackLeadScreen() {
                     }
                     console.log('[PL] scale approved for lot:', lot.id);
                   }}
+                  onReject={() => rejectScale(lot)}
                 />
               </div>
             ))}
@@ -869,7 +889,7 @@ export default function PackLeadScreen() {
                 <div key={lot.id}
                   className="bg-white border border-gray-200 border-l-4 rounded-r-xl p-4 mb-3 cursor-pointer hover:shadow-md transition-shadow"
                   style={{ borderLeftColor: dc2 }}
-                  onClick={() => { setProgressLot(lot); setPkView("progress"); }}>
+                  onClick={() => { setProgressLot(lot); setPkView("review_pl"); }}>
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex gap-1.5 mb-1 flex-wrap">
@@ -885,19 +905,13 @@ export default function PackLeadScreen() {
                     </div>
                   </div>
                   {tab === "queue" && (
-                    <div className="grid grid-cols-[1fr_2fr] gap-3 mt-3">
+                    <div className="flex justify-end mt-3">
                       <button
                         onClick={(e) => { e.stopPropagation(); setProgressLot(lot); setPkView("review_pl"); }}
-                        className="flex items-center justify-center gap-2 h-12 rounded-xl text-sm font-bold cursor-pointer border-none bg-[#CC0000] text-white">
-                        <XCircle size={16} />Reject
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setProgressLot(lot); setPkView("review_pl"); }}
-                        className="w-full h-12 rounded-xl text-sm font-semibold cursor-pointer border-none text-white flex items-center justify-center gap-2"
+                        className="h-10 px-5 rounded-xl text-sm font-semibold cursor-pointer border-none text-white flex items-center justify-center gap-2"
                         style={{ background: dc2 }}
                       >
-                        <PackageSearch size={18} />
-                        <span className="hidden sm:block">Review</span>
+                        <PackageSearch size={18} />Review
                       </button>
                     </div>
                   )}

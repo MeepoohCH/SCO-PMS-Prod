@@ -9,6 +9,7 @@ interface UseScalePollParams {
   setScaleApproved: (v: boolean) => void;
   setScalePendingPL: (v: boolean) => void;
   setScaleApprovedBy?: (v: string) => void;
+  setScalePendingPLFalse?: () => void; // reset เมื่อ PL reject
   // Latex round 1
   latexScale1Pending: boolean;
   latexScale1Approved: boolean;
@@ -43,6 +44,22 @@ export function useScalePoll({
     if (!scalePendingPL || scaleApproved) return;
     const interval = setInterval(async () => {
       try {
+        // เช็ค lot status ก่อน — ถ้า PL reject จะกลับมาเป็น in_progress
+        const lotRes = await fetch(`/api/lots/${lot.id}`);
+        if (lotRes.ok) {
+          const lotData = await lotRes.json();
+          if (
+            lotData.detail_status === "in_progress" ||
+            lotData.status === "in_progress"
+          ) {
+            // PL rejected scale — reset ให้ Packer ทำ scale ใหม่
+            setScalePendingPL(false);
+            setScaleApproved(false);
+            clearInterval(interval);
+            return;
+          }
+        }
+
         const res = await fetch(
           `/api/scale-verifications?production_detail_id=${lot.id}`,
         );

@@ -96,7 +96,6 @@ export interface SLPlan extends Lot {
   purge_kg?: string | number;
   drain_kg?: string | number;
   label_count?: number;
-  label_remark?: string | null;
   scale_type?: string;
   scale_weight?: string | number;
   scale_approved_by?: string;
@@ -305,6 +304,9 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
     }
     console.log('[SL saveDraft] resolvedBlenderId:', resolvedBlenderId);
 
+    // product_name ส่งตรงไปใน payload ให้ /api/lots route จัดการ auto-create ผ่าน Prisma
+    const resolvedProductId = plan.product_id
+
     try {
       const isExisting = lots.find(l => l.id === plan.id);
       if (isExisting) {
@@ -318,7 +320,8 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
         } : undefined;
         const payload = {
           lot_no: plan.lot_no || plan.lot,
-          product_id: plan.product_id,
+          product_id: resolvedProductId,
+          product_name: plan.product_name || undefined,
           customer_id: plan.customer_id,
           packaging_type_id: plan.packaging_type_id,
           target_amount_mt: plan.target_mt,
@@ -411,7 +414,8 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
           plan_id: planId,
           dept: plan.dept,
           lot_no: plan.lot_no || plan.lot || "",
-          ...(plan.product_id && { product_id: plan.product_id }),
+          ...(resolvedProductId && { product_id: resolvedProductId }),
+          product_name: plan.product_name || undefined,
           ...(plan.customer_id && { customer_id: plan.customer_id }),
           ...(plan.packaging_type_id && { packaging_type_id: plan.packaging_type_id }),
           target_amount_mt: plan.target_mt,
@@ -482,6 +486,9 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
       let isNewLot = typeof plan.id === 'number' && String(plan.id).length >= 12;
       let resolvedBlenderId = plan.blender_id;
 
+      // product_name ส่งตรงไปใน payload ให้ /api/lots route จัดการ auto-create
+      const resolvedProductId = plan.product_id
+
       // ── 1. ถ้าเป็นแผนงานสร้างใหม่ (ยังไม่มี Real ID ในฐานข้อมูล) ──────────────────
       if (isNewLot) {
         if (!resolvedBlenderId && plan.blender) {
@@ -539,7 +546,8 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
           plan_id: planId,
           dept: plan.dept,
           lot_no: plan.lot_no || plan.lot || "",
-          ...(plan.product_id && { product_id: plan.product_id }),
+          ...(resolvedProductId && { product_id: resolvedProductId }),
+          product_name: plan.product_name || undefined,
           ...(plan.customer_id && { customer_id: plan.customer_id }),
           ...(plan.packaging_type_id && { packaging_type_id: plan.packaging_type_id }),
           target_amount_mt: plan.target_mt,
@@ -592,7 +600,7 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             lot_no: plan.lot_no || plan.lot,
-            product_id: plan.product_id,
+            product_id: resolvedProductId,
             customer_id: plan.customer_id,
             packaging_type_id: plan.packaging_type_id,
             target_amount_mt: plan.target_mt,
@@ -686,31 +694,6 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
     const slProgress = progressLot as SLPlan
     return (
       <div>
-        {slProgress.label_remark && (
-          <div className="bg-[#FEF3C7] border-[1.5px] border-[#EF9F27] rounded-xl px-3.5 py-3 mb-3">
-            <div className="text-xs font-bold text-[#633806] mb-1">Packer แจ้ง: Label ไม่ตรงกับระบบ</div>
-            <div className="text-xs text-[#854F0B] leading-relaxed mb-2.5">{slProgress.label_remark}</div>
-            <div className="text-xs font-semibold text-[#633806] mb-2">แก้ข้อมูลก่อน Approve (หรือใช้ Edit full form):</div>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { l: "Label No. Start", k: "label_no_start", ph: String(slProgress.label_no_start || "") },
-                { l: "Label No. End", k: "label_no_end", ph: String(slProgress.label_no_end || "") },
-                { l: "จำนวน Label (ใบ)", k: "label_count", ph: String(slProgress.label_count || "") },
-                { l: "Packaging", k: "packaging", ph: typeof slProgress.packaging === 'object' ? (slProgress.packaging as any)?.name || "" : slProgress.packaging as string || "" },
-                { l: "Country Label", k: "country_label", ph: slProgress.country_label as string || slProgress.customer || "" },
-              ].map(field => (
-                <div key={field.k}>
-                  <div className="text-[11px] text-[#854F0B] font-medium mb-[3px]">{field.l}</div>
-                  <input
-                    defaultValue={field.ph}
-                    onChange={e => { (progressLot as Record<string, unknown>)[field.k] = e.target.value; }}
-                    className="w-full box-border text-[13px] px-2.5 py-2 border border-[#EF9F27] rounded-[7px] outline-none"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
         <PKFormViewer
           lot={progressLot as any}
           onBack={() => { setView("dashboard"); setProgressLot(null); }}
@@ -739,7 +722,7 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
                   body: JSON.stringify({ plan_status: 'completed' }),
                 }).catch(() => { })
               }
-              setLots(p => p.map(l => l.id === progressLot.id ? { ...l, status: 'completed', label_remark: null } : l))
+              setLots(p => p.map(l => l.id === progressLot.id ? { ...l, status: 'completed' } : l))
               setView("dashboard")
               setProgressLot(null)
             } else {

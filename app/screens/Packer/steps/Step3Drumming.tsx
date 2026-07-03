@@ -5,7 +5,7 @@ import { Card, Inp, Btn, Toggle, AutosaveTag, Combo, PalletRow, TimePicker, Conf
 import { useUsers } from '../hooks/useUsers'
 import { MDU_MACHINE_OPTS, LOCAL_EXPORT_IBC_OPTS, DRUM_MM_OPTS } from '@/app/components/constants'
 import type { MduMachine, LocalExportIbc, DrumMmType, WtStandard } from '@/app/components/constants'
-import type { Session, RecheckEntry, AutosaveStatus, ApiChecklistItem } from '../types'
+import type { Session, RecheckEntry, AutosaveStatus, ApiChecklistItem, DowntimeLog } from '../types'
 
 export interface Step3DrummingProps {
   dc: string
@@ -13,7 +13,6 @@ export interface Step3DrummingProps {
   lotDept: string
   totalP: number
   isTote: boolean
-  // Sessions / pallet
   sessions: Session[]
   palletNo: number
   wtMachine: MduMachine | ''
@@ -31,8 +30,7 @@ export interface Step3DrummingProps {
   recheckDone: boolean
   wPass: boolean
   wFail: boolean
-  skipWeightCheck: boolean   // IBC/Latex — กรอกน้ำหนักแล้วผ่านได้เลย ไม่ validate tolerance
-  // Drumming record
+  skipWeightCheck: boolean
   drumStart: string
   setDrumStart: (v: string) => void
   drumAS: AutosaveStatus
@@ -52,7 +50,6 @@ export interface Step3DrummingProps {
   setCapSmall: (v: string) => void
   capXSmall: string
   setCapXSmall: (v: string) => void
-  // Latex extra
   latexPrevProduct: string
   setLatexPrevProduct: (v: string) => void
   latexPrevProductName: string
@@ -73,7 +70,6 @@ export interface Step3DrummingProps {
   setLatexLot1Qty: (v: string) => void
   latexLot2Qty: string
   setLatexLot2Qty: (v: string) => void
-  // Pre-check items 4-5
   preChk: Record<number, string>
   setPreChk: React.Dispatch<React.SetStateAction<Record<number, string>>>
   preItems45: ApiChecklistItem[]
@@ -83,15 +79,15 @@ export interface Step3DrummingProps {
   setSampleType: (v: string) => void
   missingFields: string[]
   isCompletingPallet?: boolean
-  // Actions
   doPause: (type: string) => void
   doRecheck: () => void
   completePallet: () => Promise<void>
   undoLastRecheck: () => Promise<void>
-  onClearAllWeights?: () => Promise<void>  // IBC/Latex: ล้างน้ำหนักทั้งหมดกรณี Reject
+  onClearAllWeights?: () => Promise<void>
   readOnly?: boolean
   canClearDrumming?: boolean
   onClearDrumming?: () => Promise<void>
+  downtimeLogs?: DowntimeLog[]
 }
 
 export function Step3Drumming({
@@ -122,6 +118,7 @@ export function Step3Drumming({
   readOnly,
   canClearDrumming,
   onClearDrumming,
+  downtimeLogs = [],
 }: Step3DrummingProps) {
 
   const { userOpts } = useUsers()
@@ -181,7 +178,9 @@ export function Step3Drumming({
           </div>
         </Card>
 
-        {/* Drumming record */}
+
+
+        {/* Drumming record — top section (กรอกก่อนการ Drumming) */}
         <Card className="mb-3">
           <div className="flex justify-between items-center mb-3">
             <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Drumming record - lot-level</div>
@@ -200,7 +199,6 @@ export function Step3Drumming({
           </div>
           <TimePicker label="Drumming start time" value={drumStart} onChange={setDrumStart} req />
 
-          {/* Latex extra fields */}
           {lotDept === 'Latex' && (
             <div className="bg-white border-2 border-emerald-600 rounded-xl p-4 mb-4">
               <div className="text-[11px] font-bold text-emerald-800 uppercase tracking-wide mb-4">Latex - ข้อมูลเพิ่มเติม</div>
@@ -232,78 +230,27 @@ export function Step3Drumming({
               </div>
             </div>
           )}
-
-          <div className="text-xs font-medium text-gray-600 mb-2">เศษ Packaging (kg)</div>
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            {lotDept === 'Latex' ? (
-              <>
-                <Inp label="Product Purge" type="text" value={latexProductPurgeKg} onChange={setLatexProductPurgeKg} placeholder="-" req />
-                <Inp label="Drain" type="text" value={latexDrainKg} onChange={setLatexDrainKg} placeholder="-" req />
-                <Inp label="Total" type="text" value={latexTotalKg} onChange={setLatexTotalKg} placeholder="-" req />
-              </>
-            ) : (
-              <>
-                <Inp label="Flush" type="text" value={flushKg} onChange={setFlushKg} placeholder="-" req />
-                <Inp label="Purge" type="text" value={purgeKg} onChange={setPurgeKg} placeholder="-" req />
-                <Inp label="Drain" type="text" value={drainKg} onChange={setDrainKg} placeholder="-" req />
-              </>
-            )}
-          </div>
-          <Inp label="น้ำหนักรวมที่บรรจุได้ Kg. (Batch size)" type="text" value={batchSizeKg} onChange={setBatchSizeKg} placeholder="กรอกตัวเลข หรือ -" req />
-          <div className="text-xs font-medium text-gray-600 mb-2">
-            จำนวนภาชนะที่ใช้ไปทั้งหมด
-          </div>
-          {lotDept === 'Latex' ? (
-            <div className="flex flex-col gap-2">
-              {[{ label: 'Lot 1', val: latexLot1Qty, set: setLatexLot1Qty }, { label: 'Lot 2', val: latexLot2Qty, set: setLatexLot2Qty }].map(({ label, val, set }) => (
-                <div key={label} className="bg-gray-100 rounded-xl p-3">
-                  <div className="text-[11px] font-bold text-gray-600 mb-2">{label}</div>
-                  <Inp label="Drum / Tote (ใบ)" type="text" value={val} onChange={set} placeholder="-" req />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              <Inp label={isTote ? 'Tote (ใบ)' : 'Drum (ใบ)'} type="text" value={containerQty} onChange={setContainerQty} placeholder="-" req />
-              <Inp label={isTote ? 'Drum (ใบ)' : 'Tote (ใบ)'} type="text" value={capLarge} onChange={setCapLarge} placeholder="-" req />
-              <Inp label="ฝา Cap ใหญ่ (ใบ)" type="text" value={capSmall} onChange={setCapSmall} placeholder="-" req />
-              <Inp label="ฝา Cap เล็ก (ใบ)" type="text" value={capXSmall} onChange={setCapXSmall} placeholder="-" req />
-            </div>
-          )}
         </Card>
+
 
         {/* Completed pallets */}
         {sessions.length > 0 && (
           <Card className="mb-3">
             <div className="text-xs font-medium text-green-800 mb-3">Completed pallets ({sessions.length}/{totalP})</div>
             {sessions.map((s, i) => (
-              <PalletRow
-                key={i}
-                session={s}
-                preItems45={preItems45}
-                dept={lotDept}
-                dc={dc}
-                totalP={totalP}
-              />
+              <PalletRow key={i} session={s} preItems45={preItems45} dept={lotDept} dc={dc} totalP={totalP} />
             ))}
           </Card>
         )}
-
         {/* Recheck weight */}
         {allPalletsDone ? (
           <Card className="mb-3 text-center py-8">
-            <div className="text-lg font-bold text-green-800 mb-1">
-              ✓ ครบ {totalP} pallets แล้ว
-            </div>
-            <div className="text-xs text-gray-500">
-              กดปุ่มด้านล่างเพื่อไปขั้นตอน Post-Drumming Checklist
-            </div>
+            <div className="text-lg font-bold text-green-800 mb-1">✓ ครบ {totalP} pallets แล้ว</div>
+            <div className="text-xs text-gray-500">กดปุ่มด้านล่างเพื่อไปขั้นตอน Post-Drumming Checklist</div>
           </Card>
         ) : (
           <Card className="mb-3">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Recheck weight - Pallet #{palletNo}</div>
-            </div>
+            <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-3">Recheck weight - Pallet #{palletNo}</div>
 
             {!skipWeightCheck && (<>
               <div className="text-xs font-medium text-gray-600 mb-2">MDU Machine</div>
@@ -316,7 +263,6 @@ export function Step3Drumming({
                   </button>
                 ))}
               </div>
-
               <div className="text-xs font-medium text-gray-600 mb-2">Local / Export / IBC Tote</div>
               <div className="grid grid-cols-3 gap-1.5 mb-3">
                 {LOCAL_EXPORT_IBC_OPTS.map(c => (
@@ -327,7 +273,6 @@ export function Step3Drumming({
                   </button>
                 ))}
               </div>
-
               {wtCategory === 'IBC Tote' && wtMachine === 'MDU2451/52' && (
                 <div className="mb-3">
                   <div className="text-[11px] text-gray-500 mb-1.5">IBC Tote — ระบุ Local/Export (ค่าต่างกัน)</div>
@@ -342,7 +287,6 @@ export function Step3Drumming({
                   </div>
                 </div>
               )}
-
               {(wtCategory === 'Local' || wtCategory === 'Export') && (
                 <div className="mb-3">
                   <div className="text-xs font-medium text-gray-600 mb-2">Drum type</div>
@@ -357,7 +301,6 @@ export function Step3Drumming({
                   </div>
                 </div>
               )}
-
               {wtStandard ? (
                 <div className="mb-4 p-3 rounded-xl border-2" style={{ borderColor: dc, background: dc + '0a' }}>
                   <div className="text-[11px] text-gray-500 mb-0.5">Standard weight (matched)</div>
@@ -369,16 +312,11 @@ export function Step3Drumming({
             </>)}
 
             {isLastPallet && (
-              <div className="flex items-center gap-2 p-3 rounded-xl border mb-4"
-                style={{ borderColor: '#EF9F27', background: '#FEF3C7' }}>
+              <div className="flex items-center gap-2 p-3 rounded-xl border mb-4" style={{ borderColor: '#EF9F27', background: '#FEF3C7' }}>
                 <span className="text-base">⚠</span>
                 <div>
-                  <div className="text-xs font-semibold text-amber-800">
-                    Pallet สุดท้าย — ไม่เช็คน้ำหนักตามมาตรฐาน
-                  </div>
-                  <div className="text-[11px] text-amber-700 mt-0.5">
-                    Pallet นี้อาจมี drum/tote ไม่ครบจำนวนมาตรฐาน ระบบจะบันทึกน้ำหนักโดยไม่ตัดสิน PASS/FAIL
-                  </div>
+                  <div className="text-xs font-semibold text-amber-800">Pallet สุดท้าย — ไม่เช็คน้ำหนักตามมาตรฐาน</div>
+                  <div className="text-[11px] text-amber-700 mt-0.5">Pallet นี้อาจมี drum/tote ไม่ครบจำนวนมาตรฐาน ระบบจะบันทึกน้ำหนักโดยไม่ตัดสิน PASS/FAIL</div>
                 </div>
               </div>
             )}
@@ -417,10 +355,8 @@ export function Step3Drumming({
                     value={sessionWt}
                     disabled={!skipWeightCheck && !wtStandard}
                     onChange={e => {
-                      const val = e.target.value;
-                      if (/^-?\d*\.?\d*$/.test(val) || val === '') {
-                        setSessionWt(val);
-                      }
+                      const val = e.target.value
+                      if (/^-?\d*\.?\d*$/.test(val) || val === '') setSessionWt(val)
                     }}
                     placeholder={skipWeightCheck ? 'กรอกน้ำหนัก...' : (wtStandard ? `${wtStandard.ref}` : 'เลือกตัวเลือกด้านบนก่อน')}
                     className="w-full text-3xl font-bold text-center p-4 rounded-xl outline-none border-2 min-h-[72px]"
@@ -430,22 +366,16 @@ export function Step3Drumming({
                     }}
                   />
                   {skipWeightCheck && sessionWt && (
-                    <button
-                      onClick={() => setSessionWt('')}
+                    <button onClick={() => setSessionWt('')}
                       className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-gray-200 text-gray-500 text-sm flex items-center justify-center">
                       ✕
                     </button>
                   )}
                 </div>
                 {sessionWt && (
-                  <div className={`mt-3 p-3 rounded-xl border text-center ${skipWeightCheck ? 'bg-blue-50 border-blue-300'
-                      : isLastPallet ? 'bg-amber-50 border-amber-400' : wPass ? 'bg-green-50 border-green-700' : 'bg-red-50 border-red-400'
-                    }`}>
-                    <div className={`text-base font-bold ${skipWeightCheck ? 'text-blue-800'
-                        : isLastPallet ? 'text-amber-800' : wPass ? 'text-green-800' : 'text-red-800'
-                      }`}>
-                      {skipWeightCheck ? '✓ บันทึกน้ำหนักได้เลย'
-                        : isLastPallet ? '⚠ บันทึกแล้ว (pallet สุดท้าย — ไม่เช็ค tolerance)' : wPass ? '✓ PASS' : '✗ FAIL'}
+                  <div className={`mt-3 p-3 rounded-xl border text-center ${skipWeightCheck ? 'bg-blue-50 border-blue-300' : isLastPallet ? 'bg-amber-50 border-amber-400' : wPass ? 'bg-green-50 border-green-700' : 'bg-red-50 border-red-400'}`}>
+                    <div className={`text-base font-bold ${skipWeightCheck ? 'text-blue-800' : isLastPallet ? 'text-amber-800' : wPass ? 'text-green-800' : 'text-red-800'}`}>
+                      {skipWeightCheck ? '✓ บันทึกน้ำหนักได้เลย' : isLastPallet ? '⚠ บันทึกแล้ว (pallet สุดท้าย — ไม่เช็ค tolerance)' : wPass ? '✓ PASS' : '✗ FAIL'}
                     </div>
                     {!skipWeightCheck && !isLastPallet && wFail && wtStandard && (
                       <div className="text-xs text-red-700 mt-1">
@@ -457,10 +387,9 @@ export function Step3Drumming({
                 {sessionWt && (
                   <div className="mt-3">
                     <Btn
-                      label={skipWeightCheck ? '✓ Record' : (isLastPallet ? 'Record (pallet สุดท้าย)' : wPass ? '✓ Record PASS' : 'Record FAIL → fix and retry')}
+                      label={skipWeightCheck ? '✓ Record' : (isLastPallet ? 'Record (pallet สุดท้าย)' : wPass ? '✓ Record PASS' : 'Record FAIL - Retry and Log Downtime')}
                       color={skipWeightCheck ? '#27500A' : (isLastPallet ? '#854F0B' : wPass ? '#27500A' : '#854F0B')}
-                      full
-                      onClick={doRecheck}
+                      full onClick={doRecheck}
                     />
                   </div>
                 )}
@@ -473,8 +402,7 @@ export function Step3Drumming({
                     <div className="text-xs text-green-700">Pallet #{palletNo} · {recheckList.length} attempt{recheckList.length > 1 ? 's' : ''}</div>
                   </div>
                   {skipWeightCheck && (
-                    <button
-                      onClick={undoLastRecheck}
+                    <button onClick={undoLastRecheck}
                       className="text-xs text-red-500 border border-red-300 rounded-lg px-3 py-1.5 bg-white">
                       ✕ แก้ไข
                     </button>
@@ -484,7 +412,6 @@ export function Step3Drumming({
             )}
           </Card>
         )}
-
         {/* Pre-checklist items 4-5 */}
         {recheckDone && pre45Asked && preItems45.length > 0 && (
           <Card className="mb-3 border-2"
@@ -498,9 +425,7 @@ export function Step3Drumming({
             </div>
             <div className="mb-3 p-3 rounded-xl bg-white border"
               style={{ borderColor: chk4 ? chk4 === 'No' ? '#E24B4A' : '#27500A' : '#DDE2EE' }}>
-              <div className="text-sm text-gray-900 leading-relaxed mb-2">
-                {item4?.item_label}
-              </div>
+              <div className="text-sm text-gray-900 leading-relaxed mb-2">{item4?.item_label}</div>
               <Toggle opts={item4?.select_options ?? ['Yes', 'No', 'NA']} value={chk4 ?? ''}
                 onChange={v => item4 && setPreChk(p => ({ ...p, [item4.id]: v }))} />
               {chk4 === 'No' && (
@@ -513,9 +438,7 @@ export function Step3Drumming({
             {(chk4 === 'Yes' || chk4 === 'NA') && item5 && (
               <div className="p-3 rounded-xl bg-white border"
                 style={{ borderColor: chk5 ? chk5 === 'No' ? '#E24B4A' : sampleType ? '#27500A' : '#EF9F27' : '#DDE2EE' }}>
-                <div className="text-sm text-gray-900 leading-relaxed mb-2">
-                  {item5?.item_label}
-                </div>
+                <div className="text-sm text-gray-900 leading-relaxed mb-2">{item5?.item_label}</div>
                 <Toggle opts={item5?.select_options ?? ['Yes', 'No', 'NA']} value={chk5 ?? ''}
                   onChange={v => { if (item5) setPreChk(p => ({ ...p, [item5.id]: v })); if (v !== 'Yes') setSampleType('') }} />
                 {chk5 === 'Yes' && (
@@ -529,15 +452,9 @@ export function Step3Drumming({
                       ].map(s => (
                         <button key={s.k} onClick={() => setSampleType(`${s.l} ${s.v}`)}
                           className="flex items-center gap-3 p-3 rounded-lg cursor-pointer text-left border-2 min-h-[52px]"
-                          style={{
-                            borderColor: sampleType === `${s.l} ${s.v}` ? '#1D9E75' : '#DDE2EE',
-                            background: sampleType === `${s.l} ${s.v}` ? '#E1F5EE' : '#fff',
-                          }}>
+                          style={{ borderColor: sampleType === `${s.l} ${s.v}` ? '#1D9E75' : '#DDE2EE', background: sampleType === `${s.l} ${s.v}` ? '#E1F5EE' : '#fff' }}>
                           <div className="w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center"
-                            style={{
-                              borderColor: sampleType === `${s.l} ${s.v}` ? '#1D9E75' : '#9BA3BA',
-                              background: sampleType === `${s.l} ${s.v}` ? '#1D9E75' : '#fff',
-                            }}>
+                            style={{ borderColor: sampleType === `${s.l} ${s.v}` ? '#1D9E75' : '#9BA3BA', background: sampleType === `${s.l} ${s.v}` ? '#1D9E75' : '#fff' }}>
                             {sampleType === `${s.l} ${s.v}` && <span className="text-white text-[11px] font-bold">✓</span>}
                           </div>
                           <div>
@@ -557,9 +474,7 @@ export function Step3Drumming({
         {recheckDone && !readOnly && sessions.length < totalP && (
           <Card className="mb-3">
             <Btn
-              label={sessions.length + 1 < totalP
-                ? `Pallet #${palletNo} done - next pallet #${palletNo + 1}`
-                : 'All pallets done - Post-Drumming Checklist'}
+              label={sessions.length + 1 < totalP ? `Pallet #${palletNo} done - next pallet #${palletNo + 1}` : 'All pallets done - Post-Drumming Checklist'}
               color={sessions.length + 1 >= totalP ? '#9D174D' : dc} full
               disabled={(pre45Asked && !pre45Ok) || missingFields.length > 0 || isCompletingPallet}
               onClick={completePallet} />
@@ -573,11 +488,79 @@ export function Step3Drumming({
         {canClearDrumming && !readOnly && (
           <div className="flex justify-center mt-2 mb-1">
             <button type="button" onClick={() => setShowClearDrummingConfirm(true)}
-              className="text-[11px] text-[#9BA3BA] underline cursor-pointer bg-transparent border-none">
+              className="text-[11px] text-[#9BA3BA] underline cursor-pointer bg-transparent border-none pb-3">
               ล้างข้อมูล Drumming และเริ่ม Pallet ใหม่
             </button>
           </div>
         )}
+
+
+        {/* Drumming record — bottom section (สรุปสุดท้าย) */}
+        <Card className="mb-3">
+          <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-3">สรุปการบรรจุ</div>
+
+          {/* All downtime logs */}
+          {downtimeLogs.length > 0 && (
+            <div className="mb-4">
+              <div className="text-xs font-semibold text-amber-800 mb-2 flex items-center gap-1">
+                <span>⚠</span> Issue / Downtime Log ({downtimeLogs.length} รายการ)
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {downtimeLogs.map((log, i) => (
+                  <div key={i} className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="text-[11px] text-amber-900 leading-relaxed flex-1">
+                        <span className="font-semibold">{log.type.replace(/_/g, ' ')}</span>
+                        {log.reason ? ` — ${log.reason}` : ''}
+                      </div>
+                      {log.start && (
+                        <div className="text-[10px] text-amber-500 flex-shrink-0">
+                          {new Date(log.start).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="text-xs font-medium text-gray-600 mb-2">เศษ Packaging (kg)</div>
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {lotDept === 'Latex' ? (
+              <>
+                <Inp label="Product Purge" type="text" value={latexProductPurgeKg} onChange={setLatexProductPurgeKg} placeholder="-" req />
+                <Inp label="Drain" type="text" value={latexDrainKg} onChange={setLatexDrainKg} placeholder="-" req />
+                <Inp label="Total" type="text" value={latexTotalKg} onChange={setLatexTotalKg} placeholder="-" req />
+              </>
+            ) : (
+              <>
+                <Inp label="Flush" type="text" value={flushKg} onChange={setFlushKg} placeholder="-" req />
+                <Inp label="Purge" type="text" value={purgeKg} onChange={setPurgeKg} placeholder="-" req />
+                <Inp label="Drain" type="text" value={drainKg} onChange={setDrainKg} placeholder="-" req />
+              </>
+            )}
+          </div>
+          <Inp label="น้ำหนักรวมที่บรรจุได้ Kg. (Batch size)" type="text" value={batchSizeKg} onChange={setBatchSizeKg} placeholder="กรอกตัวเลข หรือ -" req />
+          <div className="text-xs font-medium text-gray-600 mb-2">จำนวนภาชนะที่ใช้ไปทั้งหมด</div>
+          {lotDept === 'Latex' ? (
+            <div className="flex flex-col gap-2">
+              {[{ label: 'Lot 1', val: latexLot1Qty, set: setLatexLot1Qty }, { label: 'Lot 2', val: latexLot2Qty, set: setLatexLot2Qty }].map(({ label, val, set }) => (
+                <div key={label} className="bg-gray-100 rounded-xl p-3">
+                  <div className="text-[11px] font-bold text-gray-600 mb-2">{label}</div>
+                  <Inp label="Drum / Tote (ใบ)" type="text" value={val} onChange={set} placeholder="-" req />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <Inp label={isTote ? 'Tote (ใบ)' : 'Drum (ใบ)'} type="text" value={containerQty} onChange={setContainerQty} placeholder="-" req />
+              <Inp label={isTote ? 'Drum (ใบ)' : 'Tote (ใบ)'} type="text" value={capLarge} onChange={setCapLarge} placeholder="-" req />
+              <Inp label="ฝา Cap ใหญ่ (ใบ)" type="text" value={capSmall} onChange={setCapSmall} placeholder="-" req />
+              <Inp label="ฝา Cap เล็ก (ใบ)" type="text" value={capXSmall} onChange={setCapXSmall} placeholder="-" req />
+            </div>
+          )}
+        </Card>
       </div>
 
       <ConfirmModal

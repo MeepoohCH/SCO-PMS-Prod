@@ -168,7 +168,7 @@ model blenders {
 model products {
   id                 Int        @id @default(autoincrement()) @db.UnsignedInt
   product_name       String     @db.VarChar(100)
-  gmid               String     @unique @db.VarChar(30)
+  gmid               String?     @unique @db.VarChar(30)
   dept               DeptEnum
   is_active          Boolean    @default(true)
   created_at         DateTime?  @db.DateTime(0)
@@ -236,8 +236,6 @@ model production_details {
   label_count             Int?         @db.SmallInt
   label_pkg_type          String?      @db.VarChar(50)
   label_check             String?      @db.VarChar(10)
-  sl_follow               String?      @db.VarChar(20)
-  label_remark            String?      @db.Text
   target_amount_mt        Decimal?     @db.Decimal(10, 3)
   empty_drum_wt           Decimal?     @db.Decimal(6, 2)
   flush_kg                Decimal?     @db.Decimal(8, 2)
