@@ -310,7 +310,14 @@ export default function PackLeadScreen() {
   const plReview = lots.filter(l => l.status === "pl_review" && deptOk(l));
   const slRejected = lots.filter(l => l.status === "sl_rejected" && deptOk(l));
   const rejected = lots.filter(l => l.status === "rejected" && deptOk(l));
-  const completed = lots.filter(l => l.status === "completed" && deptOk(l));
+  const thisMonth = new Date().getMonth()
+const thisYear = new Date().getFullYear()
+const completed = lots.filter(l => 
+  l.status === "completed" && 
+  deptOk(l) &&
+  new Date(l.date).getMonth() === thisMonth &&
+  new Date(l.date).getFullYear() === thisYear
+)
 
   async function approveScale(lot: PLLot) {
     console.log('[PL] action: approveScale lot id:', lot.id);

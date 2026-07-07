@@ -87,9 +87,17 @@ function FilterBar({ lots, statusTab, setStatusTab, deptSel, setDeptSel, allowed
 
 function applyFilter(lots: Lot[], statusTab: string, deptSel: string[], allowedDepts: string[]): Lot[] {
   const tab = STATUS_TABS.find(t => t.k === statusTab)
+  const thisMonth = new Date().getMonth()
+  const thisYear = new Date().getFullYear()
   return lots.filter(l => {
     const statusOk = !tab?.statuses || tab.statuses.includes(l.status)
     const deptOk = allowedDepts.includes(l.dept) && (deptSel.length === 0 || deptSel.includes(l.dept))
+    // completed แสดงแค่เดือนปัจจุบัน
+    if (l.status === 'completed') {
+      const d = new Date(l.packing_date || '')
+      const monthOk = d.getMonth() === thisMonth && d.getFullYear() === thisYear
+      return statusOk && deptOk && monthOk
+    }
     return statusOk && deptOk
   })
 }
