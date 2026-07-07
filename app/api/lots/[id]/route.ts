@@ -161,7 +161,6 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       label_no_end,
       label_count,
       label_pkg_type,
-      label_remark,
       flush_kg,
       purge_kg,
       drain_kg,
@@ -203,7 +202,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
           },
         })
         resolvedProductId = newProduct.id
-        console.log('[PATCH /api/lots/' + id + '] auto-created product:', newProduct.id, product_name)
+        console.log('[PATCH /api/lots/' + String(id).replace(/[\r\n]/g, ' ') + '] auto-created product:', newProduct.id, String(product_name).replace(/[\r\n]/g, ' '))
       }
     }
 
@@ -287,7 +286,6 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
               : Number(label_count),
         }),
         ...(label_pkg_type !== undefined && { label_pkg_type }),
-        ...(label_remark !== undefined && { label_remark }),
         ...(flush_kg !== undefined && { flush_kg }),
         ...(purge_kg !== undefined && { purge_kg }),
         ...(drain_kg !== undefined && { drain_kg }),
