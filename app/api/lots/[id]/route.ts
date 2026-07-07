@@ -202,7 +202,6 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
           },
         })
         resolvedProductId = newProduct.id
-        console.log('[PATCH /api/lots/' + String(id).replace(/[\r\n]/g, ' ') + '] auto-created product:', newProduct.id, String(product_name).replace(/[\r\n]/g, ' '))
       }
     }
 

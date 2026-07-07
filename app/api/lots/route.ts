@@ -60,7 +60,6 @@ export async function GET(req: NextRequest) {
       .split(',').map(d => d.trim()).filter(Boolean)
 
     console.log('[GET /api/lots] session user id:', session.user.id, 'role:', session.user.role)
-    console.log('[GET /api/lots] query params:', { status, dept, plan_id })
     console.log('[GET /api/lots] allowedDepts:', allowedDepts)
 
     const where: Prisma.production_detailsWhereInput = {}
@@ -156,8 +155,6 @@ export async function POST(req: NextRequest) {
     } = body
 
     console.log('[POST /api/lots] user id:', session.user.id)
-    console.log('[POST /api/lots] body:', JSON.stringify(body))
-    console.log('[POST /api/lots] required check:', { plan_id, lot_no })
 
     if (!plan_id) {
       return NextResponse.json({ error: 'Missing plan_id' }, { status: 400 })
@@ -183,7 +180,6 @@ export async function POST(req: NextRequest) {
           },
         })
         resolvedProductId = newProduct.id
-        console.log('[POST /api/lots] auto-created product:', newProduct.id, String(product_name).replace(/[\r\n]/g, ' '))
       }
     }
 
