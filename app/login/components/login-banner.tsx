@@ -28,8 +28,8 @@ export default function LoginBanner() {
         </h1>
         
         <p className="mt-3.5 text-base sm:text-lg text-white/70 leading-relaxed font-medium">
-          ระบบติดตามและควบคุมการบรรจุภัณฑ์นงาน
-        </p>
+           ระบบติดตามและควบคุมการบรรจุภัณฑ์
+          </p>
 
       
        <div className="hidden lg:block mt-8 xl:mt-10 space-y-3 text-sm xl:text-base text-white/70 border-t border-white/10 pt-6 w-full">
