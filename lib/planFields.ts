@@ -21,7 +21,7 @@ function getContainerTypeLabel(packaging?: string): string {
 export function buildPlanFields(lot: Record<string, any>) {
   return [
     { l: "Product", v: safeStr(lot.product || lot.product_name) },
-    { l: "LOT NO.", v: safeStr(lot.lot || lot.lot_no) },
+    { l: "Lot No.", v: safeStr(lot.lot || lot.lot_no) },
     { l: "Customer / Country Label", v: safeStr(lot.country_label || lot.customer) },
     { l: "Tank / Blender No.", v: safeStr(lot.blender) },
     { l: "Site Logistics (SL)", v: safeStr(lot.plan_created_by) },

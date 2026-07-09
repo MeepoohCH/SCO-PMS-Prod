@@ -160,7 +160,7 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
     { k: "inprog", icon: <Play size={12} />, l: "In Progress", col: "#185FA5", bg: "#E6F1FB", statuses: ["in_progress"] },
     { k: "shiftend", icon: <PauseCircle size={12} />, l: "Shift End", col: "#854F0B", bg: "#FEF3C7", statuses: ["paused_shift_end"] },
     { k: "issue", icon: <AlertTriangle size={12} />, l: "Issue", col: "#791F1F", bg: "#FCEBEB", statuses: ["paused_issue"] },
-    { k: "emerg", icon: <AlertOctagon size={12} />, l: "Emergency", col: "#501313", bg: "#FCEBEB", statuses: ["paused_emergency"] },
+    // { k: "emerg", icon: <AlertOctagon size={12} />, l: "Emergency", col: "#501313", bg: "#FCEBEB", statuses: ["paused_emergency"] },
     { k: "rejected", icon: <XCircle size={12} />, l: "Rejected", col: "#791F1F", bg: "#FCEBEB", statuses: ["rejected"] },
     { k: "submitted", icon: <CheckCircle2 size={12} />, l: "Submitted", col: "#534AB7", bg: "#EEEDFE", statuses: ["submitted"] },
     { k: "pl_review", icon: <ClipboardCheck size={12} />, l: "PL Review", col: "#534AB7", bg: "#EEEDFE", statuses: ["pl_review"] },
@@ -776,7 +776,7 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
           className="flex items-center gap-2 mb-4 px-4 py-2 rounded-xl bg-white border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors cursor-pointer"
         >
           <ArrowLeft size={16} />
-          Back
+          Home
         </button>
 
         <div className="flex items-center gap-2.5 mb-4">
@@ -801,7 +801,7 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
             <div className="grid grid-cols-2 gap-2.5">
               <Btn
                 label={<span className="flex items-center justify-center gap-1.5">
-                  <ArrowLeft size={14} />Back
+                  Back
                 </span>}
                 color="#9BA3BA"
                 outline
@@ -1138,8 +1138,8 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium border-[0.5px] border-[#DDE2EE] bg-white cursor-pointer"
             >
               {sortOrder === 'newest'
-                ? <><ArrowDown size={12} /> Newest first</>
-                : <><ArrowUp size={12} /> Oldest first</>
+                ? <><ArrowDown size={12} /> Newest</>
+                : <><ArrowUp size={12} /> Oldest</>
               }
             </button>
             <span className="text-[11px] text-[#9BA3BA]">{filteredLots.length} lot{filteredLots.length !== 1 ? "s" : ""}</span>

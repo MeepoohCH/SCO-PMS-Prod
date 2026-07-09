@@ -193,8 +193,8 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
     }
   }
 
-  const isIssueMode = ['paused_issue', 'paused_emergency', 'rejected'].includes(lot.status)
-  const isLockedByPause = ['paused_shift_end', 'paused_issue', 'paused_emergency'].includes(lot.status)
+  const isIssueMode = ['paused_issue', 'rejected'].includes(lot.status)
+  const isLockedByPause = ['paused_shift_end', 'paused_issue'].includes(lot.status)
   const isViewOnly = ['submitted', 'head_approved', 'sl_rejected', 'completed'].includes(lot.status)
   const forceReadOnly = isLockedByPause || isViewOnly
 
@@ -820,7 +820,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   const totalP = lot.planned_pallets || 0
   const isTote = (lot.packaging || '').toLowerCase().includes('tote') || (lot.packaging || '').toLowerCase().includes('ibc')
   const showPause = !paused && lot.status !== 'pl_review' && (pkStep <= 2 || pkStep === 3 || pkStep === 4)
-  const pausePre = pkStep !== 3
+  const pausePre = true // ซ่อน Emergency ทุก step
 
   // ── Step 0 validation (mirrors Step0Date.tsx nextDisabled exactly) ──
   const latexPreScaleOk = lot.dept !== 'Latex' || (
@@ -1338,7 +1338,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
       }}
         className="flex items-center gap-2 mb-4 px-4 py-2 rounded-xl bg-white border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors cursor-pointer">
         <ArrowLeft size={16} />
-        Back
+        Home
       </button>
 
       {/* Issue / Emergency / Rejected banner */}

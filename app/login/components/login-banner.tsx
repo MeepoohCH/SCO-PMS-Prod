@@ -24,7 +24,7 @@ export default function LoginBanner() {
         </p>
         
         <h1 className="text-[22px] sm:text-[26px] lg:text-[28px] xl:text-[32px] font-black text-white leading-[1.2] tracking-wide">
-          Packaging Management <span className="text-[#EF9F27]">System</span>
+          Packing Web Base
         </h1>
         
         <p className="mt-3.5 text-base sm:text-lg text-white/70 leading-relaxed font-medium">

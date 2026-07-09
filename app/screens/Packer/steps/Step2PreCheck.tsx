@@ -102,7 +102,7 @@ export function Step2PreCheck({
                   style={{ borderColor: !emptyDrumWt ? '#DDE2EE' : +emptyDrumWt > 0 && (isTote || +emptyDrumWt <= 20) ? '#27500A' : '#E24B4A' }} />
                 <span className="text-[11px] text-gray-400">kg</span>
               </div>
-              <div className="text-[10px] text-gray-400 mt-1">Drum: ≤ 20 kg / Tote หรือ IBC: เกิน 20 kg ได้</div>
+              <div className="text-[10px] text-gray-400 mt-1">Drum: ≤ 20 kg / Tote: เกิน 20 kg ได้</div>
             </div>
           )}
           {i === 2 && preChk[item.id] === 'No' && (

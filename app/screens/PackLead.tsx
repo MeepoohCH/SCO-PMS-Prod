@@ -213,9 +213,10 @@ function ScaleApprovalCard({ lot, onApprove, onReject }: ScaleApprovalCardProps)
         </button>
         <Btn
           label={approving ? "Approving..." : "Approve Scale MDU"}
-          color="#534AB7"
+          color="#27500A"
           full
           disabled={approving}
+          icon={<CheckCircle2 size={16} />}
           onClick={async () => {
             setApproving(true);
             try { await onApprove(); }
@@ -311,13 +312,13 @@ export default function PackLeadScreen() {
   const slRejected = lots.filter(l => l.status === "sl_rejected" && deptOk(l));
   const rejected = lots.filter(l => l.status === "rejected" && deptOk(l));
   const thisMonth = new Date().getMonth()
-const thisYear = new Date().getFullYear()
-const completed = lots.filter(l => 
-  l.status === "completed" && 
-  deptOk(l) &&
-  new Date(l.date).getMonth() === thisMonth &&
-  new Date(l.date).getFullYear() === thisYear
-)
+  const thisYear = new Date().getFullYear()
+  const completed = lots.filter(l =>
+    l.status === "completed" &&
+    deptOk(l) &&
+    new Date(l.date).getMonth() === thisMonth &&
+    new Date(l.date).getFullYear() === thisYear
+  )
 
   async function approveScale(lot: PLLot) {
     console.log('[PL] action: approveScale lot id:', lot.id);
@@ -741,9 +742,34 @@ const completed = lots.filter(l =>
             ? <div className="text-center py-[60px] text-[#9BA3BA]"><Scale size={36} className="text-gray-300 mx-auto mb-3" />No pending scale approvals</div>
             : scalePending.length === 0
               ? null
-              : scalePending.map(lot => (
-                <ScaleCard key={lot.id} lot={lot} onApprove={approveScale} onReject={rejectScale} />
-              ))
+              : scalePending.map(lot => {
+                const dc2 = DC[lot.dept] || "#534AB7";
+                return (
+                  <div key={lot.id} className="bg-white border border-gray-200 border-l-4 rounded-r-xl p-3.5 mb-2.5"
+                    style={{ borderLeftColor: dc2 }}>
+                    <div className="flex justify-between items-start mb-1.5">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex gap-1.5 mb-1 flex-wrap">
+                          <DeptBadge dept={lot.dept} />
+                          <Badge s={lot.status} />
+                          {lot.date && <span className="text-[11px] text-[#9BA3BA]">{formatDate(lot.date)}</span>}
+                        </div>
+                        <div className="text-sm font-medium text-[#0E1117] truncate">{lot.product}</div>
+                        <div className="text-[11px] text-[#9BA3BA] truncate"><span className="font-bold">#{(lot as any).display_no ?? "-"}</span> {lot.lot}</div>
+                      </div>
+                      <div className="flex-shrink-0 ml-3 text-right">
+                        <div className="text-base font-bold text-[#1D9E75]">{lot.blender || "-"}</div>
+                        <div className="text-[13px] text-[#9BA3BA]">{lot.target} MT</div>
+                      </div>
+                    </div>
+                    <ScaleApprovalCard
+                      lot={lot}
+                      onApprove={async () => { await approveScale(lot) }}
+                      onReject={() => rejectScale(lot)}
+                    />
+                  </div>
+                );
+              })
         )}
 
         {/* SL Rejected tab — PL must acknowledge before Packer sees it */}

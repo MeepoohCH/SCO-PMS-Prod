@@ -526,7 +526,7 @@ export default function AdminScreen({ lots, setLots }: AdminScreenProps) {
     { k: "in_progress", l: "In Progress", icon: <Play size={14} />, col: "#185FA5", bg: "#E6F1FB" },
     { k: "paused_shift_end", l: "Shift End", icon: <PauseCircle size={14} />, col: "#854F0B", bg: "#FEF3C7" },
     { k: "paused_issue", l: "Issue", icon: <AlertTriangle size={14} />, col: "#791F1F", bg: "#FCEBEB" },
-    { k: "paused_emergency", l: "Emergency", icon: <AlertOctagon size={14} />, col: "#501313", bg: "#FCEBEB" },
+    // { k: "paused_emergency", l: "Emergency", icon: <AlertOctagon size={14} />, col: "#501313", bg: "#FCEBEB" },
     { k: "rejected", l: "Rejected", icon: <XCircle size={14} />, col: "#791F1F", bg: "#FCEBEB" },
     { k: "submitted", l: "Submitted", icon: <CheckCircle size={14} />, col: "#534AB7", bg: "#EEEDFE" },
     { k: "head_approved", l: "PL Approved", icon: <CheckCircle2 size={14} />, col: "#854F0B", bg: "#FEF3C7" },
@@ -712,8 +712,8 @@ export default function AdminScreen({ lots, setLots }: AdminScreenProps) {
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-[#0F2347] font-medium border-[0.5px] border-[#DDE2EE] bg-white cursor-pointer"
                 >
                   {sortOrder === 'newest'
-                    ? <><ArrowDown size={12} /> Newest first</>
-                    : <><ArrowUp size={12} /> Oldest first</>
+                    ? <><ArrowDown size={12} /> Newest</>
+                    : <><ArrowUp size={12} /> Oldest</>
                   }
                 </button>
                 <span className="text-[11px] text-[#9BA3BA]">{filteredLots.length} lot{filteredLots.length !== 1 ? "s" : ""}</span>

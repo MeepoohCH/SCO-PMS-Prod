@@ -435,7 +435,7 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
           className="flex items-center gap-2 mb-4 px-4 py-2 rounded-xl bg-white border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span className="hidden sm:block">Back</span>
+          <span className="hidden sm:block">Home</span>
         </button>
       )}
 
