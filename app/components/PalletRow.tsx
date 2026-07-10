@@ -91,7 +91,7 @@ export function PalletRow({ session, preItems45, dept, dc = '#0F6E56', totalP }:
               </span>
             </div>
           )}
-          {hasFailedAttempts && (
+          {hasFailedAttempts && !isLastPallet && (
             <div className="mt-2 pt-2 border-t border-gray-200">
               <div className="text-[10px] font-semibold text-amber-700 mb-1">
                 แก้ไขแล้ว {(session.recheck ?? []).filter(r => !r.pass).length} ครั้ง:
@@ -100,8 +100,8 @@ export function PalletRow({ session, preItems45, dept, dc = '#0F6E56', totalP }:
                 <div key={i} className="text-[10px] text-red-600">
                   Attempt {r.no}: {r.wt} kg —{' '}
                   {r.failReason === 'underweight' ? 'น้ำหนักน้อยเกินไป'
-                   : r.failReason === 'overweight' ? 'น้ำหนักเกิน'
-                   : 'ไม่ผ่าน'}
+                    : r.failReason === 'overweight' ? 'น้ำหนักเกิน'
+                      : 'ไม่ผ่าน'}
                 </div>
               ))}
             </div>

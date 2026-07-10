@@ -603,7 +603,7 @@ export function SuccessTab({ lots, onEdit, onViewProgress, isAdmin = false }: Su
         <div className="flex flex-wrap gap-2 items-center mb-3">
           <span className="text-xs font-medium text-gray-500 min-w-[72px]">Search</span>
           <input value={keyword} onChange={e => setKeyword(e.target.value)}
-            placeholder="Product · LOT no. · Blender · Customer"
+            placeholder="Product · Lot no. · Blender · Customer"
             className="h-9 px-3 text-xs border border-gray-200 rounded-lg w-72 text-[#193f5e]" />
           {keyword && (
             <button onClick={() => setKeyword("")} className="text-[11px] text-gray-400 bg-transparent border-none cursor-pointer">✕ Clear</button>

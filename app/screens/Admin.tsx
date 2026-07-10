@@ -45,7 +45,7 @@ interface RowData {
 
 interface RoleCardData {
   role: string;
-  icon?: React.ReactNode; 
+  icon?: React.ReactNode;
   color: string;
   border?: string;
   rows: RowData[];
@@ -220,14 +220,15 @@ const ROLE_COLORS: Record<string, { bg: string; color: string; border: string }>
   sl: { bg: "#E6F1FB", color: "#185FA5", border: "#185FA5" },
   pl: { bg: "#EEEDFE", color: "#534AB7", border: "#534AB7" },
   packer: { bg: "#E1F5EE", color: "#0F6E56", border: "#0F6E56" },
+  staff: { bg: "#F4F5F7", color: "#6B7280", border: "#6B7280" },
 };
-const ALL_ROLES = ["admin", "sl", "pl", "packer"] as const;
+const ALL_ROLES = ["admin", "sl", "pl", "packer", "staff"] as const;
 
 const DEPT_COLORS: Record<string, { bg: string; color: string; border: string }> = {
-  all:   { bg: "#F4F5F7", color: "#5A617A", border: "#DDE2EE" },
-  PUF:   { bg: "#EEEDFE", color: "#26215C", border: "#534AB7" },
-  PU:    { bg: "#E6F1FB", color: "#042C53", border: "#185FA5" },
-  IBC:   { bg: "#FFF7ED", color: "#7C2D12", border: "#D97706" },
+  all: { bg: "#F4F5F7", color: "#5A617A", border: "#DDE2EE" },
+  PUF: { bg: "#EEEDFE", color: "#26215C", border: "#534AB7" },
+  PU: { bg: "#E6F1FB", color: "#042C53", border: "#185FA5" },
+  IBC: { bg: "#FFF7ED", color: "#7C2D12", border: "#D97706" },
   Latex: { bg: "#E1F5EE", color: "#04342C", border: "#0F6E56" },
 };
 const ALL_DEPTS = ["all", "PUF", "PU", "IBC", "Latex"] as const;
@@ -518,7 +519,7 @@ export default function AdminScreen({ lots, setLots }: AdminScreenProps) {
       ],
     },
   ];
-  
+
   const statusFilters: StatusFilter[] = ([
     { k: "all", l: "All", icon: <LayoutGrid size={14} />, col: "#0E1117", bg: "#F4F5F7" },
     { k: "draft", l: "Draft", icon: <FileText size={14} />, col: "#5F5E5A", bg: "#F1EFE8" },
@@ -666,8 +667,8 @@ export default function AdminScreen({ lots, setLots }: AdminScreenProps) {
                     style={{
                       fontWeight: active ? 600 : 400,
                       background: active ? bg : "transparent",
-                      color:      active ? col : "#9BA3BA",
-                      border:     `0.5px solid ${active ? col : "transparent"}`,
+                      color: active ? col : "#9BA3BA",
+                      border: `0.5px solid ${active ? col : "transparent"}`,
                     }}>
                     <span className="text-[13px]">{icon}</span>
                     {l}
@@ -692,8 +693,8 @@ export default function AdminScreen({ lots, setLots }: AdminScreenProps) {
                     className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium cursor-pointer border-[0.5px]"
                     style={{
                       borderColor: on ? dc : "#DDE2EE",
-                      background:  on ? DEPT[d].badge.bg : "#F4F5F7",
-                      color:       on ? dc : "#9BA3BA",
+                      background: on ? DEPT[d].badge.bg : "#F4F5F7",
+                      color: on ? dc : "#9BA3BA",
                     }}>
                     {on && <span className="text-[10px] font-bold" style={{ color: dc }}>✓</span>}
                     {DEPT[d]?.icon} {d}
@@ -819,48 +820,48 @@ export default function AdminScreen({ lots, setLots }: AdminScreenProps) {
           <>
             <div className="flex items-center justify-between mb-3.5">
               <div className="text-[16px] font-medium text-[#0E1117]">Database Management</div>
-                <div className="flex items-center gap-2">
-                  {/* Search */}
-                  <div className="relative">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input
-                      value={dbSearch}
-                      onChange={e => { setDbSearch(e.target.value); setEditing(null); }}
-                      placeholder="Search..."
-                      className="h-10 pl-8 pr-3 text-[13px] border border-[#DDE2EE] rounded-lg outline-none w-44 focus:border-[#0F2347]"
-                    />
-                  </div>
-
-                  {/* Sort */}
-                  <button
-                    onClick={() => setDbSortOrder(o => o === 'newest' ? 'oldest' : 'newest')}
-                    className="flex items-center gap-1.5 h-10 px-3 text-[12px] font-medium border border-[#DDE2EE] rounded-lg cursor-pointer bg-white text-[#0F2347]"
-                  >
-                    {dbSortOrder === 'newest'
-                      ? <><ArrowDown size={12} /> Newest first</>
-                      : <><ArrowUp size={12} /> Oldest first</>
-                    }
-                  </button>
-
-                  {/* Add */}
-                  {!addMode && (
-                    <Btn
-                      label={`+ Add ${DB_TABS.find(t => t.k === dbTab)?.l || 'Row'}`}
-                      color="#E24B4A"
-                      sm
-                      onClick={() => {
-                        setAddMode(true)
-                        if (dbTab === "checklist_items") {
-                          setNewRow(p => ({ ...p, is_required: "true" }))
-                        }
-                      }}
-                    />
-                  )}
+              <div className="flex items-center gap-2">
+                {/* Search */}
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    value={dbSearch}
+                    onChange={e => { setDbSearch(e.target.value); setEditing(null); }}
+                    placeholder="Search..."
+                    className="h-10 pl-8 pr-3 text-[13px] border border-[#DDE2EE] rounded-lg outline-none w-44 focus:border-[#0F2347]"
+                  />
                 </div>
+
+                {/* Sort */}
+                <button
+                  onClick={() => setDbSortOrder(o => o === 'newest' ? 'oldest' : 'newest')}
+                  className="flex items-center gap-1.5 h-10 px-3 text-[12px] font-medium border border-[#DDE2EE] rounded-lg cursor-pointer bg-white text-[#0F2347]"
+                >
+                  {dbSortOrder === 'newest'
+                    ? <><ArrowDown size={12} /> Newest first</>
+                    : <><ArrowUp size={12} /> Oldest first</>
+                  }
+                </button>
+
+                {/* Add */}
+                {!addMode && (
+                  <Btn
+                    label={`+ Add ${DB_TABS.find(t => t.k === dbTab)?.l || 'Row'}`}
+                    color="#E24B4A"
+                    sm
+                    onClick={() => {
+                      setAddMode(true)
+                      if (dbTab === "checklist_items") {
+                        setNewRow(p => ({ ...p, is_required: "true" }))
+                      }
+                    }}
+                  />
+                )}
+              </div>
             </div>
 
             {/* DB tab bar */}
-      
+
             <div className="flex gap-0 border-b border-[#DDE2EE] mb-3">
               {DB_TABS.map(t => (
                 <button key={t.k}
@@ -902,8 +903,8 @@ export default function AdminScreen({ lots, setLots }: AdminScreenProps) {
                     <span className="text-[#DDE2EE] mx-0.5 select-none">|</span>
                     <span className="text-[11px] text-[#9BA3BA] font-medium">Phase:</span>
                     {([
-                      { v: "all",  l: "All",        bg: "#F4F5F7", c: "#5A617A", border: "#DDE2EE" },
-                      { v: "pre",  l: "Pre-check",  bg: "#E6F1FB", c: "#185FA5", border: "#185FA5" },
+                      { v: "all", l: "All", bg: "#F4F5F7", c: "#5A617A", border: "#DDE2EE" },
+                      { v: "pre", l: "Pre-check", bg: "#E6F1FB", c: "#185FA5", border: "#185FA5" },
                       { v: "post", l: "Post-check", bg: "#EAF3DE", c: "#27500A", border: "#27500A" },
                     ] as const).map(({ v, l, bg, c, border }) => {
                       const active = dbPhaseFilter === v;
@@ -1089,296 +1090,296 @@ export default function AdminScreen({ lots, setLots }: AdminScreenProps) {
 
             {/* DB table */}
             <div className="overflow-x-auto mb-3">
-            <div className={dbTab !== "users" ? "min-w-[1200px]" : ""}>
-            <div className="bg-white border border-[#DDE2EE] rounded-xl overflow-hidden">
-              {/* Header — non-users tabs only */}
-              {dbTab !== "users" && (
-                <div className="flex bg-[#0F2347] px-3.5 py-2.5 gap-2">
-                  {fds.map(f => (
-                    <div key={f.k} className="flex-1 text-[10px] font-medium text-white/45 uppercase">{f.l}</div>
-                  ))}
-                  <div className="text-[10px] text-white/45 w-[130px]">Actions</div>
-                </div>
-              )}
-              
-
-              {/* Data rows */}
-      
-              {sortedDbRows.map((row, idx) => (
-                dbTab === "users" ? (
-                  /* ── USERS: collapsible card ── */
-                  <div key={String(row.id ?? idx)} className="border-b border-[#DDE2EE]">
-                    <div className="flex items-center px-3.5 py-2.5 gap-2 cursor-pointer hover:bg-blue-50 transition-colors"
-                      style={{ background: idx % 2 === 0 ? "#fff" : "#f9fafb" }}
-                      onClick={() => toggleRow(idx)}>
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ background: "#185FA5" }}>
-                        {String(row.full_name ?? row.username ?? "?")[0].toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-semibold text-[#0E1117] truncate">{String(row.full_name ?? "")}</div>
-                        <div className="text-[11px] text-[#9BA3BA] ">{String(row.username ?? "")}</div>
-                      </div>
-                      <div className="flex gap-1 flex-shrink-0">
-                        {(Array.isArray(row.roles) ? row.roles as string[] : String(row.roles ?? "").split(",").filter(Boolean)).map(role => {
-                          const c = ROLE_COLORS[role.trim()] ?? { bg: "#F4F5F7", color: "#5A617A", border: "#DDE2EE" };
-                          return <span key={role} className="text-[10px] font-semibold px-2 py-0.5 rounded-full border-[1px]" style={{ background: c.bg, color: c.color, borderColor: c.border }}>{role.trim()}</span>;
-                        })}
-                      </div>
-                      <div className="flex gap-1 flex-shrink-0">
-                        {String(row.allowed_depts ?? "all").split(",").filter(Boolean).slice(0, 2).map(dept => {
-                          const c = DEPT_COLORS[dept.trim()] ?? DEPT_COLORS.all;
-                          return <span key={dept} className="text-[10px] font-semibold px-2 py-0.5 rounded-full border-[1px]" style={{ background: c.bg, color: c.color, borderColor: c.border }}>{dept.trim()}</span>;
-                        })}
-                      </div>
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full flex-shrink-0 ${row.is_active ? "bg-[#EAF3DE] text-[#27500A]" : "bg-[#FCEBEB] text-[#791F1F]"}`}>
-                        {row.is_active ? "Active" : "Inactive"}
-                      </span>
-                      <ChevronDown size={16} className="text-[#9BA3BA] flex-shrink-0 transition-transform"
-                        style={{ transform: (expandedRows.has(idx) || editing?.idx === idx) ? "rotate(180deg)" : "rotate(0deg)" }} />
+              <div className={dbTab !== "users" ? "min-w-[1200px]" : ""}>
+                <div className="bg-white border border-[#DDE2EE] rounded-xl overflow-hidden">
+                  {/* Header — non-users tabs only */}
+                  {dbTab !== "users" && (
+                    <div className="flex bg-[#0F2347] px-3.5 py-2.5 gap-2">
+                      {fds.map(f => (
+                        <div key={f.k} className="flex-1 text-[10px] font-medium text-white/45 uppercase">{f.l}</div>
+                      ))}
+                      <div className="text-[10px] text-white/45 w-[130px]">Actions</div>
                     </div>
-                    {(expandedRows.has(idx) || editing?.idx === idx) && (
-                      <div className="px-3.5 py-3 bg-[#F8FAFC] border-t border-[#DDE2EE]">
-                        {editing?.idx === idx ? (
-                          <div className="flex flex-wrap gap-2">
-                            {fds.map((f, fi) => {
-                              const colW = (["w-[120px]","w-[120px]","w-[140px]","w-[160px]","w-[120px]","w-[80px]"][fi] ?? "flex-1");
-                              return (
-                                <div key={f.k} className={colW}>
-                                  <div className="text-[10px] text-[#9BA3BA] mb-1 uppercase">{f.l}</div>
-                                  {f.k === "pack_lead_id" ? (
-                                    <select value={String(editing.row[f.k] ?? "")} onChange={e => setEditing(p => p ? { ...p, row: { ...p.row, pack_lead_id: e.target.value } } : null)} className="w-full h-10 px-2 text-[12px] border border-[#DDE2EE] rounded-md">
-                                      <option value="">Select Pack Lead...</option>
-                                      {db.users.filter(u => { const r = Array.isArray(u.roles) ? u.roles as string[] : String(u.roles ?? "").split(","); return r.some(x => x.trim() === "pl"); }).map(u => <option key={String(u.id)} value={String(u.id)}>{String(u.full_name || u.username || "")}</option>)}
-                                    </select>
-                                  ) : f.opts ? (
-                                    <select value={editing.row[f.k] == null ? "" : String(editing.row[f.k])} onChange={e => setEditing(p => p ? { ...p, row: { ...p.row, [f.k]: e.target.value } } : null)} className="w-full h-10 px-2 text-[12px] border border-[#DDE2EE] rounded-md">
-                                      {f.opts.map(o => <option key={o}>{o}</option>)}
-                                    </select>
-                                  ) : f.k === "roles" ? (
-                                    <>
-                                      <div className="flex gap-1.5 flex-wrap pt-1">
-                                        {ALL_ROLES.map(role => {
-                                          const on = selectedRoles.includes(role);
-                                          const disabled = !on && selectedRoles.length >= 2;
-                                          const c = ROLE_COLORS[role];
-                                          return <button key={role} onClick={() => !disabled && toggleRole(role)} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border-[1.5px]" style={{ opacity: disabled ? 0.4 : 1, cursor: disabled ? "not-allowed" : "pointer", background: on ? c.bg : "#F4F5F7", color: on ? c.color : "#9BA3BA", borderColor: on ? c.border : "#DDE2EE" }}>{on && <CheckCircle2 size={11} />}{role}</button>;
-                                        })}
-                                      </div>
-                                      <div className="text-[11px] text-[#9BA3BA] mt-1.5">Max 2 roles ({selectedRoles.length}/2){selectedRoles.length >= 2 && <span className="text-[#CC0000] ml-1">— Maxed out</span>}</div>
-                                    </>
-                                  ) : f.k === "allowed_depts" ? (
-                                    <>
-                                      <div className="flex gap-1.5 flex-wrap pt-1">
-                                        {ALL_DEPTS.map(dept => {
-                                          const on = selectedDepts.includes(dept);
-                                          const c = DEPT_COLORS[dept];
-                                          return <button key={dept} onClick={() => toggleDept(dept)} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border-[1.5px] cursor-pointer" style={{ background: on ? c.bg : "#F4F5F7", color: on ? c.color : "#9BA3BA", borderColor: on ? c.border : "#DDE2EE" }}>{on && <CheckCircle2 size={11} />}{dept === "all" ? "All Depts" : dept}</button>;
-                                        })}
-                                      </div>
-                                      <div className="text-[11px] text-[#9BA3BA] mt-1.5">Select "All" or specific departments ({selectedDepts.join(", ") || "none"})</div>
-                                    </>
-                                  ) : (
-                                    <input type={f.type || "text"} value={safeStr(editing.row[f.k])} onChange={e => setEditing(p => p ? { ...p, row: { ...p.row, [f.k]: e.target.value } } : null)} className="w-full h-10 px-2 text-[12px] border border-[#DDE2EE] rounded-md" />
-                                  )}
-                                </div>
-                              );
-                            })}
-                            <div className="flex gap-1 items-end pb-1">
-                              <Btn label="Save" color="#27500A" sm onClick={saveEdit} />
-                              <Btn label="Cancel" color="#9BA3BA" outline sm onClick={() => { setEditing(null); setSelectedRoles([]); setSelectedDepts([]); setSelectedFormTypes([]); }} />
-                            </div>
+                  )}
+
+
+                  {/* Data rows */}
+
+                  {sortedDbRows.map((row, idx) => (
+                    dbTab === "users" ? (
+                      /* ── USERS: collapsible card ── */
+                      <div key={String(row.id ?? idx)} className="border-b border-[#DDE2EE]">
+                        <div className="flex items-center px-3.5 py-2.5 gap-2 cursor-pointer hover:bg-blue-50 transition-colors"
+                          style={{ background: idx % 2 === 0 ? "#fff" : "#f9fafb" }}
+                          onClick={() => toggleRow(idx)}>
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ background: "#185FA5" }}>
+                            {String(row.full_name ?? row.username ?? "?")[0].toUpperCase()}
                           </div>
-                        ) : (
-                          <>
-                            <div className="grid grid-cols-1 gap-2 mb-3">
-                              {([
-                                { l: "Pack Lead", v: (() => { const pl = db.users.find(u => String(u.id) === String(row.pack_lead_id)); return pl ? String(pl.full_name ?? pl.username ?? "—") : "—"; })() },
-                              ] as { l: string; v: string }[]).map(({ l, v }) => (
-                                <div key={l} className="bg-white rounded-lg px-3 py-2 border border-[#DDE2EE]">
-                                  <div className="text-[10px] text-[#9BA3BA] mb-0.5">{l}</div>
-                                  <div className="text-[12px] font-medium text-[#0E1117]">{v}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[13px] font-semibold text-[#0E1117] truncate">{String(row.full_name ?? "")}</div>
+                            <div className="text-[11px] text-[#9BA3BA] ">{String(row.username ?? "")}</div>
+                          </div>
+                          <div className="flex gap-1 flex-shrink-0">
+                            {(Array.isArray(row.roles) ? row.roles as string[] : String(row.roles ?? "").split(",").filter(Boolean)).map(role => {
+                              const c = ROLE_COLORS[role.trim()] ?? { bg: "#F4F5F7", color: "#5A617A", border: "#DDE2EE" };
+                              return <span key={role} className="text-[10px] font-semibold px-2 py-0.5 rounded-full border-[1px]" style={{ background: c.bg, color: c.color, borderColor: c.border }}>{role.trim()}</span>;
+                            })}
+                          </div>
+                          <div className="flex gap-1 flex-shrink-0">
+                            {String(row.allowed_depts ?? "all").split(",").filter(Boolean).slice(0, 2).map(dept => {
+                              const c = DEPT_COLORS[dept.trim()] ?? DEPT_COLORS.all;
+                              return <span key={dept} className="text-[10px] font-semibold px-2 py-0.5 rounded-full border-[1px]" style={{ background: c.bg, color: c.color, borderColor: c.border }}>{dept.trim()}</span>;
+                            })}
+                          </div>
+                          <span className={`text-[11px] px-2 py-0.5 rounded-full flex-shrink-0 ${row.is_active ? "bg-[#EAF3DE] text-[#27500A]" : "bg-[#FCEBEB] text-[#791F1F]"}`}>
+                            {row.is_active ? "Active" : "Inactive"}
+                          </span>
+                          <ChevronDown size={16} className="text-[#9BA3BA] flex-shrink-0 transition-transform"
+                            style={{ transform: (expandedRows.has(idx) || editing?.idx === idx) ? "rotate(180deg)" : "rotate(0deg)" }} />
+                        </div>
+                        {(expandedRows.has(idx) || editing?.idx === idx) && (
+                          <div className="px-3.5 py-3 bg-[#F8FAFC] border-t border-[#DDE2EE]">
+                            {editing?.idx === idx ? (
+                              <div className="flex flex-wrap gap-2">
+                                {fds.map((f, fi) => {
+                                  const colW = (["w-[120px]", "w-[120px]", "w-[140px]", "w-[160px]", "w-[120px]", "w-[80px]"][fi] ?? "flex-1");
+                                  return (
+                                    <div key={f.k} className={colW}>
+                                      <div className="text-[10px] text-[#9BA3BA] mb-1 uppercase">{f.l}</div>
+                                      {f.k === "pack_lead_id" ? (
+                                        <select value={String(editing.row[f.k] ?? "")} onChange={e => setEditing(p => p ? { ...p, row: { ...p.row, pack_lead_id: e.target.value } } : null)} className="w-full h-10 px-2 text-[12px] border border-[#DDE2EE] rounded-md">
+                                          <option value="">Select Pack Lead...</option>
+                                          {db.users.filter(u => { const r = Array.isArray(u.roles) ? u.roles as string[] : String(u.roles ?? "").split(","); return r.some(x => x.trim() === "pl"); }).map(u => <option key={String(u.id)} value={String(u.id)}>{String(u.full_name || u.username || "")}</option>)}
+                                        </select>
+                                      ) : f.opts ? (
+                                        <select value={editing.row[f.k] == null ? "" : String(editing.row[f.k])} onChange={e => setEditing(p => p ? { ...p, row: { ...p.row, [f.k]: e.target.value } } : null)} className="w-full h-10 px-2 text-[12px] border border-[#DDE2EE] rounded-md">
+                                          {f.opts.map(o => <option key={o}>{o}</option>)}
+                                        </select>
+                                      ) : f.k === "roles" ? (
+                                        <>
+                                          <div className="flex gap-1.5 flex-wrap pt-1">
+                                            {ALL_ROLES.map(role => {
+                                              const on = selectedRoles.includes(role);
+                                              const disabled = !on && selectedRoles.length >= 2;
+                                              const c = ROLE_COLORS[role];
+                                              return <button key={role} onClick={() => !disabled && toggleRole(role)} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border-[1.5px]" style={{ opacity: disabled ? 0.4 : 1, cursor: disabled ? "not-allowed" : "pointer", background: on ? c.bg : "#F4F5F7", color: on ? c.color : "#9BA3BA", borderColor: on ? c.border : "#DDE2EE" }}>{on && <CheckCircle2 size={11} />}{role}</button>;
+                                            })}
+                                          </div>
+                                          <div className="text-[11px] text-[#9BA3BA] mt-1.5">Max 2 roles ({selectedRoles.length}/2){selectedRoles.length >= 2 && <span className="text-[#CC0000] ml-1">— Maxed out</span>}</div>
+                                        </>
+                                      ) : f.k === "allowed_depts" ? (
+                                        <>
+                                          <div className="flex gap-1.5 flex-wrap pt-1">
+                                            {ALL_DEPTS.map(dept => {
+                                              const on = selectedDepts.includes(dept);
+                                              const c = DEPT_COLORS[dept];
+                                              return <button key={dept} onClick={() => toggleDept(dept)} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border-[1.5px] cursor-pointer" style={{ background: on ? c.bg : "#F4F5F7", color: on ? c.color : "#9BA3BA", borderColor: on ? c.border : "#DDE2EE" }}>{on && <CheckCircle2 size={11} />}{dept === "all" ? "All Depts" : dept}</button>;
+                                            })}
+                                          </div>
+                                          <div className="text-[11px] text-[#9BA3BA] mt-1.5">Select "All" or specific departments ({selectedDepts.join(", ") || "none"})</div>
+                                        </>
+                                      ) : (
+                                        <input type={f.type || "text"} value={safeStr(editing.row[f.k])} onChange={e => setEditing(p => p ? { ...p, row: { ...p.row, [f.k]: e.target.value } } : null)} className="w-full h-10 px-2 text-[12px] border border-[#DDE2EE] rounded-md" />
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                                <div className="flex gap-1 items-end pb-1">
+                                  <Btn label="Save" color="#27500A" sm onClick={saveEdit} />
+                                  <Btn label="Cancel" color="#9BA3BA" outline sm onClick={() => { setEditing(null); setSelectedRoles([]); setSelectedDepts([]); setSelectedFormTypes([]); }} />
                                 </div>
-                              ))}
-                            </div>
-                            <div className="flex gap-2">
-                                <Btn label="Edit" color="#534AB7" sm onClick={() => {
-                                  setEditing({ idx, row: { ...row } })
+                              </div>
+                            ) : (
+                              <>
+                                <div className="grid grid-cols-1 gap-2 mb-3">
+                                  {([
+                                    { l: "Pack Lead", v: (() => { const pl = db.users.find(u => String(u.id) === String(row.pack_lead_id)); return pl ? String(pl.full_name ?? pl.username ?? "—") : "—"; })() },
+                                  ] as { l: string; v: string }[]).map(({ l, v }) => (
+                                    <div key={l} className="bg-white rounded-lg px-3 py-2 border border-[#DDE2EE]">
+                                      <div className="text-[10px] text-[#9BA3BA] mb-0.5">{l}</div>
+                                      <div className="text-[12px] font-medium text-[#0E1117]">{v}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="flex gap-2">
+                                  <Btn label="Edit" color="#534AB7" sm onClick={() => {
+                                    setEditing({ idx, row: { ...row } })
 
-                                  const rolesVal = Array.isArray(row.roles)
-                                    ? row.roles as string[]
-                                    : String(row.roles ?? "").split(",").filter(Boolean)
-                                  setSelectedRoles(rolesVal)
+                                    const rolesVal = Array.isArray(row.roles)
+                                      ? row.roles as string[]
+                                      : String(row.roles ?? "").split(",").filter(Boolean)
+                                    setSelectedRoles(rolesVal)
 
-                                  const deptsVal = Array.isArray(row.allowed_depts)
-                                    ? row.allowed_depts as string[]
-                                    : String(row.allowed_depts ?? 'all').split(',').filter(Boolean)
-                                  setSelectedDepts(deptsVal.length > 0 ? deptsVal : ['all'])
+                                    const deptsVal = Array.isArray(row.allowed_depts)
+                                      ? row.allowed_depts as string[]
+                                      : String(row.allowed_depts ?? 'all').split(',').filter(Boolean)
+                                    setSelectedDepts(deptsVal.length > 0 ? deptsVal : ['all'])
 
-                                  setExpandedRows(prev => {
-                                    const next = new Set(prev)
-                                    next.add(idx)
-                                    return next
-                                  })
-                                }} />
-                              <button onClick={() => toggleActive(idx, row)} className={`h-9 px-3 rounded-lg text-[11px] font-medium cursor-pointer border ${row.is_active ? "bg-[#FCEBEB] text-[#791F1F] border-[#E24B4A]" : "bg-[#EAF3DE] text-[#27500A] border-[#27500A]"}`}>
-                                {row.is_active ? "Deactivate" : "Activate"}
-                              </button>
-                              <button
-                                className="h-9 px-3 rounded-lg text-[11px] font-medium cursor-pointer bg-[#FEF3C7] text-[#633806] border border-[#EF9F27]"
-                                onClick={() => setResetModal({ open: true, user: row, mode: null, manualPw: '', manualPwConfirm: '' })}
-                              >
-                                Reset Password
-                              </button>
-                                <Btn label="Delete" danger sm onClick={() => setDeleteTarget({ idx, id: row.id ?? idx, label: String(row.full_name || row.product_name || row.name || row.code || row.country_label || row.item_label || row.id) })} />
-                            </div>
-                          </>
+                                    setExpandedRows(prev => {
+                                      const next = new Set(prev)
+                                      next.add(idx)
+                                      return next
+                                    })
+                                  }} />
+                                  <button onClick={() => toggleActive(idx, row)} className={`h-9 px-3 rounded-lg text-[11px] font-medium cursor-pointer border ${row.is_active ? "bg-[#FCEBEB] text-[#791F1F] border-[#E24B4A]" : "bg-[#EAF3DE] text-[#27500A] border-[#27500A]"}`}>
+                                    {row.is_active ? "Deactivate" : "Activate"}
+                                  </button>
+                                  <button
+                                    className="h-9 px-3 rounded-lg text-[11px] font-medium cursor-pointer bg-[#FEF3C7] text-[#633806] border border-[#EF9F27]"
+                                    onClick={() => setResetModal({ open: true, user: row, mode: null, manualPw: '', manualPwConfirm: '' })}
+                                  >
+                                    Reset Password
+                                  </button>
+                                  <Btn label="Delete" danger sm onClick={() => setDeleteTarget({ idx, id: row.id ?? idx, label: String(row.full_name || row.product_name || row.name || row.code || row.country_label || row.item_label || row.id) })} />
+                                </div>
+                              </>
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                ) : (
-                  /* ── OTHER TABS: flat row ── */
-                  <div key={String(row.id ?? idx)} className={`flex items-start px-3.5 py-2.5 gap-2 border-b border-[#DDE2EE] ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
-                    {fds.map(f => (
-                      editing?.idx === idx ? (
-                        <div key={f.k} className="flex-1">
-                          {f.k === "allowed_form_types" ? (
-                            <>
-                              <div className="flex gap-1.5 flex-wrap pt-1">
-                                <button onClick={() => toggleFormType("all")}
-                                  className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border-[1.5px] cursor-pointer"
-                                  style={{ background: selectedFormTypes.length === 4 ? DEPT_COLORS.all.bg : "#F4F5F7", color: selectedFormTypes.length === 4 ? DEPT_COLORS.all.color : "#9BA3BA", borderColor: selectedFormTypes.length === 4 ? DEPT_COLORS.all.border : "#DDE2EE" }}>
-                                  {selectedFormTypes.length === 4 && <CheckCircle2 size={11} />} All Depts
-                                </button>
-                                {ALL_FORM_TYPES.map(dept => {
-                                  const on = selectedFormTypes.includes(dept);
-                                  const c = DEPT_COLORS[dept];
-                                  return (
-                                    <button key={dept} onClick={() => toggleFormType(dept)}
+                    ) : (
+                      /* ── OTHER TABS: flat row ── */
+                      <div key={String(row.id ?? idx)} className={`flex items-start px-3.5 py-2.5 gap-2 border-b border-[#DDE2EE] ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
+                        {fds.map(f => (
+                          editing?.idx === idx ? (
+                            <div key={f.k} className="flex-1">
+                              {f.k === "allowed_form_types" ? (
+                                <>
+                                  <div className="flex gap-1.5 flex-wrap pt-1">
+                                    <button onClick={() => toggleFormType("all")}
                                       className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border-[1.5px] cursor-pointer"
-                                      style={{ background: on ? c.bg : "#F4F5F7", color: on ? c.color : "#9BA3BA", borderColor: on ? c.border : "#DDE2EE" }}>
-                                      {on && <CheckCircle2 size={11} />}{dept}
+                                      style={{ background: selectedFormTypes.length === 4 ? DEPT_COLORS.all.bg : "#F4F5F7", color: selectedFormTypes.length === 4 ? DEPT_COLORS.all.color : "#9BA3BA", borderColor: selectedFormTypes.length === 4 ? DEPT_COLORS.all.border : "#DDE2EE" }}>
+                                      {selectedFormTypes.length === 4 && <CheckCircle2 size={11} />} All Depts
                                     </button>
-                                  );
-                                })}
-                              </div>
-                              <div className="text-[11px] text-[#9BA3BA] mt-1.5">Selected: {selectedFormTypes.join(", ") || "none"}</div>
-                            </>
-                          ) : f.k === "form_type" ? (
-                            <>
-                              <div className="flex gap-1.5 flex-wrap pt-1">
-                                <button onClick={() => toggleFormType("all")}
-                                  className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border-[1.5px] cursor-pointer"
-                                  style={{ background: selectedFormTypes.length === 4 ? DEPT_COLORS.all.bg : "#F4F5F7", color: selectedFormTypes.length === 4 ? DEPT_COLORS.all.color : "#9BA3BA", borderColor: selectedFormTypes.length === 4 ? DEPT_COLORS.all.border : "#DDE2EE" }}>
-                                  {selectedFormTypes.length === 4 && <CheckCircle2 size={11} />} All Depts
-                                </button>
-                                {ALL_FORM_TYPES.map(dept => {
-                                  const on = selectedFormTypes.includes(dept);
-                                  const c = DEPT_COLORS[dept];
-                                  return (
-                                    <button key={dept} onClick={() => toggleFormType(dept)}
+                                    {ALL_FORM_TYPES.map(dept => {
+                                      const on = selectedFormTypes.includes(dept);
+                                      const c = DEPT_COLORS[dept];
+                                      return (
+                                        <button key={dept} onClick={() => toggleFormType(dept)}
+                                          className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border-[1.5px] cursor-pointer"
+                                          style={{ background: on ? c.bg : "#F4F5F7", color: on ? c.color : "#9BA3BA", borderColor: on ? c.border : "#DDE2EE" }}>
+                                          {on && <CheckCircle2 size={11} />}{dept}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                  <div className="text-[11px] text-[#9BA3BA] mt-1.5">Selected: {selectedFormTypes.join(", ") || "none"}</div>
+                                </>
+                              ) : f.k === "form_type" ? (
+                                <>
+                                  <div className="flex gap-1.5 flex-wrap pt-1">
+                                    <button onClick={() => toggleFormType("all")}
                                       className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border-[1.5px] cursor-pointer"
-                                      style={{ background: on ? c.bg : "#F4F5F7", color: on ? c.color : "#9BA3BA", borderColor: on ? c.border : "#DDE2EE" }}>
-                                      {on && <CheckCircle2 size={11} />}{dept}
+                                      style={{ background: selectedFormTypes.length === 4 ? DEPT_COLORS.all.bg : "#F4F5F7", color: selectedFormTypes.length === 4 ? DEPT_COLORS.all.color : "#9BA3BA", borderColor: selectedFormTypes.length === 4 ? DEPT_COLORS.all.border : "#DDE2EE" }}>
+                                      {selectedFormTypes.length === 4 && <CheckCircle2 size={11} />} All Depts
                                     </button>
-                                  );
-                                })}
-                              </div>
-                              <div className="text-[11px] text-[#9BA3BA] mt-1.5">Selected: {selectedFormTypes.join(", ") || "none"}</div>
-                              {dbTab === "checklist_items" && selectedFormTypes.length === 0 && (
-                                <div className="text-[11px] text-[#E24B4A] mt-1.5">
-                                  เลือกอย่างน้อย 1 แผนก
-                                </div>
+                                    {ALL_FORM_TYPES.map(dept => {
+                                      const on = selectedFormTypes.includes(dept);
+                                      const c = DEPT_COLORS[dept];
+                                      return (
+                                        <button key={dept} onClick={() => toggleFormType(dept)}
+                                          className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border-[1.5px] cursor-pointer"
+                                          style={{ background: on ? c.bg : "#F4F5F7", color: on ? c.color : "#9BA3BA", borderColor: on ? c.border : "#DDE2EE" }}>
+                                          {on && <CheckCircle2 size={11} />}{dept}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                  <div className="text-[11px] text-[#9BA3BA] mt-1.5">Selected: {selectedFormTypes.join(", ") || "none"}</div>
+                                  {dbTab === "checklist_items" && selectedFormTypes.length === 0 && (
+                                    <div className="text-[11px] text-[#E24B4A] mt-1.5">
+                                      เลือกอย่างน้อย 1 แผนก
+                                    </div>
+                                  )}
+                                </>
+                              ) : f.k === "select_options" ? (
+                                <OptionsTagInput
+                                  value={(() => {
+                                    const v = editing.row.select_options
+                                    if (Array.isArray(v)) return v as string[]
+                                    try { return JSON.parse(String(v || '[]')) } catch { return [] }
+                                  })()}
+                                  onChange={opts => setEditing(p => p ? { ...p, row: { ...p.row, select_options: JSON.stringify(opts) } } : null)}
+                                />
+                              ) : f.opts ? (
+                                <select value={editing.row[f.k] == null ? "" : String(editing.row[f.k])} onChange={e => setEditing(p => p ? { ...p, row: { ...p.row, [f.k]: e.target.value } } : null)} className="w-full h-10 px-2 text-[12px] border border-[#DDE2EE] rounded-md">
+                                  {f.opts.map(o => <option key={o}>{o}</option>)}
+                                </select>
+                              ) : (
+                                <input type={f.type || "text"} value={safeStr(editing.row[f.k])} onChange={e => setEditing(p => p ? { ...p, row: { ...p.row, [f.k]: e.target.value } } : null)} className="w-full h-10 px-2 text-[12px] border border-[#DDE2EE] rounded-md" />
                               )}
+                            </div>
+                          ) : (
+                            <div key={f.k} className="flex-1 text-[12px] text-[#0E1117] pt-1">
+                              {f.k === "allowed_form_types" ? (
+                                <div className="flex gap-1 flex-wrap">
+                                  {(Array.isArray(row[f.k])
+                                    ? row[f.k] as string[]
+                                    : typeof row[f.k] === "string" && row[f.k]
+                                      ? (() => { try { return JSON.parse(row[f.k] as string); } catch { return []; } })()
+                                      : []
+                                  ).map((dept: string) => {
+                                    const c = DEPT_COLORS[dept] ?? DEPT_COLORS.all;
+                                    return <span key={dept} className="text-[10px] font-semibold px-2 py-0.5 rounded-full border-[1px]" style={{ background: c.bg, color: c.color, borderColor: c.border }}>{dept}</span>;
+                                  })}
+                                </div>
+                              ) : f.k === "form_type" ? (
+                                <div className="flex gap-1 flex-wrap">
+                                  {String(row[f.k] ?? "").split(",").map(s => s.trim()).filter(Boolean).map((dept: string) => {
+                                    const c = DEPT_COLORS[dept] ?? DEPT_COLORS.all;
+                                    return <span key={dept} className="text-[10px] font-semibold px-2 py-0.5 rounded-full border-[1px]" style={{ background: c.bg, color: c.color, borderColor: c.border }}>{dept}</span>;
+                                  })}
+                                </div>
+                              ) : f.k === "select_options" ? (
+                                <div className="flex gap-1 flex-wrap">
+                                  {(Array.isArray(row[f.k]) ? row[f.k] as string[] : []).map((opt: string) => (
+                                    <span key={opt} className="text-[10px] px-1.5 py-0.5 rounded bg-[#F4F5F7] border border-[#DDE2EE]">{opt}</span>
+                                  ))}
+                                </div>
+                              ) : f.k === "is_active" || f.k === "status" ? (
+                                <span className={`text-[11px] px-2 py-0.5 rounded-full ${safeStr(row[f.k]) === "true" || row[f.k] === "active" ? "bg-[#EAF3DE] text-[#27500A]" : "bg-[#FCEBEB] text-[#791F1F]"}`}>
+                                  {safeStr(row[f.k]) === "true" || row[f.k] === "active" ? "Active" : "Inactive"}
+                                </span>
+                              ) : (
+                                <span className={f.k === "gmid" || f.k === "code" ? "text-[11px]" : ""}>{safeStr(row[f.k])}</span>
+                              )}
+                            </div>
+                          )
+                        ))}
+                        <div className="flex gap-1 flex-wrap items-start pt-0.5 w-[130px]">
+                          {editing?.idx === idx ? (
+                            <>
+                              <Btn label="Save" color="#27500A" sm onClick={saveEdit} />
+                              <Btn label="Cancel" color="#9BA3BA" outline sm onClick={() => { setEditing(null); setSelectedRoles([]); setSelectedDepts([]); setSelectedFormTypes([]); }} />
                             </>
-                          ) : f.k === "select_options" ? (
-                            <OptionsTagInput
-                              value={(() => {
-                                const v = editing.row.select_options
-                                if (Array.isArray(v)) return v as string[]
-                                try { return JSON.parse(String(v || '[]')) } catch { return [] }
-                              })()}
-                              onChange={opts => setEditing(p => p ? { ...p, row: { ...p.row, select_options: JSON.stringify(opts) } } : null)}
-                            />
-                          ) : f.opts ? (
-                            <select value={editing.row[f.k] == null ? "" : String(editing.row[f.k])} onChange={e => setEditing(p => p ? { ...p, row: { ...p.row, [f.k]: e.target.value } } : null)} className="w-full h-10 px-2 text-[12px] border border-[#DDE2EE] rounded-md">
-                              {f.opts.map(o => <option key={o}>{o}</option>)}
-                            </select>
                           ) : (
-                            <input type={f.type || "text"} value={safeStr(editing.row[f.k])} onChange={e => setEditing(p => p ? { ...p, row: { ...p.row, [f.k]: e.target.value } } : null)} className="w-full h-10 px-2 text-[12px] border border-[#DDE2EE] rounded-md" />
-                          )}
-                        </div>
-                      ) : (
-                        <div key={f.k} className="flex-1 text-[12px] text-[#0E1117] pt-1">
-                          {f.k === "allowed_form_types" ? (
-                            <div className="flex gap-1 flex-wrap">
-                              {(Array.isArray(row[f.k])
-                                ? row[f.k] as string[]
-                                : typeof row[f.k] === "string" && row[f.k]
-                                  ? (() => { try { return JSON.parse(row[f.k] as string); } catch { return []; } })()
-                                  : []
-                              ).map((dept: string) => {
-                                const c = DEPT_COLORS[dept] ?? DEPT_COLORS.all;
-                                return <span key={dept} className="text-[10px] font-semibold px-2 py-0.5 rounded-full border-[1px]" style={{ background: c.bg, color: c.color, borderColor: c.border }}>{dept}</span>;
-                              })}
-                            </div>
-                          ) : f.k === "form_type" ? (
-                            <div className="flex gap-1 flex-wrap">
-                              {String(row[f.k] ?? "").split(",").map(s => s.trim()).filter(Boolean).map((dept: string) => {
-                                const c = DEPT_COLORS[dept] ?? DEPT_COLORS.all;
-                                return <span key={dept} className="text-[10px] font-semibold px-2 py-0.5 rounded-full border-[1px]" style={{ background: c.bg, color: c.color, borderColor: c.border }}>{dept}</span>;
-                              })}
-                            </div>
-                          ) : f.k === "select_options" ? (
-                            <div className="flex gap-1 flex-wrap">
-                              {(Array.isArray(row[f.k]) ? row[f.k] as string[] : []).map((opt: string) => (
-                                <span key={opt} className="text-[10px] px-1.5 py-0.5 rounded bg-[#F4F5F7] border border-[#DDE2EE]">{opt}</span>
-                              ))}
-                            </div>
-                          ) : f.k === "is_active" || f.k === "status" ? (
-                            <span className={`text-[11px] px-2 py-0.5 rounded-full ${safeStr(row[f.k]) === "true" || row[f.k] === "active" ? "bg-[#EAF3DE] text-[#27500A]" : "bg-[#FCEBEB] text-[#791F1F]"}`}>
-                              {safeStr(row[f.k]) === "true" || row[f.k] === "active" ? "Active" : "Inactive"}
-                            </span>
-                          ) : (
-                            <span className={f.k === "gmid" || f.k === "code" ? "text-[11px]" : ""}>{safeStr(row[f.k])}</span>
-                          )}
-                        </div>
-                      )
-                    ))}
-                    <div className="flex gap-1 flex-wrap items-start pt-0.5 w-[130px]">
-                      {editing?.idx === idx ? (
-                        <>
-                          <Btn label="Save" color="#27500A" sm onClick={saveEdit} />
-                          <Btn label="Cancel" color="#9BA3BA" outline sm onClick={() => { setEditing(null); setSelectedRoles([]); setSelectedDepts([]); setSelectedFormTypes([]); }} />
-                        </>
-                      ) : (
-                        <>
+                            <>
                               <Btn label="Edit" color="#534AB7" sm onClick={() => {
-                            setEditing({ idx, row: { ...row } });
-                            if (dbTab === "checklist_items") {
-                              const ft = typeof row.form_type === "string" && row.form_type
-                                ? row.form_type.split(",").map(s => s.trim()).filter(Boolean)
-                                : Array.isArray(row.form_type) ? row.form_type as string[] : [];
-                              setSelectedFormTypes(ft);
-                            }
-                          }} />
-                          
-                          <Btn label="Del" danger sm onClick={() => setDeleteTarget({ idx, id: row.id ?? idx, label: String(row.full_name || row.product_name || row.name || row.code || row.country_label || row.item_label || row.id) })} />
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )
-              ))}
-            </div>
-            </div>
+                                setEditing({ idx, row: { ...row } });
+                                if (dbTab === "checklist_items") {
+                                  const ft = typeof row.form_type === "string" && row.form_type
+                                    ? row.form_type.split(",").map(s => s.trim()).filter(Boolean)
+                                    : Array.isArray(row.form_type) ? row.form_type as string[] : [];
+                                  setSelectedFormTypes(ft);
+                                }
+                              }} />
+
+                              <Btn label="Del" danger sm onClick={() => setDeleteTarget({ idx, id: row.id ?? idx, label: String(row.full_name || row.product_name || row.name || row.code || row.country_label || row.item_label || row.id) })} />
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  ))}
+                </div>
+              </div>
             </div>
 
           </>
         )
       )}
 
-      
+
       {/* ── Delete Confirmation Modal ── */}
       {deleteTarget && (
         <div
@@ -1409,7 +1410,7 @@ export default function AdminScreen({ lots, setLots }: AdminScreenProps) {
               <span className="font-semibold text-[#0E1117]">
                 {deleteTarget.label}
               </span>
-              &rdquo;?<br/> This process cannot be undone.
+              &rdquo;?<br /> This process cannot be undone.
             </p>
 
             <div className="grid grid-cols-2 gap-3 w-full mt-2">
@@ -1639,9 +1640,9 @@ export default function AdminScreen({ lots, setLots }: AdminScreenProps) {
                       })
                       if (res.ok) {
                         setSuccessModal({
-                          open:     true,
+                          open: true,
                           username: String(resetModal.user!.username ?? ''),
-                          message:  'Password has been updated successfully.',
+                          message: 'Password has been updated successfully.',
                         })
                         setResetModal({ open: false, user: null, mode: null, manualPw: '', manualPwConfirm: '' })
                       } else {

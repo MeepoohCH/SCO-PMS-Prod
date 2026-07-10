@@ -279,7 +279,7 @@ export function TimePicker({ label, value, onChange, req, readOnly }: TimePicker
         ].join(" ")}
         style={!readOnly ? { borderColor: open ? '#185FA5' : '#DDE2EE' } : undefined}
       >
-        {value || '--:--'}
+        {value ? `${value} น.` : '--:--'}
       </button>
       {open && !readOnly && (
         <div className="absolute z-50 mt-1 left-0 bg-white border border-[#DDE2EE] rounded-xl shadow-lg flex"

@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
-import { Clock, Play, PauseCircle, AlertTriangle, AlertOctagon, XCircle, CheckCircle2, LayoutGrid, ListTodo } from 'lucide-react'
+import { Clock, Play, PauseCircle, AlertTriangle, AlertOctagon, XCircle, CheckCircle2, LayoutGrid, ListTodo, ArrowDown, ArrowUp } from 'lucide-react'
 import { DEPT } from '@/app/components/constants'
 import type { DeptKey, LotStatus } from '@/app/components/constants'
 import { Badge, DeptBadge, ProgressBar } from '@/app/components/shared'
@@ -9,15 +9,15 @@ import { formatDate } from '@/lib/utils'
 import type { Lot } from './types'
 
 const STATUS_TABS = [
-  { k: 'all',       icon: <LayoutGrid size={12} />,    l: 'All',         col: '#0E1117', bg: '#F4F5F7', statuses: ['waiting', 'in_progress', 'pl_review', 'paused_shift_end', 'paused_issue', 'paused_emergency', 'rejected'] as LotStatus[] },
-  { k: 'waiting',   icon: <Clock size={12} />,          l: 'Waiting',     col: '#633806', bg: '#FEF3C7', statuses: ['waiting'] as LotStatus[] },
-  { k: 'inprog',    icon: <Play size={12} />,           l: 'In Progress', col: '#185FA5', bg: '#E6F1FB', statuses: ['in_progress', 'pl_review'] as LotStatus[] },
-  { k: 'shiftend',  icon: <PauseCircle size={12} />,   l: 'Shift End',   col: '#854F0B', bg: '#FEF3C7', statuses: ['paused_shift_end'] as LotStatus[] },
-  { k: 'issue',     icon: <AlertTriangle size={12} />, l: 'Issue',        col: '#791F1F', bg: '#FCEBEB', statuses: ['paused_issue'] as LotStatus[] },
-//   { k: 'emerg',     icon: <AlertOctagon size={12} />,  l: 'Emergency',   col: '#501313', bg: '#FCEBEB', statuses: ['paused_emergency'] as LotStatus[] },
-  { k: 'rejected',  icon: <XCircle size={12} />,        l: 'Rejected',    col: '#791F1F', bg: '#FCEBEB', statuses: ['rejected'] as LotStatus[] },
-  { k: 'submitted', icon: <CheckCircle2 size={12} />,  l: 'Submitted',   col: '#534AB7', bg: '#EEEDFE', statuses: ['submitted', 'head_approved'] as LotStatus[] },
-  { k: 'done',      icon: <CheckCircle2 size={12} />,  l: 'Completed',   col: '#27500A', bg: '#EAF3DE', statuses: ['completed'] as LotStatus[] },
+  { k: 'all', icon: <LayoutGrid size={12} />, l: 'All', col: '#0E1117', bg: '#F4F5F7', statuses: ['waiting', 'in_progress', 'pl_review', 'paused_shift_end', 'paused_issue', 'paused_emergency', 'rejected'] as LotStatus[] },
+  { k: 'waiting', icon: <Clock size={12} />, l: 'Waiting', col: '#633806', bg: '#FEF3C7', statuses: ['waiting'] as LotStatus[] },
+  { k: 'inprog', icon: <Play size={12} />, l: 'In Progress', col: '#185FA5', bg: '#E6F1FB', statuses: ['in_progress', 'pl_review'] as LotStatus[] },
+  { k: 'shiftend', icon: <PauseCircle size={12} />, l: 'Shift End', col: '#854F0B', bg: '#FEF3C7', statuses: ['paused_shift_end'] as LotStatus[] },
+  { k: 'issue', icon: <AlertTriangle size={12} />, l: 'Issue', col: '#791F1F', bg: '#FCEBEB', statuses: ['paused_issue'] as LotStatus[] },
+  //   { k: 'emerg',     icon: <AlertOctagon size={12} />,  l: 'Emergency',   col: '#501313', bg: '#FCEBEB', statuses: ['paused_emergency'] as LotStatus[] },
+  { k: 'rejected', icon: <XCircle size={12} />, l: 'Rejected', col: '#791F1F', bg: '#FCEBEB', statuses: ['rejected'] as LotStatus[] },
+  { k: 'submitted', icon: <CheckCircle2 size={12} />, l: 'Submitted', col: '#534AB7', bg: '#EEEDFE', statuses: ['submitted', 'head_approved'] as LotStatus[] },
+  { k: 'done', icon: <CheckCircle2 size={12} />, l: 'Completed', col: '#27500A', bg: '#EAF3DE', statuses: ['completed'] as LotStatus[] },
 ]
 
 interface FilterBarProps {
@@ -27,9 +27,11 @@ interface FilterBarProps {
   deptSel: string[]
   setDeptSel: React.Dispatch<React.SetStateAction<string[]>>
   allowedDepts: string[]
+  sortOrder: 'newest' | 'oldest'
+  setSortOrder: React.Dispatch<React.SetStateAction<'newest' | 'oldest'>>
 }
 
-function FilterBar({ lots, statusTab, setStatusTab, deptSel, setDeptSel, allowedDepts }: FilterBarProps) {
+function FilterBar({ lots, statusTab, setStatusTab, deptSel, setDeptSel, allowedDepts, sortOrder, setSortOrder }: FilterBarProps) {
   const deptOk = (dept: string) =>
     allowedDepts.includes(dept) && (deptSel.length === 0 || deptSel.includes(dept))
 
@@ -74,11 +76,19 @@ function FilterBar({ lots, statusTab, setStatusTab, deptSel, setDeptSel, allowed
         {deptSel.length > 0 && (
           <button onClick={() => setDeptSel([])} className="text-[11px] text-gray-400 bg-transparent border-none cursor-pointer px-1">Clear ×</button>
         )}
-        <div className="ml-auto text-[11px] text-gray-400">
+        <div className="ml-auto flex items-center gap-2 text-[11px] text-gray-400">
           {lots.filter(l => {
             const tab = STATUS_TABS.find(t => t.k === statusTab)
             return (!tab?.statuses || tab.statuses.includes(l.status)) && deptOk(l.dept)
           }).length} lots
+          <button
+            onClick={() => setSortOrder(p => p === 'newest' ? 'oldest' : 'newest')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium border border-gray-200 bg-white cursor-pointer text-gray-600">
+            {sortOrder === 'newest'
+              ? <><ArrowDown size={12} /> Newest</>
+              : <><ArrowUp size={12} /> Oldest</>
+            }
+          </button>
         </div>
       </div>
     </div>
@@ -118,35 +128,41 @@ export function PKDashboard({ lots, setLots, onOpen }: PKDashboardProps) {
 
   const [statusTab, setStatusTab] = useState('all')
   const [deptSel, setDeptSel] = useState<string[]>([])
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
   const filtered = applyFilter(lots, statusTab, deptSel, allowedDepts)
-  const paused = filtered.filter(l => ['paused_shift_end', 'paused_issue', 'paused_emergency'].includes(l.status))
-  const other  = filtered.filter(l => !['paused_shift_end', 'paused_issue', 'paused_emergency'].includes(l.status))
+  const sortedFiltered = [...filtered].sort((a, b) => {
+    const dateA = new Date(a.packing_date || 0).getTime()
+    const dateB = new Date(b.packing_date || 0).getTime()
+    return sortOrder === 'newest' ? dateB - dateA : dateA - dateB
+  })
+  const paused = sortedFiltered.filter(l => ['paused_shift_end', 'paused_issue', 'paused_emergency'].includes(l.status))
+  const other = sortedFiltered.filter(l => !['paused_shift_end', 'paused_issue', 'paused_emergency'].includes(l.status))
 
   function TaskCard({ lot }: { lot: Lot }) {
     const dc = DEPT[lot.dept]?.accent || '#185FA5'
-    const isPaused   = ['paused_shift_end', 'paused_issue', 'paused_emergency'].includes(lot.status)
-    const isWaiting  = lot.status === 'waiting'
+    const isPaused = ['paused_shift_end', 'paused_issue', 'paused_emergency'].includes(lot.status)
+    const isWaiting = lot.status === 'waiting'
     const isPLReview = lot.status === 'pl_review'
     const isRejected = lot.status === 'rejected'
     const accent = isPaused
       ? lot.status === 'paused_shift_end' ? '#EF9F27' : '#E24B4A'
       : isRejected ? '#E24B4A'
-      : isWaiting ? '#C8CDD8'
-      : dc
+        : isWaiting ? '#C8CDD8'
+          : dc
 
     const pmeta: Record<string, { icon: React.ReactNode; text: string; sub: string }> = {
-      paused_shift_end: { icon: <PauseCircle size={18} className="text-amber-600" />, text: 'Paused - shift ended',                   sub: 'Previous shift saved. Tap to resume as new shift operator.' },
-      paused_issue:     { icon: <AlertTriangle size={18} className="text-red-600" />, text: `Paused - ${lot.pauseReason || 'issue / problem'}`, sub: 'Close downtime log before resuming.' },
-      paused_emergency: { icon: <AlertOctagon size={18} className="text-red-600" />,  text: `Emergency - ${lot.pauseReason || 'chemical leak'}`, sub: 'Log started. Close downtime log before resuming.' },
+      paused_shift_end: { icon: <PauseCircle size={18} className="text-amber-600" />, text: 'Paused - shift ended', sub: 'Previous shift saved. Tap to resume as new shift operator.' },
+      paused_issue: { icon: <AlertTriangle size={18} className="text-red-600" />, text: `Paused - ${lot.pauseReason || 'issue / problem'}`, sub: 'Close downtime log before resuming.' },
+      paused_emergency: { icon: <AlertOctagon size={18} className="text-red-600" />, text: `Emergency - ${lot.pauseReason || 'chemical leak'}`, sub: 'Log started. Close downtime log before resuming.' },
     }
     const pm = pmeta[lot.status]
     const statusIcon: Record<string, React.ReactNode> = {
-      waiting:           <Clock size={14} />,
-      in_progress:       <Play size={14} />,
-      paused_shift_end:  <PauseCircle size={14} />,
-      paused_issue:      <AlertTriangle size={14} />,
-      paused_emergency:  <AlertOctagon size={14} />,
-      rejected:          <XCircle size={14} />,
+      waiting: <Clock size={14} />,
+      in_progress: <Play size={14} />,
+      paused_shift_end: <PauseCircle size={14} />,
+      paused_issue: <AlertTriangle size={14} />,
+      paused_emergency: <AlertOctagon size={14} />,
+      rejected: <XCircle size={14} />,
     }
 
     return (
@@ -207,11 +223,11 @@ export function PKDashboard({ lots, setLots, onOpen }: PKDashboardProps) {
         <div className="text-[11px] text-[#9BA3BA] flex items-center justify-end gap-1 mt-2">
           <Play size={11} />
           <span>
-            {isWaiting   ? 'Tap to start'
+            {isWaiting ? 'Tap to start'
               : isPLReview ? 'Tap to view — awaiting PL approval'
-              : isPaused   ? 'Tap to resume'
-              : isRejected ? 'Tap to fix and resubmit'
-              : 'Tap to continue'}
+                : isPaused ? 'Tap to resume'
+                  : isRejected ? 'Tap to fix and resubmit'
+                    : 'Tap to continue'}
           </span>
         </div>
       </div>
@@ -227,7 +243,7 @@ export function PKDashboard({ lots, setLots, onOpen }: PKDashboardProps) {
         </div>
         <div className="bg-blue-50 text-blue-800 text-xs font-medium px-3 py-1 rounded-full">{lots.length} tasks</div>
       </div>
-      <FilterBar lots={lots} statusTab={statusTab} setStatusTab={setStatusTab} deptSel={deptSel} setDeptSel={setDeptSel} allowedDepts={allowedDepts} />
+      <FilterBar lots={lots} statusTab={statusTab} setStatusTab={setStatusTab} deptSel={deptSel} setDeptSel={setDeptSel} allowedDepts={allowedDepts} sortOrder={sortOrder} setSortOrder={setSortOrder} />
       <div>
         {paused.length > 0 && (
           <>

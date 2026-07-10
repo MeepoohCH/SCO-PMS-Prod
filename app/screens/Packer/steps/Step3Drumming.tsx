@@ -88,6 +88,9 @@ export interface Step3DrummingProps {
   canClearDrumming?: boolean
   onClearDrumming?: () => Promise<void>
   downtimeLogs?: DowntimeLog[]
+  onAddExtraPallet?: () => void
+  onRemoveExtraPallet?: () => void
+  onUndoLastSession?: () => Promise<void>
 }
 
 export function Step3Drumming({
@@ -114,7 +117,7 @@ export function Step3Drumming({
   sampleType, setSampleType,
   missingFields,
   isCompletingPallet,
-  doPause, doRecheck, completePallet, undoLastRecheck, onClearAllWeights,
+  doPause, doRecheck, completePallet, undoLastRecheck, onClearAllWeights, onAddExtraPallet, onRemoveExtraPallet, onUndoLastSession,
   readOnly,
   canClearDrumming,
   onClearDrumming,
@@ -169,12 +172,12 @@ export function Step3Drumming({
               <div className="text-[11px] text-gray-400">{sessions.length} pallets done</div>
             </div>
             <div className="text-3xl font-bold" style={{ color: dc }}>
-              #{Math.min(palletNo, totalP)}<span className="text-sm text-gray-400 font-normal">/{totalP}</span>
+              #{sessions.length + 1 > totalP ? sessions.length + 1 : palletNo}<span className="text-sm text-gray-400 font-normal">/{totalP}</span>
             </div>
           </div>
           <div className="h-2 bg-gray-200 rounded-full">
             <div className="h-full rounded-full transition-all"
-              style={{ width: `${totalP ? (sessions.length / totalP) * 100 : 0}%`, background: dc }} />
+              style={{ width: `${totalP ? Math.min((sessions.length / totalP) * 100, 100) : 0}%`, background: dc }} />
           </div>
         </Card>
 
@@ -245,7 +248,14 @@ export function Step3Drumming({
         {/* Recheck weight */}
         {allPalletsDone ? (
           <Card className="mb-3 text-center py-8">
-            <div className="text-lg font-bold text-green-800 mb-1">✓ ครบ {totalP} pallets แล้ว</div>
+            <div className="text-lg font-bold text-green-800 mb-1">✓ ครบ {sessions.length} pallets แล้ว</div>
+            {onUndoLastSession && !readOnly && (
+              <button
+                onClick={onUndoLastSession}
+                className="text-[11px] text-amber-700 underline cursor-pointer bg-transparent border-none mb-3">
+                ลืมเพิ่ม Pallet? กดเพื่อ Undo และเพิ่ม Pallet ต่อ
+              </button>
+            )}
             <div className="text-xs text-gray-500">กดปุ่มด้านล่างเพื่อไปขั้นตอน Post-Drumming Checklist</div>
           </Card>
         ) : (
@@ -471,13 +481,43 @@ export function Step3Drumming({
           </Card>
         )}
 
-        {recheckDone && !readOnly && sessions.length < totalP && (
+        {!readOnly && sessions.length < totalP && recheckDone && (
           <Card className="mb-3">
-            <Btn
-              label={sessions.length + 1 < totalP ? `Pallet #${palletNo} done - next pallet #${palletNo + 1}` : 'All pallets done - Post-Drumming Checklist'}
-              color={sessions.length + 1 >= totalP ? '#9D174D' : dc} full
-              disabled={(pre45Asked && !pre45Ok) || missingFields.length > 0 || isCompletingPallet}
-              onClick={completePallet} />
+            {/* ถ้าเป็น pallet สุดท้าย → แสดง 2 ปุ่ม */}
+            {sessions.length + 1 === totalP ? (
+              <div className="flex flex-col gap-2">
+                <div className="text-[11px] text-amber-700 text-center mb-1">
+                  นี่คือ Pallet สุดท้ายตาม SL plan — เลือกดำเนินการ
+                </div>
+                <Btn
+                  label="✓ จบ Drumming — ไป Post-Checklist"
+                  color="#9D174D" full
+                  disabled={(pre45Asked && !pre45Ok) || missingFields.length > 0 || isCompletingPallet}
+                  onClick={completePallet} />
+                {onAddExtraPallet && (
+                  <div className="flex flex-col gap-1.5">
+                    <Btn
+                      label={`+ เพิ่ม Pallet #${sessions.length + 2} (เกิน SL plan)`}
+                      color="#854F0B" full
+                      disabled={isCompletingPallet}
+                      onClick={onAddExtraPallet} />
+                    {onRemoveExtraPallet && (
+                      <button
+                        onClick={onRemoveExtraPallet}
+                        className="text-[11px] text-gray-400 underline cursor-pointer bg-transparent border-none text-center">
+                        ← ยกเลิก / กลับไป Pallet สุดท้าย
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Btn
+                label={`Pallet #${palletNo} done - next pallet #${palletNo + 1}`}
+                color={dc} full
+                disabled={(pre45Asked && !pre45Ok) || missingFields.length > 0 || isCompletingPallet}
+                onClick={completePallet} />
+            )}
             {missingFields.length > 0 && (
               <div className="text-[11px] text-amber-700 text-center mt-2">
                 กรุณากรอกข้อมูลให้ครบ: {missingFields.join(', ')}

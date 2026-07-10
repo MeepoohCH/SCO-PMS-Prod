@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 
 interface LoginFormProps {
   onForgotPassword: () => void
-  onForceChange:    (username: string) => void
+  onForceChange: (username: string) => void
 }
 
 const inputCls = 'w-full h-12 px-4 text-base border-[1.5px] border-[#DDE2EE] rounded-xl bg-gray-50 outline-none focus:border-[#0F2347] transition-colors placeholder:text-gray-300'
@@ -42,7 +42,7 @@ export default function LoginForm({ onForgotPassword, onForceChange }: LoginForm
       }
 
       const role = session?.user?.role ?? ''
-      const routes: Record<string, string> = { admin: '/admin', sl: '/sl', pl: '/pl', packer: '/packer' }
+      const routes: Record<string, string> = { admin: '/admin', sl: '/sl', pl: '/pl', packer: '/packer', staff: '/staff' }
       router.replace(routes[role] ?? '/login')
     } catch {
       router.replace('/login')
@@ -96,7 +96,7 @@ export default function LoginForm({ onForgotPassword, onForceChange }: LoginForm
       </button> */}
 
       <p className="text-[13px] text-gray-400 text-center mt-5 leading-relaxed">
-          ติดต่อ Admin เพื่อรีเซ็ตรหัสผ่าน
+        ติดต่อ Admin เพื่อรีเซ็ตรหัสผ่าน
       </p>
     </>
   )

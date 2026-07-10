@@ -493,7 +493,7 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
                 </div>
                 <div className="text-[10px] text-amber-500 flex-shrink-0 text-right">
                   {formatDowntimeDate(l.start)} {toThaiTime(l.start)}
-                  {l.end && l.end !== l.start && `–${toThaiTime(l.end)}`}
+                  {l.end && l.end !== l.start && `–${toThaiTime(l.end)}`} น. 
                   {formatDuration(l.start, l.end) && ` (${formatDuration(l.start, l.end)})`}
                 </div>
               </div>
@@ -587,7 +587,7 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
                       <span className="text-[10px] text-[#9BA3BA]">
                         ({op.action === 'start' ? `เริ่ม ${op.time}`
                           : op.action === 'resubmit' ? `resubmit ${op.time}`
-                            : `resume ${op.time}`})
+                            : `resume ${op.time}`} น.)
                       </span>
                       {i < operatorsJson.length - 1 && (
                         <span className="text-[#DDE2EE] mx-0.5">→</span>

@@ -818,6 +818,8 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   )
   const postOk = postItemsDB.length > 0 && postItemsDB.every(item => !!postChk[item.id]) && latexPostOk
   const totalP = lot.planned_pallets || 0
+  const [extraPallets, setExtraPallets] = React.useState(0)
+  const effectiveTotalP = totalP + extraPallets
   const isTote = (lot.packaging || '').toLowerCase().includes('tote') || (lot.packaging || '').toLowerCase().includes('ibc')
   const showPause = !paused && lot.status !== 'pl_review' && (pkStep <= 2 || pkStep === 3 || pkStep === 4)
   const pausePre = true // ซ่อน Emergency ทุก step
@@ -833,8 +835,8 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
     !latexPreScaleOk
 
   // ── Step 3 validation (lifted from Step3Drumming.tsx) ────────
-  const allPalletsDone = sessions.length >= totalP
-  const isCompletingLastPallet = sessions.length + 1 >= totalP
+  const allPalletsDone = sessions.length >= effectiveTotalP
+  const isCompletingLastPallet = sessions.length + 1 >= effectiveTotalP
   const step3MissingFields: string[] = []
   if (!drumStart) step3MissingFields.push('Drumming start time')
   if (isCompletingLastPallet) {
@@ -1060,7 +1062,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
 
   function doRecheck() {
     const isLastPallet = sessions.length + 1 === totalP
-    const skipWeightCheck = lot.dept === 'IBC' || lot.dept === 'Latex'
+    const skipWeightCheck = lot.dept === 'IBC' || lot.dept === 'Latex' || palletNo > totalP
     const pass = isLastPallet || skipWeightCheck ? true : !!wPass
     const attemptNo = recheckList.length + 1
     setRecheckList(p => [...p, { no: p.length + 1, wt: sessionWt, pass }])
@@ -1076,6 +1078,36 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
         baseReason,
         onConfirm: (reason) => logWeightIssue(reason),
       })
+    }
+  }
+
+
+  async function undoLastSession() {
+    if (sessions.length === 0) return
+    const lastSession = sessions[sessions.length - 1]
+    try {
+      // ลบ recheck weights ของ session สุดท้ายออกจาก DB
+      const res = await fetch(`/api/recheck-weights?production_detail_id=${lot.id}`)
+      if (res.ok) {
+        const logs: { id: number; drumming_session_id?: number }[] = await res.json()
+        // ลบทั้งหมดที่เป็นของ session สุดท้าย
+        const toDelete = logs.filter(l => l.drumming_session_id === lastSession.no)
+        await Promise.all(toDelete.map(l =>
+          fetch(`/api/recheck-weights/${l.id}`, { method: 'DELETE' })
+        ))
+      }
+    } catch (err) {
+      console.error('[undoLastSession]', err)
+    }
+    // Reset state กลับมา
+    setSessions(p => p.slice(0, -1))
+    setRecheckList([])
+    setRecheckDone(false)
+    setSessionWt('')
+    setPalletNo(sessions.length) // กลับมา pallet ก่อนหน้า
+    // ถ้าเป็น extra pallet ให้ลด extraPallets ด้วย
+    if (sessions.length > totalP) {
+      setExtraPallets(p => Math.max(0, p - 1))
     }
   }
 
@@ -1122,8 +1154,8 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   }
 
   async function completePallet() {
-    if (sessions.length >= totalP) {
-      console.warn('[completePallet] blocked — already at totalP, ignoring duplicate call')
+    if (sessions.length >= effectiveTotalP) {
+      console.warn('[completePallet] blocked — already at effectiveTotalP, ignoring duplicate call')
       return
     }
     if (isCompletingPallet) {
@@ -1232,14 +1264,14 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
             cap_large: capSmall ? Number(capSmall) : null,
             cap_small: capXSmall ? Number(capXSmall) : null,
             actual_pallet_count: updatedSessions.length,
-            current_pk_step: updatedSessions.length < totalP ? 3 : 4,
+            current_pk_step: updatedSessions.length < effectiveTotalP ? 3 : 4,
           }),
         })
       } catch (err) {
         console.error('[PKForm] drumming save failed:', err)
       }
 
-      if (updatedSessions.length < totalP) {
+      if (updatedSessions.length < effectiveTotalP) {
         setPalletNo(n => n + 1)
         setSessionWt('')
         setRecheckList([])
@@ -1448,7 +1480,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
                 <span className="text-[10px] text-blue-500">
                   ({op.action === 'start' ? `เริ่ม ${op.time}`
                     : op.action === 'resubmit' ? `resubmit ${op.time}`
-                      : `resume ${op.time}`})
+                      : `resume ${op.time}`} น.)
                 </span>
                 {i < operators.length - 1 && (
                   <span className="text-[#9BA3BA] mx-0.5">→</span>
@@ -1463,7 +1495,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
         )}
       </div>
 
-      <LotStepBar pkStep={pkStep} dc={dc} planned_pallets={totalP} sessions={sessions} />
+      <LotStepBar pkStep={pkStep} dc={dc} planned_pallets={effectiveTotalP} sessions={sessions} />
 
       {showPause && !paused && <PauseControls onPause={doPause} pre={pausePre} onShiftEndClick={() => setShowShiftEndConfirm(true)} />}
       {paused && pauseType && (
@@ -1511,7 +1543,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
                       </div>
                       <div className="text-[10px] text-amber-500 flex-shrink-0">
                         {formatDowntimeDate(l.start)} {toThaiTime(l.start)}
-                        {l.end && l.end !== l.start && `–${toThaiTime(l.end)}`}
+                        {l.end && l.end !== l.start && `–${toThaiTime(l.end)}`} น.
                         {formatDuration(l.start, l.end) && ` (${formatDuration(l.start, l.end)})`}
                       </div>
                     </div>
@@ -1625,7 +1657,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
       {/* ── Step 3 ── */}
       {pkStep === 3 && (
         <Step3Drumming
-          dc={dc} lotId={lot.id} lotDept={lot.dept} totalP={totalP} isTote={isTote}
+          dc={dc} lotId={lot.id} lotDept={lot.dept} totalP={effectiveTotalP} isTote={isTote}
           sessions={sessions} palletNo={palletNo}
           wtMachine={wtMachine} setWtMachine={setWtMachine}
           wtCategory={wtCategory} setWtCategory={setWtCategory}
@@ -1635,7 +1667,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           sessionWt={sessionWt} setSessionWt={setSessionWt}
           recheckList={recheckList} recheckDone={recheckDone}
           wPass={wPass} wFail={wFail}
-          skipWeightCheck={lot.dept === 'IBC' || lot.dept === 'Latex'}
+          skipWeightCheck={lot.dept === 'IBC' || lot.dept === 'Latex' || palletNo > totalP}
           drumStart={drumStart} setDrumStart={setDrumStart} drumAS={drumAS}
           flushKg={flushKg} setFlushKg={setFlushKg}
           purgeKg={purgeKg} setPurgeKg={setPurgeKg}
@@ -1666,6 +1698,9 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           readOnly={forceReadOnly}
           canClearDrumming={!['submitted', 'head_approved', 'sl_rejected', 'completed', 'paused_shift_end', 'paused_issue', 'paused_emergency'].includes(lot.status)}
           downtimeLogs={downtimeLogs}
+          onAddExtraPallet={() => setExtraPallets(p => p + 1)}
+          onRemoveExtraPallet={extraPallets > 0 ? () => setExtraPallets(p => p - 1) : undefined}
+          onUndoLastSession={allPalletsDone ? async () => { setExtraPallets(p => p + 1) } : undefined}
           onClearDrumming={async () => {
             await fetch(`/api/recheck-weights?production_detail_id=${lot.id}`, { method: 'DELETE' })
               .catch(e => console.error('[clear drumming]', e))
@@ -1821,8 +1856,8 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
                 disabled={isCompletingPallet || (pre45Asked && !pre45Ok) || step3MissingFields.length > 0 || !recheckDone}
                 onClick={completePallet}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium text-white cursor-pointer disabled:opacity-40 border-none transition-colors min-h-[48px]"
-                style={{ background: sessions.length + 1 >= totalP ? '#9D174D' : dc }}>
-                {sessions.length + 1 < totalP ? `Pallet #${sessions.length + 1} done →` : 'All pallets done →'}
+                style={{ background: sessions.length + 1 >= effectiveTotalP ? '#9D174D' : dc }}>
+                {sessions.length + 1 < effectiveTotalP ? `Pallet #${sessions.length + 1} done` : 'All pallets done'} <ChevronRight className="w-5 h-5" />
               </button>
             ) : (
               <button

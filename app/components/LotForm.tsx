@@ -108,7 +108,7 @@ export interface LotPlan {
   customer?: string;
   country_label?: string;
   customer_id?: number;
-  packaging_type?: string | { name?: string; [key: string]: unknown };
+  packaging_type?: string | { name?: string;[key: string]: unknown };
   packaging_type_id?: number;
   target_mt?: number | string;
   packaging_size_kg?: string;
@@ -177,7 +177,7 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
         .then(([products, customers, packaging, blenders]) => {
           setLocalDb({ products, customers, packaging, blenders });
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [db]);
 
@@ -230,7 +230,7 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
     if ((plan.label_pkg_type as string) !== derivedLabelPkgType) {
       setPlan(p => p ? { ...p, label_pkg_type: derivedLabelPkgType } : p);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pkgTypeDisplay]);
 
   useEffect(() => {
@@ -244,16 +244,16 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
     } else if (plan.label_count != null && (isNaN(s) || isNaN(e))) {
       setPlan(p => p ? { ...p, label_count: undefined } : p)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plan.drum_serial_start, plan.drum_serial_end])
 
   useEffect(() => {
     console.log('[LotForm] label fields from plan:', {
       drum_serial_start: plan.drum_serial_start,
-      drum_serial_end:   plan.drum_serial_end,
-      label_pkg_type:    plan.label_pkg_type,
+      drum_serial_end: plan.drum_serial_end,
+      label_pkg_type: plan.label_pkg_type,
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plan.drum_serial_start, plan.drum_serial_end, plan.label_pkg_type]);
 
   return (
@@ -307,7 +307,7 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
                   className="text-[10px] px-2 py-0.5 rounded-full font-medium"
                   style={{
                     background: DEPT[plan.dept as DeptKey]?.badge.bg || '#F4F5F7',
-                    color:      DEPT[plan.dept as DeptKey]?.badge.color || '#5A617A',
+                    color: DEPT[plan.dept as DeptKey]?.badge.color || '#5A617A',
                   }}
                 >
                   {plan.dept} only
@@ -323,7 +323,7 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
                 );
                 setPlan(p =>
                   p
-                    ? { ...p, product_name: v, product: v, ...(found && { product_id: found.id }) }
+                    ? { ...p, product_name: v, product: v, product_id: found ? found.id : undefined }
                     : p,
                 );
               }}
@@ -388,7 +388,7 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
                 value={(plan.ibc_residue_kg as string) || ""}
                 onChange={v => set("ibc_residue_kg", v)}
                 req
-              
+
               />
               <Inp
                 label="น้ำหนัก IBC เปล่าก่อนผลิต (KG)"
@@ -438,10 +438,10 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
                 setPlan(p =>
                   p
                     ? {
-                        ...p,
-                        packaging_type: v,
-                        ...(found && { packaging_type_id: found.id }),
-                      }
+                      ...p,
+                      packaging_type: v,
+                      ...(found && { packaging_type_id: found.id }),
+                    }
                     : p,
                 );
               }}
@@ -581,7 +581,7 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
         <div className="grid grid-cols-2 gap-2.5 mb-2.5">
           <div>
             <div className="text-xs text-[#5A617A] font-medium mb-1">
-              <span className="text-[#E24B4A]">*</span> Label no. (start) 
+              <span className="text-[#E24B4A]">*</span> Label no. (start)
             </div>
             <input
               type="number"
@@ -630,7 +630,7 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
                   }}
                 >
                   {t === "Drum" ? "Drum (4/pallet)" : "Tote (1/pallet)"}
-                  {isAuto }
+                  {isAuto}
                 </button>
               );
             })}
