@@ -3,29 +3,32 @@
 import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { usePathname, useRouter } from 'next/navigation'
-import Image from 'next/image' 
-import dowLogoImg from '../../public/dow-logo.png' 
+import Image from 'next/image'
+import dowLogoImg from '../../public/dow-logo.png'
 
 // ── Constants ──────────────────────────────────────────────────
 const ROLE_LABELS: Record<string, string> = {
-  admin:  'Admin',
-  sl:     'Site Logistics',
-  pl:     'Pack Lead',
+  admin: 'Admin',
+  sl: 'Site Logistics',
+  pl: 'Pack Lead',
   packer: 'Packer',
+  staff: 'Staff',
 }
 
 const ROLE_COLORS: Record<string, string> = {
-  admin:  '#E24B4A',
-  sl:     '#185FA5',
-  pl:     '#534AB7',
+  admin: '#E24B4A',
+  sl: '#185FA5',
+  pl: '#534AB7',
   packer: '#0F6E56',
+  staff: '#6B7280',
 }
 
 const ROLE_ROUTES: Record<string, string> = {
-  admin:  '/admin',
-  sl:     '/sl',
-  pl:     '/pl',
+  admin: '/admin',
+  sl: '/sl',
+  pl: '/pl',
   packer: '/packer',
+  staff: '/staff',
 }
 
 export default function Navbar() {
@@ -69,20 +72,20 @@ export default function Navbar() {
 
   return (
     <header className="bg-[#0F2347] px-3 sm:px-4 h-16 flex items-center sticky top-0 z-50 justify-between shadow-lg border-b border-white/10 select-none">
-      
+
       {/* ── ฝั่งซ้าย: โลโก้แบรนด์ขนาดใหญ่เด่นชัด ── */}
       <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-shrink-0">
         <div className="w-[72px] sm:w-[82px] flex-shrink-0 transition-transform duration-250 active:scale-95">
           <Image
-            src={dowLogoImg} 
+            src={dowLogoImg}
             alt="DOW Logo"
-            priority 
+            priority
             className="object-contain"
           />
         </div>
 
         {/* ชื่อระบบโชว์ตั้งแต่หน้าจอแท็บเล็ตเป็นต้นไป */}
-      <span className="hidden sm:inline text-sm md:text-base font-bold text-white leading-tight truncate tracking-wide font-sans">
+        <span className="hidden sm:inline text-sm md:text-base font-bold text-white leading-tight truncate tracking-wide font-sans">
           <span className="hidden md:inline">Packing Web Base </span>
         </span>
       </div>
@@ -98,7 +101,7 @@ export default function Navbar() {
             </span>
           </div>
         )}
-        
+
         <div className="flex items-center font-sans flex-shrink-0">
           {allRoles.length > 1 ? (
             <>
@@ -107,16 +110,16 @@ export default function Navbar() {
                   const rolePath = ROLE_ROUTES[r] ?? ''
                   const isActive = rolePath !== '' && pathname.startsWith(rolePath)
                   const roleColor = ROLE_COLORS[r] ?? '#0F2347'
-                  
+
                   return (
                     <button
                       key={r}
                       onClick={() => handleSwitchRole(r)}
                       className="px-4 py-1.5 rounded-full text-xs font-bold border-[1.5px] min-h-[32px] cursor-pointer transition-all active:scale-95 whitespace-nowrap"
                       style={{
-                        background:  isActive ? '#fff'      : 'rgba(255,255,255,0.08)',
-                        color:       isActive ? roleColor   : 'rgba(255,255,255,0.90)',
-                        borderColor: isActive ? '#fff'      : 'rgba(255,255,255,0.25)',
+                        background: isActive ? '#fff' : 'rgba(255,255,255,0.08)',
+                        color: isActive ? roleColor : 'rgba(255,255,255,0.90)',
+                        borderColor: isActive ? '#fff' : 'rgba(255,255,255,0.25)',
                       }}
                     >
                       {ROLE_LABELS[r] ?? r}
@@ -139,7 +142,7 @@ export default function Navbar() {
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1.5 text-white/60">
                   <svg className="fill-current h-3.5 w-3.5" viewBox="0 0 20 20">
-                    <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
+                    <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
                   </svg>
                 </div>
               </div>
@@ -157,18 +160,18 @@ export default function Navbar() {
 
         {/* ส่วนผู้ใช้ Profile Avatar ทรงกลมลอยตัว */}
         <div className="relative flex-shrink-0 font-sans">
-          <button 
+          <button
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
             className="flex items-center gap-2 bg-transparent lg:bg-white/[0.06] lg:hover:bg-white/10 lg:border lg:border-white/10 rounded-full lg:p-1.5 lg:pr-3 transition-all focus:outline-none active:scale-95"
           >
             <div className="w-8 h-8 rounded-full bg-[#EF9F27] flex items-center justify-center font-black text-slate-950 text-sm shadow-md transition-transform hover:scale-105">
               {user.full_name?.charAt(0).toUpperCase() || 'U'}
             </div>
-            
+
             <span className="text-sm text-white/90 hidden lg:block max-w-[120px] truncate font-bold">
               {user.full_name}
             </span>
-            
+
             <svg className={`w-3.5 h-3.5 text-white/40 hidden lg:block transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
             </svg>
@@ -177,7 +180,7 @@ export default function Navbar() {
           {isUserMenuOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setIsUserMenuOpen(false)}></div>
-              
+
               <div className="absolute right-0 mt-2.5 w-48 bg-white rounded-xl shadow-2xl py-1.5 z-20 border border-slate-100 animate-in fade-in slide-in-from-top-2 duration-100">
                 <div className="px-4 py-2 border-b border-slate-100 lg:hidden">
                   <p className="text-xs text-slate-400">Current User</p>
