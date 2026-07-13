@@ -1,30 +1,27 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
 import PKFormViewer from '@/app/components/PKFormViewer'
 import { SuccessTab } from '@/app/screens/Login'
 import { fetchAndFlattenLots } from '@/lib/fetchLots'
-import type { Lot } from '@/app/screens/Admin'
 
 export default function StaffScreen() {
-  const { data: session } = useSession()
-  const [lots, setLots] = useState<Lot[]>([])
-  const [progressLot, setProgressLot] = useState<Lot | null>(null)
+  const [lots, setLots] = useState<any[]>([])
+  const [progressLot, setProgressLot] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchAndFlattenLots()
-      .then(data => setLots(data as Lot[]))
+      .then(data => setLots(data as any[]))
       .finally(() => setLoading(false))
   }, [])
 
   if (progressLot) {
     return (
       <PKFormViewer
-        lot={progressLot as any}
+        lot={progressLot}
         onBack={() => setProgressLot(null)}
         currentUser=""
-        setLots={setLots as any}
+        setLots={setLots}
         readOnly={true}
       />
     )
@@ -43,7 +40,7 @@ export default function StaffScreen() {
       <SuccessTab
         lots={lots}
         isAdmin={false}
-        onViewProgress={lot => setProgressLot(lot as Lot)}
+        onViewProgress={lot => setProgressLot(lot)}
       />
     </div>
   )
