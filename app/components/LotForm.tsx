@@ -182,12 +182,33 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
   }, [db]);
 
   const data = db ?? localDb;
+  const dbLoaded = !!data; // ยังไม่โหลดเสร็จ (db เป็น null) ต่างจาก โหลดเสร็จแต่ไม่มีข้อมูลจริง (array ว่าง)
 
   const allBlenders = data?.blenders ?? [];
   const deptBlenders = allBlenders.filter(b => b.dept === plan.dept && b.status !== 'retired');
-  const blenderOpts = deptBlenders.length
-    ? deptBlenders.map(b => b.code as string)
-    : (allBlenders.length ? allBlenders.filter(b => b.status !== 'retired').map(b => b.code as string) : FALLBACK_BLENDER_OPTS);
+  const activeBlenders = allBlenders.filter(b => b.status !== 'retired');
+
+  // ปัญหาเดิม: ถ้า deptBlenders ว่าง โค้ดจะ fallback ไปใช้ FALLBACK_BLENDER_OPTS
+  // ("V-2300", "V-2310", ...) ทันที ไม่ว่าจะเป็นเพราะข้อมูลยังโหลดไม่เสร็จ หรือเพราะ
+  // ไม่มี Blender จริงในระบบเลยก็ตาม — ถ้า user เลือก/พิมพ์ชื่อ fallback พวกนี้แล้ว save
+  // จะเจอ "ไม่พบ Blender กรุณาตรวจสอบ" เพราะ code พวกนี้ไม่มีอยู่จริงใน DB
+  //
+  // แก้ให้ใช้ FALLBACK_BLENDER_OPTS เฉพาะตอนข้อมูลยังโหลดไม่เสร็จเท่านั้น (dbLoaded === false)
+  // พอโหลดเสร็จแล้ว ให้แสดงเฉพาะ code ที่มีอยู่จริง (ของแผนกนี้ก่อน แล้วค่อย fallback ไปทุกแผนก)
+  // ถ้าโหลดเสร็จแล้วไม่มีจริงสักตัว ให้ปล่อย opts ว่าง แล้วโชว์ข้อความเตือนแทนแทนที่จะยัดชื่อปลอมเข้าไป
+  const blenderOpts = !dbLoaded
+    ? FALLBACK_BLENDER_OPTS
+    : deptBlenders.length
+      ? deptBlenders.map(b => b.code as string)
+      : activeBlenders.map(b => b.code as string);
+
+  const blenderWarning = !dbLoaded
+    ? null
+    : deptBlenders.length === 0
+      ? (activeBlenders.length > 0
+        ? `ยังไม่มี Blender ของแผนก ${plan.dept} ในระบบ — เลือกจากแผนกอื่นได้ชั่วคราว แต่ควรเพิ่มใน Admin ให้ตรงแผนกก่อนใช้งานจริง`
+        : `ยังไม่มี Blender ในระบบเลย — กรุณาเพิ่ม Blender ที่ Admin > Blenders ก่อนสร้างแผนงาน`)
+      : null;
 
   const allProducts = data?.products ?? [];
   const productOpts = allProducts
@@ -256,6 +277,70 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plan.drum_serial_start, plan.drum_serial_end, plan.label_pkg_type]);
 
+  const [addingBlender, setAddingBlender] = useState(false);
+  const [addingPackaging, setAddingPackaging] = useState(false);
+
+  // Quick-create Packaging type ตรงจากฟอร์มนี้เลย — เรียก POST /api/packaging-types
+  // (non-admin สร้างได้แค่ name, category auto-detect จากชื่อ ให้ Admin ไปเติม
+  // standard_weight_kg / drums_per_pallet ทีหลัง)
+  async function handleAddPackaging(nameRaw: string) {
+    const name = nameRaw.trim();
+    if (!name) return;
+    setAddingPackaging(true);
+    try {
+      const res = await fetch('/api/packaging-types', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setLocalDb(prev => prev
+          ? { ...prev, packaging: [...prev.packaging, created] }
+          : prev);
+        setPlan(p => p ? { ...p, packaging_type: created.name, packaging_type_id: created.id } : p);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert('เพิ่ม Packaging type ไม่สำเร็จ: ' + (err.error || res.status));
+      }
+    } catch (e) {
+      console.error('[LotForm handleAddPackaging] error:', e);
+      alert('เพิ่ม Packaging type ไม่สำเร็จ — ตรวจสอบการเชื่อมต่อ');
+    } finally {
+      setAddingPackaging(false);
+    }
+  }
+
+  // Quick-create Blender ตรงจากฟอร์มนี้เลย — เรียก POST /api/blenders (non-admin
+  // จะสร้างได้แค่ code + dept, capacity_mt ปล่อยเป็น null ให้ Admin ไปตั้งทีหลัง)
+  async function handleAddBlender(codeRaw: string) {
+    const code = codeRaw.trim();
+    if (!code) return;
+    setAddingBlender(true);
+    try {
+      const res = await fetch('/api/blenders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, dept: plan.dept }),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setLocalDb(prev => prev
+          ? { ...prev, blenders: [...prev.blenders, created] }
+          : prev);
+        setPlan(p => p ? { ...p, blender: created.code, blender_id: created.id } : p);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert('เพิ่ม Blender ไม่สำเร็จ: ' + (err.error || res.status));
+      }
+    } catch (e) {
+      console.error('[LotForm handleAddBlender] error:', e);
+      alert('เพิ่ม Blender ไม่สำเร็จ — ตรวจสอบการเชื่อมต่อ');
+    } finally {
+      setAddingBlender(false);
+    }
+  }
+
   return (
     <Card className="mb-3">
       <div className="text-xs font-medium text-[#9BA3BA] mb-3 uppercase tracking-[0.06em]">
@@ -267,14 +352,30 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
         <div>
           <Inp type="date" label="Plan date" req value={(plan.date as string) || ""} onChange={v => set("date", v)} />
         </div>
-        <Combo
-          label="Tank No./Blender No."
-          req
-          value={(plan.blender as string) || ""}
-          onChange={v => set("blender", v)}
-          opts={blenderOpts}
-          placeholder="Select or type blender..."
-        />
+        <div>
+          <Combo
+            label="Tank No./Blender No."
+            req
+            value={(plan.blender as string) || ""}
+            onChange={v => set("blender", v)}
+            onAddNew={handleAddBlender}
+            opts={blenderOpts}
+            placeholder="Select or type blender..."
+          />
+          {addingBlender && (
+            <div className="text-[11px] text-[#9BA3BA] -mt-3 mb-1">กำลังเพิ่ม Blender...</div>
+          )}
+          {blenderWarning && (
+            <div className="text-[11px] text-[#B45309] -mt-3 mb-1 leading-snug">
+              ⚠ {blenderWarning}
+            </div>
+          )}
+          {dbLoaded && !!plan.blender && !blenderOpts.includes(plan.blender as string) && (
+            <div className="text-[11px] text-[#E24B4A] -mt-3 mb-1 leading-snug">
+              ⚠ "{plan.blender as string}" ไม่ตรงกับ Blender ในระบบ — กรุณาเลือกจากลิสต์ ไม่งั้นจะ Save draft ไม่ผ่าน
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Lot info section */}
@@ -445,9 +546,18 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
                     : p,
                 );
               }}
+              onAddNew={handleAddPackaging}
               opts={packagingOpts}
               placeholder="Choose packaging type..."
             />
+            {addingPackaging && (
+              <div className="text-[11px] text-[#9BA3BA] mt-1.5">กำลังเพิ่ม Packaging type...</div>
+            )}
+            {dbLoaded && !!pkgTypeDisplay && !selectedPkg && !addingPackaging && (
+              <div className="text-[11px] text-[#E24B4A] mt-1.5 leading-snug">
+                ⚠ "{pkgTypeDisplay}" ไม่ตรงกับ Packaging type ในระบบ — กด "+ Add" ใน dropdown เพื่อสร้างใหม่ ไม่งั้นจะ Save ไม่ผ่าน
+              </div>
+            )}
             {selectedPkg && (
               <div className="flex gap-1.5 mt-1.5 flex-wrap">
                 {!!selectedPkg.standard_weight_kg && (

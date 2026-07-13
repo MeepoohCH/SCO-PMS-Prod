@@ -91,8 +91,8 @@ const DB_TABS: { k: DbTabKey; l: string }[] = [
 const FDS: Record<DbTabKey, FieldDef[]> = {
   users: [{ k: "username", l: "Username", req: true }, { k: "full_name", l: "Full name", req: true }, { k: "roles", l: "Roles" }, { k: "allowed_depts", l: "Departments" }, { k: "pack_lead_id", l: "Pack Lead" }, { k: "is_active", l: "Active", opts: ["true", "false"] }],
   products: [{ k: "product_name", l: "Product name" }, { k: "gmid", l: "GMID" }, { k: "dept", l: "Department", opts: ["PUF", "PU", "IBC", "Latex"] }, { k: "is_active", l: "Active", opts: ["true", "false"] }],
-  blenders: [{ k: "code", l: "Code" }, { k: "capacity_mt", l: "Capacity (MT)" }, { k: "dept", l: "Department", opts: ["PUF", "PU", "IBC", "Latex"] }, { k: "status", l: "Status", opts: ["active", "maintenance", "retired"] }],
-  packaging: [{ k: "name", l: "Package name" }, { k: "standard_weight_kg", l: "Standard weight (kg)" }, { k: "drums_per_pallet", l: "Units/pallet" }, { k: "packaging_category", l: "Category", opts: ["drum", "tote", "ibc", "isotank", "flexibag"] }, { k: "is_active", l: "Active", opts: ["true", "false"] }],
+  blenders: [{ k: "code", l: "Code" }, { k: "capacity_mt", l: "Capacity (MT) (optional)" }, { k: "dept", l: "Department", opts: ["PUF", "PU", "IBC", "Latex"] }, { k: "status", l: "Status", opts: ["active", "maintenance", "retired"] }],
+  packaging: [{ k: "name", l: "Package name (ถ้าไม่เลือก Category จะ auto-detect จากชื่อ)" }, { k: "standard_weight_kg", l: "Standard weight (kg)" }, { k: "drums_per_pallet", l: "Units/pallet" }, { k: "packaging_category", l: "Category", opts: ["drum", "tote", "ibc", "isotank", "flexibag"] }, { k: "is_active", l: "Active", opts: ["true", "false"] }],
   customers: [{ k: "country_label", l: "Country label" }, { k: "is_active", l: "Active", opts: ["true", "false"] }],
   checklist_items: [{ k: "form_type", l: "Department" }, { k: "phase", l: "Phase", opts: ["pre", "post"] }, { k: "item_label", l: "Label" }, { k: "response_type", l: "Type", opts: ["yes_no", "select", "text"] }, { k: "select_options", l: "Options" }, { k: "is_required", l: "Required", opts: ["true", "false"] }, { k: "is_active", l: "Active", opts: ["true", "false"] }],
 };
@@ -438,11 +438,31 @@ export default function AdminScreen({ lots, setLots }: AdminScreenProps) {
   }
 
   async function addRow() {
-    const payload = dbTab === "users"
+    // ประกาศ type ตรงๆ เป็น Record<string, any> — ถ้าปล่อยให้ TS อนุมานเองจาก ternary
+    // จะได้ type เฉพาะของแต่ละ branch (ไม่มี index signature ครอบคลุมทุก key)
+    // ทำให้ payload.name / payload.capacity_mt ที่ใช้ต่อด้านล่าง error และ assign null ไม่ได้
+    let payload: Record<string, any> = dbTab === "users"
       ? { ...newRow, roles: selectedRoles, allowed_depts: selectedDepts.join(",") || "all" }
       : dbTab === "checklist_items"
         ? { ...newRow, form_type: selectedFormTypes.join(",") }
         : newRow;
+
+    // Auto-detect packaging_category จากชื่อ — เฉพาะตอนที่ Admin ไม่ได้เลือกเองจาก dropdown เท่านั้น
+    // (เดิม override payload.packaging_category ทับทุกครั้งไม่ว่า Admin จะเลือกอะไรมาก็ตาม)
+    if (dbTab === "packaging" && !payload.packaging_category) {
+      const name = (payload.name || "").toLowerCase()
+      const category = name.includes("tote") ? "tote"
+        : name.includes("ibc") ? "ibc"
+          : name.includes("isotank") ? "isotank"
+            : name.includes("flexibag") ? "flexibag"
+              : "drum"
+      payload = { ...payload, packaging_category: category }
+    }
+
+    // capacity_mt = null ถ้าไม่ได้กรอก
+    if (dbTab === "blenders" && !payload.capacity_mt) {
+      payload = { ...payload, capacity_mt: null }
+    }
     console.log('[Admin addRow] tab:', dbTab);
     console.log('[Admin addRow] payload:', JSON.stringify(payload));
     const res = await fetch(`/api/${API_PATH[dbTab]}`, {

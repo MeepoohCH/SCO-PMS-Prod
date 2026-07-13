@@ -369,7 +369,7 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
           setSaving(false)
           return
         }
-        const targetDate = plan.date || plan.packing_date ||  plan.plan_date ||"";
+        const targetDate = plan.date || plan.packing_date || plan.plan_date || "";
         // Check for existing plan with same blender + date to avoid duplicates
         const existingPlanRes = await fetch(
           `/api/plans?blender_id=${resolvedBlenderId}&plan_date=${targetDate}&form_type=${plan.dept}`
@@ -588,7 +588,7 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
       else {
         const ibcData = plan.dept === 'IBC' ? {
           operator_name: plan.operator_name ?? null,
-          quality_status_lab: plan.quality_status ?? null,
+          quality_status: plan.quality_status ?? null,
           ibc_residue_kg: plan.ibc_residue_kg ?? null,
           ibc_empty_before_kg: plan.ibc_empty_before_kg ?? null,
           ibc_with_product_kg: plan.ibc_with_product_kg ?? null,
@@ -956,7 +956,7 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
         <ConfirmModal
           open={backModal}
           title="Save draft before leaving?"
-          message="You have unsaved data — save draft before going back to dashboard?"
+          message="You have unsaved data save draft before going back to dashboard?"
           confirmLabel="Save Draft"
           cancelLabel="Leave without saving"
           confirmColor="#185FA5"

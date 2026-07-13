@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, type ReactNode } from "react";
-import { Calendar, Scale, ClipboardList, Drum, Package, ClipboardCheck,PackageOpen, CheckCircle2, PauseCircle, AlertTriangle, AlertOctagon, Trash2 } from "lucide-react";
+import { Calendar, Scale, ClipboardList, Drum, Package, ClipboardCheck, PackageOpen, CheckCircle2, PauseCircle, AlertTriangle, AlertOctagon, Trash2 } from "lucide-react";
 import { DEPT, STATUS, ROLE_META } from "./constants";
 import { toThaiDateTimeInputValue, fromThaiInputToUTC } from "@/lib/utils";
 import type { DeptKey, StatusKey, RoleKey } from "./constants";
@@ -10,7 +10,7 @@ import type { DeptKey, StatusKey, RoleKey } from "./constants";
 export const F = "var(--font-roboto), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 export const M = "var(-- ), 'JetBrains Mono', monospace";
 export const NAVY = "#0F2347";
-export const RED  = "#CC0000";
+export const RED = "#CC0000";
 export const GOLD = "#EF9F27";
 
 // ── Types ──────────────────────────────────────────────────────
@@ -57,6 +57,7 @@ interface ComboProps {
   req?: boolean;
   placeholder?: string;
   mono?: boolean;
+  onAddNew?: (v: string) => void; // ถ้าไม่ใส่ จะ fallback ไปใช้ onChange เหมือนเดิม (พฤติกรรมเดิม)
 }
 
 interface ComboCellProps {
@@ -181,13 +182,13 @@ export function DeptBadge({ dept }: { dept: string }) {
 export function Card({ children, className = "", accentLeft, accentTop, style: extraStyle, onClick }: CardProps) {
   const style: React.CSSProperties = { ...extraStyle };
   if (accentLeft) style.borderLeftColor = accentLeft;
-  if (accentTop)  style.borderTopColor  = accentTop;
+  if (accentTop) style.borderTopColor = accentTop;
   return (
     <div
       className={[
         "bg-white border border-[#DDE2EE] p-6 shadow-sm transition-all duration-200",
         accentLeft ? "rounded-r-xl border-l-[4px]" : "rounded-xl",
-        accentTop  ? "border-t-[4px]" : "",
+        accentTop ? "border-t-[4px]" : "",
         onClick ? "cursor-pointer" : "",
         className,
       ].join(" ")}
@@ -249,7 +250,7 @@ export function TimePicker({ label, value, onChange, req, readOnly }: TimePicker
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const [h, m] = value ? value.split(':') : ['00', '00']
-  const hours   = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
+  const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
   const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'))
 
   useEffect(() => {
@@ -290,7 +291,7 @@ export function TimePicker({ label, value, onChange, req, readOnly }: TimePicker
                 className="block w-16 px-3 py-2 text-center text-sm cursor-pointer border-none"
                 style={{
                   background: h === hh ? '#185FA5' : 'transparent',
-                  color:      h === hh ? '#fff' : '#0E1117',
+                  color: h === hh ? '#fff' : '#0E1117',
                   fontWeight: h === hh ? 700 : 400,
                 }}>
                 {hh}
@@ -303,7 +304,7 @@ export function TimePicker({ label, value, onChange, req, readOnly }: TimePicker
                 className="block w-16 px-3 py-2 text-center text-sm cursor-pointer border-none"
                 style={{
                   background: m === mm ? '#185FA5' : 'transparent',
-                  color:      m === mm ? '#fff' : '#0E1117',
+                  color: m === mm ? '#fff' : '#0E1117',
                   fontWeight: m === mm ? 700 : 400,
                 }}>
                 {mm}
@@ -389,9 +390,9 @@ export function Sel({ label, value, onChange, opts, req }: SelProps) {
 }
 
 // ── Combo ────────────────────────────────────────────────────
-export function Combo({ label, value, onChange, opts = [], req, placeholder, mono }: ComboProps) {
+export function Combo({ label, value, onChange, opts = [], req, placeholder, mono, onAddNew }: ComboProps) {
   const [open, setOpen] = useState(false);
-  const [q, setQ]       = useState("");
+  const [q, setQ] = useState("");
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => { if (!open) setQ(""); }, [open]);
@@ -444,8 +445,8 @@ export function Combo({ label, value, onChange, opts = [], req, placeholder, mon
             <div className="px-4 py-3 text-xs text-[#9BA3BA]">No results found</div>
           )}
           {filtered.map((o, i) => {
-            const lbl  = typeof o === "string" ? o : (o.l ?? "");
-            const val  = typeof o === "string" ? o : (o.v ?? "");
+            const lbl = typeof o === "string" ? o : (o.l ?? "");
+            const val = typeof o === "string" ? o : (o.v ?? "");
             const active = value === val;
             return (
               <div key={i}
@@ -464,7 +465,7 @@ export function Combo({ label, value, onChange, opts = [], req, placeholder, mon
           })}
           {showAddNew && (
             <div
-              onMouseDown={e => { e.preventDefault(); onChange?.(q); setOpen(false); }}
+              onMouseDown={e => { e.preventDefault(); (onAddNew ?? onChange)?.(q); setOpen(false); }}
               className="px-4 py-2.5 text-sm cursor-pointer text-[#185FA5] border-t border-[#DDE2EE] bg-slate-50 font-bold hover:bg-[#E6F1FB]"
             >
               + Add &ldquo;{q}&rdquo;
@@ -501,7 +502,7 @@ export function Btn({ label, onClick, color = "#185FA5", outline, disabled, full
         sm ? "h-10 px-4 text-xs" : "h-12 px-6 text-sm",
         full ? "w-full" : "",
         disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer",
-        danger 
+        danger
           ? "bg-[#E24B4A] text-white border-[#E24B4A] hover:bg-[#c93b3a]"
           : outline
             ? "bg-transparent hover:bg-slate-50"
@@ -523,13 +524,13 @@ export function Toggle({ opts, value, onChange }: ToggleProps) {
         const active = value === o;
         const isPass = o === "Yes" || o === "Pass";
         const isFail = o === "No" || o === "Fail";
-        
+
         const activeCol = isPass ? "#27500A" : isFail ? "#791F1F" : "#26215C";
-        const activeBg  = isPass ? "#EAF3DE" : isFail ? "#FCEBEB" : "#EEEDFE";
+        const activeBg = isPass ? "#EAF3DE" : isFail ? "#FCEBEB" : "#EEEDFE";
 
         return (
-          <button 
-            key={o} 
+          <button
+            key={o}
             onClick={() => onChange(o)}
             className="flex-1 min-h-[52px] py-2.5 rounded-xl text-sm font-bold cursor-pointer transition-all active:scale-95"
             style={{
@@ -575,7 +576,7 @@ export function Navbar({ role, roles = [], onSwitchRole, onLogout, userName, cur
 
   return (
     <header className="bg-[#0F2347] h-14 flex items-center px-4 sticky top-0 z-50 justify-between shadow-md border-b border-white/10 select-none font-sans">
-      
+
       {/* ฝั่งซ้าย: โลโก้ + แบรนด์ */}
       <div className="flex items-center gap-3 min-w-0">
         <div className="flex-shrink-0 transition-transform hover:scale-105 duration-200">
@@ -595,8 +596,8 @@ export function Navbar({ role, roles = [], onSwitchRole, onLogout, userName, cur
               const m = (r in ROLE_META ? ROLE_META[r as RoleKey] : null) ?? { label: r, color: "#9BA3BA" };
               const active = role === r;
               return (
-                <button 
-                  key={r} 
+                <button
+                  key={r}
                   onClick={() => onSwitchRole?.(r)}
                   className={[
                     "px-3.5 py-1 rounded-full text-xs font-bold cursor-pointer transition-all active:scale-95 whitespace-nowrap border",
@@ -638,7 +639,7 @@ export function Navbar({ role, roles = [], onSwitchRole, onLogout, userName, cur
           </div>
         )}
 
-        <button 
+        <button
           onClick={onLogout ?? undefined}
           className="bg-[#CC0000] hover:bg-[#b30000] border-none rounded-lg px-3.5 py-1.5 text-xs font-bold cursor-pointer text-white whitespace-nowrap transition-colors active:scale-95"
         >
@@ -664,7 +665,7 @@ export function useAutosave<T>(value: T, onSave?: (value: T) => void): "saving" 
       setTimeout(() => setStatus(null), 2000);
     }, 800);
     return () => { if (timer.current) clearTimeout(timer.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(value)]);
 
   return status;
@@ -706,13 +707,13 @@ export function ProgressBar({ done, total, color }: ProgressBarProps) {
 // ── LotStepBar (ขยายวงกลมให้เห็นชัดเจน จิ้มง่ายไล่ตามสเต็ปโรงงาน) ───────────────────────────────────────────────
 export function LotStepBar({ pkStep, dc, planned_pallets, sessions }: LotStepBarProps) {
   const STEPS = [
-    { icon: <Calendar size={16} />,      l: "Date" },
-    { icon: <Scale size={16} />,          l: "Scale" },
-    { icon: <ClipboardList size={16} />,  l: "Pre-check" },
-    { icon: <PackageOpen size={16} />,    l: "Drumming" },
-    { icon: <Package size={16} />,        l: "Post-check" },
+    { icon: <Calendar size={16} />, l: "Date" },
+    { icon: <Scale size={16} />, l: "Scale" },
+    { icon: <ClipboardList size={16} />, l: "Pre-check" },
+    { icon: <PackageOpen size={16} />, l: "Drumming" },
+    { icon: <Package size={16} />, l: "Post-check" },
     { icon: <ClipboardCheck size={16} />, l: "Confirm" },
-    { icon: <CheckCircle2 size={16} />,   l: "Submit" },
+    { icon: <CheckCircle2 size={16} />, l: "Submit" },
   ];
   const progressPct = pkStep <= 0 ? 0 : Math.min(100, (pkStep / (STEPS.length - 1)) * 100);
 
@@ -726,17 +727,17 @@ export function LotStepBar({ pkStep, dc, planned_pallets, sessions }: LotStepBar
           style={{ width: `${progressPct}%`, background: dc }}
         />
         {STEPS.map((s, i) => {
-          const done   = i < pkStep;
+          const done = i < pkStep;
           const active = i === pkStep;
           return (
             <div key={i} className="flex-1 flex flex-col items-center z-[1]">
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-300"
                 style={{
-                  background:  done ? dc : active ? "#fff" : "#F4F5F7",
+                  background: done ? dc : active ? "#fff" : "#F4F5F7",
                   borderColor: done || active ? dc : "#DDE2EE",
-                  color:       done ? "#fff" : active ? dc : "#737D9C",
-                  boxShadow:   active ? `0 0 0 4px ${dc}15` : undefined,
+                  color: done ? "#fff" : active ? dc : "#737D9C",
+                  boxShadow: active ? `0 0 0 4px ${dc}15` : undefined,
                 }}
               >
                 {done ? "✓" : s.icon}
@@ -770,9 +771,9 @@ export function PauseControls({ onPause, pre, onShiftEndClick }: PauseControlsPr
   }
 
   const OPTS: PauseOption[] = ([
-    { k: "paused_shift_end",  icon: <PauseCircle size={16} />,   label: "Shift End",       sub: "save · no log needed",      bg: "#FEF3C7", color: "#633806", border: "#EF9F27", confirmBg: "#EF9F27" },
-    { k: "paused_issue",      icon: <AlertTriangle size={16} />, label: "Issue / Problem", sub: "log required",              bg: "#FCEBEB", color: "#791F1F", border: "#E24B4A", confirmBg: "#E24B4A" },
-    { k: "paused_emergency",  icon: <AlertOctagon size={16} />,  label: "Emergency",       sub: "leak/block . log required", bg: "#FEF2F2", color: "#991B1B", border: "#991B1B", confirmBg: "#991B1B" },
+    { k: "paused_shift_end", icon: <PauseCircle size={16} />, label: "Shift End", sub: "save · no log needed", bg: "#FEF3C7", color: "#633806", border: "#EF9F27", confirmBg: "#EF9F27" },
+    { k: "paused_issue", icon: <AlertTriangle size={16} />, label: "Issue / Problem", sub: "log required", bg: "#FCEBEB", color: "#791F1F", border: "#E24B4A", confirmBg: "#E24B4A" },
+    { k: "paused_emergency", icon: <AlertOctagon size={16} />, label: "Emergency", sub: "leak/block . log required", bg: "#FEF2F2", color: "#991B1B", border: "#991B1B", confirmBg: "#991B1B" },
   ] as PauseOption[]).filter(o => pre ? o.k !== "paused_emergency" : true);
 
   const pendingOpt = OPTS.find(x => x.k === pending);
@@ -791,8 +792,8 @@ export function PauseControls({ onPause, pre, onShiftEndClick }: PauseControlsPr
             }
             className="px-3 py-4.5 rounded-xl text-xs font-bold cursor-pointer text-center leading-normal transition-all duration-150 border-2 active:scale-98"
             style={{
-              background:  pending === o.k ? o.border : o.bg,
-              color:       pending === o.k ? "#fff"   : o.color,
+              background: pending === o.k ? o.border : o.bg,
+              color: pending === o.k ? "#fff" : o.color,
               borderColor: pending === o.k ? o.border : o.border + "60",
             }}
           >
@@ -804,7 +805,7 @@ export function PauseControls({ onPause, pre, onShiftEndClick }: PauseControlsPr
           </button>
         ))}
       </div>
-      
+
       {pending && pendingOpt && (
         <div
           className="mt-3 rounded-xl p-4 flex items-center gap-3 border-2 animate-in fade-in slide-in-from-top-2 duration-150"
@@ -840,15 +841,15 @@ export function PauseControls({ onPause, pre, onShiftEndClick }: PauseControlsPr
 
 // ── PausedCard ───────────────────────────────────────────────
 export function PausedCard({ pauseType, onResume, currentUser, initialStartTime }: PausedCardProps) {
-  const [dtR, setDtR]   = useState("");
-  const [dtT, setDtT]   = useState("Equipment");
-  const [dtS, setDtS]   = useState(() => initialStartTime || new Date().toISOString());
-  const [dtE, setDtE]   = useState('');
+  const [dtR, setDtR] = useState("");
+  const [dtT, setDtT] = useState("Equipment");
+  const [dtS, setDtS] = useState(() => initialStartTime || new Date().toISOString());
+  const [dtE, setDtE] = useState('');
 
-  const isShiftEnd    = pauseType === "paused_shift_end";
-  const isEmergency   = pauseType === "paused_emergency";
-  const needsLog      = !isShiftEnd;
-  const ok            = isShiftEnd ? true : !!(dtS && dtE && dtR);
+  const isShiftEnd = pauseType === "paused_shift_end";
+  const isEmergency = pauseType === "paused_emergency";
+  const needsLog = !isShiftEnd;
+  const ok = isShiftEnd ? true : !!(dtS && dtE && dtR);
 
   // กำหนดโครงสร้าง Mapping ให้ TypeScript สบายใจ
   const metadata: Record<
@@ -877,7 +878,7 @@ export function PausedCard({ pauseType, onResume, currentUser, initialStartTime 
       btnC: "#0F6E56",
     },
   };
-  
+
   // ดึงข้อมูลมาใช้งานผ่านคีย์อย่างปลอดภัย
   const m = metadata[pauseType];
 
@@ -885,7 +886,7 @@ export function PausedCard({ pauseType, onResume, currentUser, initialStartTime 
     <div
       className="rounded-xl p-5 mb-4 border-2 font-sans shadow-sm"
       style={{
-        background:  isShiftEnd ? "#FEF3C7" : "#FCEBEB",
+        background: isShiftEnd ? "#FEF3C7" : "#FCEBEB",
         borderColor: isShiftEnd ? "#EF9F27" : "#E24B4A",
       }}
     >
@@ -908,7 +909,7 @@ export function PausedCard({ pauseType, onResume, currentUser, initialStartTime 
       {needsLog && (
         <div className="space-y-3 mb-4">
           <DateTimePicker label="Downtime Start" value={dtS} onChange={setDtS} req />
-          <DateTimePicker label="Downtime End"   value={dtE} onChange={setDtE} req />
+          <DateTimePicker label="Downtime End" value={dtE} onChange={setDtE} req />
           {!isEmergency && (
             <div className="mb-3">
               <div className="text-xs font-medium text-gray-600 mb-2">
@@ -916,27 +917,27 @@ export function PausedCard({ pauseType, onResume, currentUser, initialStartTime 
               </div>
               <div className="flex flex-col gap-1.5">
                 {[
-                  { k: 'Equipment',     l: 'Equipment — อุปกรณ์ขัดข้อง' },
+                  { k: 'Equipment', l: 'Equipment — อุปกรณ์ขัดข้อง' },
                   { k: 'Chemical Leak', l: 'Chemical Leak — สารเคมีรั่วไหล' },
-                  { k: 'Pipe Block',    l: 'Pipe Block — ท่ออุดตัน' },
-                  { k: 'Other',         l: 'Other — อื่นๆ' },
+                  { k: 'Pipe Block', l: 'Pipe Block — ท่ออุดตัน' },
+                  { k: 'Other', l: 'Other — อื่นๆ' },
                 ].map(opt => (
                   <button key={opt.k}
                     onClick={() => setDtT(opt.k)}
                     className="flex items-center gap-3 p-3 rounded-xl text-left border-2 cursor-pointer min-h-[48px]"
                     style={{
                       borderColor: dtT === opt.k ? '#EF9F27' : '#DDE2EE',
-                      background:  dtT === opt.k ? '#FEF3C7' : '#F4F5F7',
+                      background: dtT === opt.k ? '#FEF3C7' : '#F4F5F7',
                     }}>
                     <div className="w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center"
                       style={{
                         borderColor: dtT === opt.k ? '#EF9F27' : '#9BA3BA',
-                        background:  dtT === opt.k ? '#EF9F27' : '#fff',
+                        background: dtT === opt.k ? '#EF9F27' : '#fff',
                       }}>
                       {dtT === opt.k && <span className="text-white text-[11px] font-bold">✓</span>}
                     </div>
                     <span className="text-sm" style={{
-                      color:      dtT === opt.k ? '#633806' : '#0E1117',
+                      color: dtT === opt.k ? '#633806' : '#0E1117',
                       fontWeight: dtT === opt.k ? 600 : 400,
                     }}>{opt.l}</span>
                   </button>
@@ -954,10 +955,10 @@ export function PausedCard({ pauseType, onResume, currentUser, initialStartTime 
         full
         disabled={!ok}
         onClick={() => onResume({
-          start:       isShiftEnd ? '' : (dtS || ''),
-          end:         isShiftEnd ? '' : (dtE || ''),
-          type:        isShiftEnd ? '' : (isEmergency ? "emergency" : "issue"),
-          reason:      isShiftEnd ? '' : (isEmergency ? dtR : `[${dtT}] ${dtR}`),
+          start: isShiftEnd ? '' : (dtS || ''),
+          end: isShiftEnd ? '' : (dtE || ''),
+          type: isShiftEnd ? '' : (isEmergency ? "emergency" : "issue"),
+          reason: isShiftEnd ? '' : (isEmergency ? dtR : `[${dtT}] ${dtR}`),
           newOperator: isShiftEnd ? currentUser : null,
         })}
       />
