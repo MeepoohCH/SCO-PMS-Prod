@@ -52,7 +52,7 @@ export default function LoginForm({ onForgotPassword, onForceChange }: LoginForm
   return (
     <>
       <h2 className="text-2xl font-black text-[#0F2347] mb-1">เข้าสู่ระบบ</h2>
-      <p className="text-sm text-gray-400 mb-5">Dow Packaging Management System</p>
+      <p className="text-sm text-gray-400 mb-5">Dow Packing Process Monitoring and Control System</p>
 
       <div className="mb-5">
         <label className={labelCls}>Username</label>
