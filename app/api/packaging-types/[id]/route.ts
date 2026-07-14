@@ -8,6 +8,17 @@ type RouteParams = { params: Promise<{ id: string }> };
 
 const VALID_CATEGORIES = ["tote", "ibc", "isotank", "flexibag", "drum"];
 
+// ค่ามาตรฐานตาม category — ใช้ตอนเปลี่ยน packaging_category ผ่าน PATCH นี้
+// แล้ว client ไม่ได้ส่ง weight/pallet มาด้วย (Admin.tsx เองมี auto-fill ฝั่ง client
+// อยู่แล้วตอนเปลี่ยน dropdown แต่ใส่ไว้ที่ server ด้วยเป็น safety net เผื่อ path อื่นเรียกตรงมา)
+const PACKAGING_CATEGORY_DEFAULTS: Record<
+  string,
+  { standard_weight_kg: number; drums_per_pallet: number }
+> = {
+  drum: { standard_weight_kg: 210, drums_per_pallet: 4 },
+  tote: { standard_weight_kg: 1000, drums_per_pallet: 1 },
+};
+
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   try {
     const session = await auth();
@@ -39,6 +50,27 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         );
       }
       data.packaging_category = category as PackagingCategory;
+
+      // เปลี่ยน category แล้ว client ไม่ได้ส่ง weight/pallet มาด้วย (ไม่มี key นี้ใน body เลย)
+      // → ลองเติม default ให้ตาม category ใหม่ แต่เฉพาะตอนค่าปัจจุบันใน DB ยังว่างอยู่จริง
+      // (กันไม่ให้ไปทับตัวเลขที่ Admin ตั้งใจกรอกไว้แล้วก่อนหน้า)
+      if (!("standard_weight_kg" in body) && !("drums_per_pallet" in body)) {
+        const defaults = PACKAGING_CATEGORY_DEFAULTS[category];
+        if (defaults) {
+          const current = await prisma.packaging_types.findUnique({
+            where: { id: Number(id) },
+            select: { standard_weight_kg: true, drums_per_pallet: true },
+          });
+          if (current && current.standard_weight_kg == null) {
+            data.standard_weight_kg = new Prisma.Decimal(
+              defaults.standard_weight_kg,
+            );
+          }
+          if (current && current.drums_per_pallet == null) {
+            data.drums_per_pallet = defaults.drums_per_pallet;
+          }
+        }
+      }
     }
 
     if ("standard_weight_kg" in body) {

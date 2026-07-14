@@ -280,6 +280,36 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
   const [addingBlender, setAddingBlender] = useState(false);
   const [addingPackaging, setAddingPackaging] = useState(false);
 
+  // Quick-create Blender ตรงจากฟอร์มนี้เลย — เรียก POST /api/blenders (non-admin
+  // จะสร้างได้แค่ code + dept, capacity_mt ปล่อยเป็น null ให้ Admin ไปตั้งทีหลัง)
+  async function handleAddBlender(codeRaw: string) {
+    const code = codeRaw.trim();
+    if (!code) return;
+    setAddingBlender(true);
+    try {
+      const res = await fetch('/api/blenders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, dept: plan.dept }),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setLocalDb(prev => prev
+          ? { ...prev, blenders: [...prev.blenders, created] }
+          : prev);
+        setPlan(p => p ? { ...p, blender: created.code, blender_id: created.id } : p);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert('เพิ่ม Blender ไม่สำเร็จ: ' + (err.error || res.status));
+      }
+    } catch (e) {
+      console.error('[LotForm handleAddBlender] error:', e);
+      alert('เพิ่ม Blender ไม่สำเร็จ — ตรวจสอบการเชื่อมต่อ');
+    } finally {
+      setAddingBlender(false);
+    }
+  }
+
   // Quick-create Packaging type ตรงจากฟอร์มนี้เลย — เรียก POST /api/packaging-types
   // (non-admin สร้างได้แค่ name, category auto-detect จากชื่อ ให้ Admin ไปเติม
   // standard_weight_kg / drums_per_pallet ทีหลัง)
@@ -308,36 +338,6 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
       alert('เพิ่ม Packaging type ไม่สำเร็จ — ตรวจสอบการเชื่อมต่อ');
     } finally {
       setAddingPackaging(false);
-    }
-  }
-
-  // Quick-create Blender ตรงจากฟอร์มนี้เลย — เรียก POST /api/blenders (non-admin
-  // จะสร้างได้แค่ code + dept, capacity_mt ปล่อยเป็น null ให้ Admin ไปตั้งทีหลัง)
-  async function handleAddBlender(codeRaw: string) {
-    const code = codeRaw.trim();
-    if (!code) return;
-    setAddingBlender(true);
-    try {
-      const res = await fetch('/api/blenders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, dept: plan.dept }),
-      });
-      if (res.ok) {
-        const created = await res.json();
-        setLocalDb(prev => prev
-          ? { ...prev, blenders: [...prev.blenders, created] }
-          : prev);
-        setPlan(p => p ? { ...p, blender: created.code, blender_id: created.id } : p);
-      } else {
-        const err = await res.json().catch(() => ({}));
-        alert('เพิ่ม Blender ไม่สำเร็จ: ' + (err.error || res.status));
-      }
-    } catch (e) {
-      console.error('[LotForm handleAddBlender] error:', e);
-      alert('เพิ่ม Blender ไม่สำเร็จ — ตรวจสอบการเชื่อมต่อ');
-    } finally {
-      setAddingBlender(false);
     }
   }
 
@@ -424,7 +424,7 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
                 );
                 setPlan(p =>
                   p
-                    ? { ...p, product_name: v, product: v, product_id: found ? found.id : undefined }
+                    ? { ...p, product_name: v, product: v, ...(found && { product_id: found.id }) }
                     : p,
                 );
               }}

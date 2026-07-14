@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth, hasRole } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import type { PackagingCategory } from "@prisma/client";
@@ -34,13 +34,22 @@ function detectCategory(name: string): PackagingCategory {
   return "drum" as PackagingCategory;
 }
 
+// ค่ามาตรฐานตาม category — ใช้ตอนฟอร์มที่เรียกไม่มีช่องให้กรอก weight/pallet เอง
+// (เช่น SL quick-create) ต้อง auto-fill ให้แทน — เลข set เดียวกับที่ Admin.tsx ใช้
+// (ฟอร์มไหนส่งค่ามาเองตรงๆ เช่น Admin full form ยังใช้ค่าที่ส่งมาอยู่ ไม่ถูก override ทับ)
+const PACKAGING_CATEGORY_DEFAULTS: Record<
+  string,
+  { standard_weight_kg: number; drums_per_pallet: number }
+> = {
+  drum: { standard_weight_kg: 210, drums_per_pallet: 4 },
+  tote: { standard_weight_kg: 1000, drums_per_pallet: 1 },
+};
+
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const isAdmin = hasRole(session.user.roles, "admin");
 
     const body = (await req.json()) as {
       name: string;
@@ -59,17 +68,36 @@ export async function POST(req: NextRequest) {
       ? (packaging_category as PackagingCategory)
       : detectCategory(name);
 
-    // Quick-create จากหน้างาน (SL ฯลฯ): non-admin สร้างได้แค่ name (+ auto-detect category)
-    // standard_weight_kg / drums_per_pallet ปล่อยเป็นค่าว่าง/ค่าเริ่มต้นไปก่อน ให้ Admin
-    // เข้าไปเติมค่าจริงทีหลัง — เฉพาะ admin เท่านั้นที่กำหนดตัวเลขพวกนี้ตอนสร้างได้เลย
-    const standardWeight =
-      isAdmin && body.standard_weight_kg != null
+    let standardWeight: Prisma.Decimal | null;
+    let drumsPerPallet: number | null;
+
+    // เดิมเช็คจาก role (isAdmin) เพื่อเดาว่า request มาจากฟอร์มไหน แต่พังตอน account
+    // มีหลาย role พร้อมกัน (เช่น admin ที่ก็มี role sl ด้วย) เพราะ isAdmin จะ true ตาม role จริง
+    // ทั้งที่ตอนนั้นกำลังใช้ flow แบบ SL quick-create (ไม่มีช่องกรอกเลข) อยู่
+    //
+    // เปลี่ยนมาเช็คจาก "request ส่งค่ามาจริงไหม" แทน — ไม่พึ่ง role เลย ทำงานถูกไม่ว่า
+    // account จะมีกี่ role ก็ตาม: ฟอร์มไหนส่งเลขมาก็ใช้ตามนั้น, ฟอร์มไหนไม่ส่งมา (ไม่มีช่องให้กรอก)
+    // ก็ใช้ default ตาม category แทน
+    const weightProvided = body.standard_weight_kg != null;
+    const palletProvided = body.drums_per_pallet != null;
+
+    if (weightProvided || palletProvided) {
+      // ฟอร์มส่งค่ามาให้ตรงๆ (เช่น Admin full form) — ใช้ตามที่ส่งมา ไม่ auto-fill ทับ
+      standardWeight = weightProvided
         ? new Prisma.Decimal(parseFloat(String(body.standard_weight_kg)) || 0)
         : null;
-    const drumsPerPallet =
-      isAdmin && body.drums_per_pallet != null
+      drumsPerPallet = palletProvided
         ? parseInt(String(body.drums_per_pallet)) || null
         : null;
+    } else {
+      // ไม่มีช่องให้กรอกเลขเลย (เช่น SL quick-create) — พึ่ง default ตาม category แทน
+      // ถ้า category ไม่มี default กำหนดไว้ (ibc/isotank/flexibag) ปล่อย null ให้ Admin เติมทีหลัง
+      const defaults = PACKAGING_CATEGORY_DEFAULTS[category as string];
+      standardWeight = defaults
+        ? new Prisma.Decimal(defaults.standard_weight_kg)
+        : null;
+      drumsPerPallet = defaults ? defaults.drums_per_pallet : null;
+    }
 
     const record = await prisma.packaging_types.create({
       data: {

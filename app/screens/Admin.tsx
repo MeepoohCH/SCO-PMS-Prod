@@ -91,8 +91,8 @@ const DB_TABS: { k: DbTabKey; l: string }[] = [
 const FDS: Record<DbTabKey, FieldDef[]> = {
   users: [{ k: "username", l: "Username", req: true }, { k: "full_name", l: "Full name", req: true }, { k: "roles", l: "Roles" }, { k: "allowed_depts", l: "Departments" }, { k: "pack_lead_id", l: "Pack Lead" }, { k: "is_active", l: "Active", opts: ["true", "false"] }],
   products: [{ k: "product_name", l: "Product name" }, { k: "gmid", l: "GMID" }, { k: "dept", l: "Department", opts: ["PUF", "PU", "IBC", "Latex"] }, { k: "is_active", l: "Active", opts: ["true", "false"] }],
-  blenders: [{ k: "code", l: "Code" }, { k: "capacity_mt", l: "Capacity (MT) (optional)" }, { k: "dept", l: "Department", opts: ["PUF", "PU", "IBC", "Latex"] }, { k: "status", l: "Status", opts: ["active", "maintenance", "retired"] }],
-  packaging: [{ k: "name", l: "Package name (ถ้าไม่เลือก Category จะ auto-detect จากชื่อ)" }, { k: "standard_weight_kg", l: "Standard weight (kg)" }, { k: "drums_per_pallet", l: "Units/pallet" }, { k: "packaging_category", l: "Category", opts: ["drum", "tote", "ibc", "isotank", "flexibag"] }, { k: "is_active", l: "Active", opts: ["true", "false"] }],
+  blenders: [{ k: "code", l: "Code" }, { k: "capacity_mt", l: "Capacity (MT)" }, { k: "dept", l: "Department", opts: ["PUF", "PU", "IBC", "Latex"] }, { k: "status", l: "Status", opts: ["active", "maintenance", "retired"] }],
+  packaging: [{ k: "name", l: "Package name" }, { k: "standard_weight_kg", l: "Standard weight (kg)" }, { k: "drums_per_pallet", l: "Units/pallet" }, { k: "packaging_category", l: "Category", opts: ["drum", "tote", "ibc", "isotank", "flexibag"] }, { k: "is_active", l: "Active", opts: ["true", "false"] }],
   customers: [{ k: "country_label", l: "Country label" }, { k: "is_active", l: "Active", opts: ["true", "false"] }],
   checklist_items: [{ k: "form_type", l: "Department" }, { k: "phase", l: "Phase", opts: ["pre", "post"] }, { k: "item_label", l: "Label" }, { k: "response_type", l: "Type", opts: ["yes_no", "select", "text"] }, { k: "select_options", l: "Options" }, { k: "is_required", l: "Required", opts: ["true", "false"] }, { k: "is_active", l: "Active", opts: ["true", "false"] }],
 };
@@ -858,8 +858,8 @@ export default function AdminScreen({ lots, setLots }: AdminScreenProps) {
                   className="flex items-center gap-1.5 h-10 px-3 text-[12px] font-medium border border-[#DDE2EE] rounded-lg cursor-pointer bg-white text-[#0F2347]"
                 >
                   {dbSortOrder === 'newest'
-                    ? <><ArrowDown size={12} /> Newest first</>
-                    : <><ArrowUp size={12} /> Oldest first</>
+                    ? <><ArrowDown size={12} /> Newest </>
+                    : <><ArrowUp size={12} /> Oldest </>
                   }
                 </button>
 
