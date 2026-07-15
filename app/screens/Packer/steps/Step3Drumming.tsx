@@ -297,7 +297,7 @@ export function Step3Drumming({
                       <button key={s} onClick={() => setWtIbcSub(s)}
                         className="p-2 rounded-lg text-center cursor-pointer border min-h-[40px] text-xs font-semibold"
                         style={{ borderColor: wtIbcSub === s ? dc : '#DDE2EE', background: wtIbcSub === s ? dc + '10' : '#fff', color: wtIbcSub === s ? dc : '#5A617A' }}>
-                        {s} ({s === 'Local' ? '1060' : '760'} kg)
+                        {s} ({s === 'Local' ? '1057' : '760'} kg)
                       </button>
                     ))}
                   </div>

@@ -97,7 +97,7 @@ export function getWtStandard(
   if (machine === 'MDU2451/52') {
     if (category === 'IBC Tote') {
       if (!ibcSubChoice) return null
-      return ibcSubChoice === 'Local' ? { ref: 1060, tol: 3 } : { ref: 760, tol: 3 }
+      return ibcSubChoice === 'Local' ? { ref: 1057, tol: 3 } : { ref: 760, tol: 3 }
     }
     if (!drumType) return null
     const table: Record<'Local' | 'Export', Record<DrumMmType, number>> = {
