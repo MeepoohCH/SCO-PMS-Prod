@@ -25,12 +25,13 @@ import { Step4PostCheck } from './steps/Step4PostCheck'
 import { Step5Submit } from './steps/Step5Submit'
 
 
-function getStandardWeight(drumSet?: string, custom?: string): number {
-  if (!drumSet) return 210
-  if (drumSet.includes('210')) return 210
+export function getStandardWeight(drumSet?: string, custom?: string, dept?: string): number {
+  const defaultWeight = dept === 'Latex' ? 200 : 210
+  if (!drumSet) return defaultWeight
+  if (drumSet.includes('210') || drumSet.includes('200')) return defaultWeight
   if (drumSet.includes('1000')) return 1000
-  if (drumSet === 'อื่นๆ' && custom) return Number(custom) || 210
-  return 210
+  if (drumSet === 'อื่นๆ' && custom) return Number(custom) || defaultWeight
+  return defaultWeight
 }
 
 function getTolerance(drumSet?: string, customTol?: string): number {
@@ -239,7 +240,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   // ── Step 1 state ─────────────────────────────────────────────
   const [mduLocked, setMduLocked] = useState<string | null>(null)
   const [mduVals, setMduVals] = useState<MduVals>({})
-  const stdWeight = getStandardWeight(mduVals.drumSet, mduVals.drumSetCustom)
+  const stdWeight = getStandardWeight(mduVals.drumSet, mduVals.drumSetCustom, lot.dept)
   const tolerance = getTolerance(mduVals.drumSet, mduVals.customTolerance)
   const [recalib, setRecalib] = useState('')
   const [scaleApproved, setScaleApproved] = useState(false)
@@ -324,7 +325,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           const r2 = data.find((v: any) => v.round_no === 2)
           const deriveDrumSet = (stdKg: unknown) => {
             const w = Number(stdKg)
-            if (w === 210) return 'Drum Set 210.0 Kg'
+            if (w === 200) return 'Drum Set 200.0 Kg'
             if (w === 1000) return 'Tote Set 1000.0 Kg'
             return 'อื่นๆ'
           }

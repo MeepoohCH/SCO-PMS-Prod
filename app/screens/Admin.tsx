@@ -1146,7 +1146,7 @@ export default function AdminScreen({ lots, setLots }: AdminScreenProps) {
                             })}
                           </div>
                           <div className="flex gap-1 flex-shrink-0">
-                            {String(row.allowed_depts ?? "all").split(",").filter(Boolean).slice(0, 2).map(dept => {
+                            {String(row.allowed_depts ?? "all").split(",").filter(Boolean).map(dept => {
                               const c = DEPT_COLORS[dept.trim()] ?? DEPT_COLORS.all;
                               return <span key={dept} className="text-[10px] font-semibold px-2 py-0.5 rounded-full border-[1px]" style={{ background: c.bg, color: c.color, borderColor: c.border }}>{dept.trim()}</span>;
                             })}
