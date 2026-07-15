@@ -1,7 +1,3 @@
-trigger:
-  branches:
-    include: [ Code_Scan ]
-
 pool:
   vmImage: 'ubuntu-latest'
 
