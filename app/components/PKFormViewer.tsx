@@ -264,7 +264,7 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
               if (r1) {
                 if (r1.standard_weight_kg != null) {
                   const w1 = Number(r1.standard_weight_kg)
-                  setLatexMdu1(p => ({ ...p, drumSet: w1 === 210 ? 'Drum Set 210.0 Kg' : w1 === 1000 ? 'Tote Set 1000.0 Kg' : 'อื่นๆ' }))
+                  setLatexMdu1(p => ({ ...p, drumSet: w1 === 200 ? 'Drum Set 200.0 Kg' : w1 === 1000 ? 'Tote Set 1000.0 Kg' : 'อื่นๆ' }))
                 }
                 if (r1.measured_weight_kg) setLatexMdu1(p => ({ ...p, w: String(r1.measured_weight_kg) }))
                 if (r1.recalibration_required != null) setLatexMdu1(p => ({ ...p, recalib: r1.recalibration_required ? 'Yes' : 'No' }))
@@ -275,7 +275,7 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
               if (r2) {
                 if (r2.standard_weight_kg != null) {
                   const w2 = Number(r2.standard_weight_kg)
-                  setLatexMdu2(p => ({ ...p, drumSet: w2 === 210 ? 'Drum Set 210.0 Kg' : w2 === 1000 ? 'Tote Set 1000.0 Kg' : 'อื่นๆ' }))
+                  setLatexMdu2(p => ({ ...p, drumSet: w2 === 200 ? 'Drum Set 200.0 Kg' : w2 === 1000 ? 'Tote Set 1000.0 Kg' : 'อื่นๆ' }))
                 }
                 if (r2.measured_weight_kg) setLatexMdu2(p => ({ ...p, w: String(r2.measured_weight_kg) }))
                 if (r2.recalibration_required != null) setLatexMdu2(p => ({ ...p, recalib: r2.recalibration_required ? 'Yes' : 'No' }))
@@ -407,7 +407,7 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
   const preItems = preItemsDB.filter(i => !isPerPalletChecklistItem(i.item_label))
   const preItems45 = preItemsDB.filter(i => isPerPalletChecklistItem(i.item_label))
 
-  const stdWeight = getStandardWeight(mduVals.drumSet, mduVals.drumSetCustom)
+  const stdWeight = getStandardWeight(mduVals.drumSet, mduVals.drumSetCustom, lot.dept)
   const tolerance = getTolerance(mduVals.drumSet, mduVals.customTolerance)
 
   const planFields = buildPlanFields(lot as Record<string, any>)
@@ -493,7 +493,7 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
                 </div>
                 <div className="text-[10px] text-amber-500 flex-shrink-0 text-right">
                   {formatDowntimeDate(l.start)} {toThaiTime(l.start)}
-                  {l.end && l.end !== l.start && `–${toThaiTime(l.end)}`} น. 
+                  {l.end && l.end !== l.start && `–${toThaiTime(l.end)}`} น.
                   {formatDuration(l.start, l.end) && ` (${formatDuration(l.start, l.end)})`}
                 </div>
               </div>

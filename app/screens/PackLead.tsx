@@ -60,10 +60,10 @@ interface PLLot {
 
 // ── Scale helpers ──────────────────────────────────────────────
 
-function getStdWeight(pkg: string): number {
+function getStdWeight(pkg: string, dept?: string): number {
   const p = (pkg || '').toLowerCase()
   if (p.includes('1000') || p.includes('tote') || p.includes('ibc')) return 1000
-  return 210
+  return dept === 'Latex' ? 200 : 210
 }
 
 function getMachineLabel(lot: PLLot, scaleData: Record<string, unknown> | null): string {
@@ -86,7 +86,7 @@ interface ScaleCardProps {
 
 function ScaleCard({ lot, onApprove, onReject }: ScaleCardProps) {
   const sd = lot.sd || ({} as ScaleData);
-  const stdWeight = getStdWeight(lot.pkg)
+  const stdWeight = getStdWeight(lot.pkg, lot.dept)
   const wOk = sd.wt ? Math.abs(+sd.wt - stdWeight) <= 0.5 : false;
 
   return (
@@ -174,8 +174,9 @@ function ScaleApprovalCard({ lot, onApprove, onReject }: ScaleApprovalCardProps)
       })
   }, [lot.id]);
 
+  const defaultStdWeight = lot.dept === 'Latex' ? 200 : 210
   const measured = scaleData ? Number(scaleData.measured_weight_kg) : NaN;
-  const stdWeight = scaleData ? Number(scaleData.standard_weight_kg || 210) : 210;
+  const stdWeight = scaleData ? Number(scaleData.standard_weight_kg || defaultStdWeight) : defaultStdWeight;
   const wOk = !isNaN(measured) && Math.abs(measured - stdWeight) <= 0.5;
 
   return (
@@ -188,7 +189,7 @@ function ScaleApprovalCard({ lot, onApprove, onReject }: ScaleApprovalCardProps)
           {([
             ["Machine", getMachineLabel(lot, scaleData)],
             ["Measured", !isNaN(measured) ? `${measured} kg` : "-"],
-            ["Standard", !isNaN(stdWeight) ? `${stdWeight} ± 0.5 kg` : "210 ± 0.5 kg"],
+            ["Standard", !isNaN(stdWeight) ? `${stdWeight} ± 0.5 kg` : `${defaultStdWeight} ± 0.5 kg`],
             ["Result", !isNaN(measured) ? (wOk ? "PASS" : "FAIL") : "-"],
             ["Recalibration", scaleData.recalibration_required ? "Required" : "Not required"],
             ["Checked by", String((scaleData.checker as { full_name?: string } | null)?.full_name ?? "-")],

@@ -235,7 +235,9 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
       : (plan.packaging_type as string) || "";
 
   const selectedPkg = (data?.packaging ?? []).find(p => (p.name as string) === pkgTypeDisplay);
-  const stdWeight = Number(selectedPkg?.standard_weight_kg || 0);
+  const stdWeight = plan.dept === "Latex" && selectedPkg?.packaging_category === "drum"
+    ? 200
+    : Number(selectedPkg?.standard_weight_kg || 0);
   const targetKg = Number(plan.target_mt || 0) * 1000;
   const drumCount = stdWeight > 0 && targetKg > 0 ? Math.ceil(targetKg / stdWeight) : null;
   const isTote =
