@@ -97,6 +97,28 @@ export function useScalePoll({
     if (!r1Poll && !r2Poll) return;
     const interval = setInterval(async () => {
       try {
+        // เช็ค lot status ก่อน — ถ้า PL reject จะกลับมาเป็น in_progress
+        const lotRes = await fetch(`/api/lots/${lot.id}`);
+        if (lotRes.ok) {
+          const lotData = await lotRes.json();
+          if (
+            lotData.detail_status === "in_progress" ||
+            lotData.status === "in_progress"
+          ) {
+            // PL rejected scale — reset เฉพาะรอบที่ยัง pending (ไม่แตะรอบที่ approve ไปแล้ว)
+            if (r1Poll) {
+              setLatexScale1Pending(false);
+              setLatexScale1Approved(false);
+            }
+            if (r2Poll) {
+              setLatexScale2Pending(false);
+              setLatexScale2Approved(false);
+            }
+            clearInterval(interval);
+            return;
+          }
+        }
+
         const res = await fetch(
           `/api/scale-verifications?production_detail_id=${lot.id}`,
         );
