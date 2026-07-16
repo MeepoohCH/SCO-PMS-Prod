@@ -1,50 +1,68 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auth, hasRole } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { NextRequest, NextResponse } from "next/server";
+import { auth, hasRole } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    const session = await auth()
-    if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const session = await auth();
+    if (!session?.user)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const customers = await prisma.customers.findMany({
-      orderBy: { country_label: 'asc' },
-    })
-    return NextResponse.json(customers)
+      orderBy: { country_label: "asc" },
+    });
+    return NextResponse.json(customers);
   } catch (err) {
-    console.error('[GET /api/customers]', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error("[GET /api/customers]", err);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if (!hasRole(session.user.roles, 'admin')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const session = await auth();
+    if (!session?.user)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!hasRole(session.user.roles, "admin"))
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const body = await req.json() as {
-      country_label: string
-      is_active?:    boolean
-    }
+    const body = (await req.json()) as {
+      country_label: string;
+      is_active?: any; // เปลี่ยนเป็น any เพื่อรับค่าที่อาจจะเป็น String มาก่อน
+    };
 
-    const { country_label, is_active } = body
+    const { country_label, is_active } = body;
     if (!country_label) {
-      return NextResponse.json({ error: 'country_label is required' }, { status: 400 })
+      return NextResponse.json(
+        { error: "country_label is required" },
+        { status: 400 },
+      );
     }
+
+    // แปลงค่าให้เป็น Boolean อย่างถูกต้อง
+    const isActiveValue =
+      typeof is_active === "string"
+        ? is_active === "true"
+        : (is_active ?? true);
 
     const customer = await prisma.customers.create({
       data: {
         country_label,
-        is_active:  is_active ?? true,
+        is_active: isActiveValue, // ใช้ค่าที่แปลงแล้ว
         created_at: new Date(),
         updated_at: new Date(),
       },
-    })
+    });
 
-    return NextResponse.json(customer, { status: 201 })
+    return NextResponse.json(customer, { status: 201 });
   } catch (err) {
-    console.error('[POST /api/customers]', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error("[POST /api/customers]", err);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
