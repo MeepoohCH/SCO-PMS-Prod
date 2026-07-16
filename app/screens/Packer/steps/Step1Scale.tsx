@@ -24,17 +24,11 @@ export interface Step1ScaleProps {
   scaleApprovedBy?: string
   setScaleVerificationId: (v: number | null) => void
   setScalePendingPL: (v: boolean) => void
-  // Latex
-  latexScaleRound: number
-  setLatexScaleRound: (v: number) => void
-  latexScale1Approved: boolean
-  latexScale1Pending: boolean
-  setLatexScale1Approved: (v: boolean) => void
-  setLatexScale1Pending: (v: boolean) => void
-  latexScale2Approved: boolean
-  latexScale2Pending: boolean
-  setLatexScale2Approved: (v: boolean) => void
-  setLatexScale2Pending: (v: boolean) => void
+  // Latex — Manual (round_no=1) + Auto (round_no=2) entered together, approved as one pair
+  latexScaleApproved: boolean
+  latexScalePending: boolean
+  setLatexScaleApproved: (v: boolean) => void
+  setLatexScalePending: (v: boolean) => void
   latexMdu1: MduVals
   setLatexMdu1: React.Dispatch<React.SetStateAction<MduVals>>
   latexMdu2: MduVals
@@ -48,7 +42,7 @@ export interface Step1ScaleProps {
   readOnly?: boolean
   hideClearScale?: boolean
   onClearSessions?: () => void
-  
+
 }
 
 export function getStandardWeight(drumSet?: string, custom?: string, dept?: string): number {
@@ -65,15 +59,37 @@ export function getTolerance(drumSet?: string, customTol?: string): number {
   return 0.5
 }
 
+// Latex-only: pre-fill the shared packaging picker from the plan's known
+// packaging_types.packaging_category (production_details.packaging_type_id ->
+// packaging_type, flattened to lot.packaging_category) — the structured enum
+// field, not a substring match against the display name. Returns null when
+// the category doesn't cleanly map to a known Latex drumSet option (isotank/
+// flexibag, or no packaging_type set at all), so the caller falls back to the
+// existing hardcoded default instead of guessing. This is a default only —
+// Packer can still override it manually.
+//
+// Note: this intentionally does NOT read packaging_types.standard_weight_kg —
+// that column is nullable (left blank for ibc/isotank/flexibag rows created
+// via the SL quick-create flow, see PACKAGING_CATEGORY_DEFAULTS in
+// app/api/packaging-types/route.ts) and, more importantly, Latex's drum
+// standard is a fixed 200kg business rule independent of whatever generic
+// packaging_type row a lot happens to reference (that same "drum" category
+// is 210kg for PUF/PU/IBC) — getStandardWeight()'s hardcoded per-dept
+// threshold is the correct source of truth for the verification weight, not
+// the shared master-data row.
+export function deriveLatexDrumSet(packagingCategory?: string | null): string | null {
+  if (packagingCategory === 'tote' || packagingCategory === 'ibc') return 'Tote Set 1000.0 Kg'
+  if (packagingCategory === 'drum') return 'Drum Set 200.0 Kg'
+  return null
+}
+
 export function Step1Scale({
   lot, dc, isIssueMode, pkStep,
   mduLocked, setMduLocked, mduVals, setMduVals, stdWeight, tolerance,
   recalib, setRecalib, scaleApproved, setScaleApproved, scalePendingPL,
   scaleApprovedBy,
   setScaleVerificationId, setScalePendingPL,
-  latexScaleRound, setLatexScaleRound,
-  latexScale1Approved, latexScale1Pending, setLatexScale1Approved, setLatexScale1Pending,
-  latexScale2Approved, latexScale2Pending, setLatexScale2Approved, setLatexScale2Pending,
+  latexScaleApproved, latexScalePending, setLatexScaleApproved, setLatexScalePending,
   latexMdu1, setLatexMdu1, latexMdu2, setLatexMdu2,
   latexRound1By, latexRound2By,
   doPause, setLots,
@@ -101,12 +117,11 @@ export function Step1Scale({
         setScaleApproved(false)
         setScalePendingPL(false)
         setScaleVerificationId(null)
-        setLatexScale1Approved(false)
-        setLatexScale1Pending(false)
-        setLatexScale2Approved(false)
-        setLatexScale2Pending(false)
-        setLatexMdu1({ drumSet: 'Tote Set 1000.0 Kg' })
-        setLatexMdu2({ drumSet: 'Tote Set 1000.0 Kg' })
+        setLatexScaleApproved(false)
+        setLatexScalePending(false)
+        const resetDrumSet = lot.dept === 'Latex' ? (deriveLatexDrumSet(lot.packaging_category) ?? 'Tote Set 1000.0 Kg') : 'Tote Set 1000.0 Kg'
+        setLatexMdu1({ drumSet: resetDrumSet })
+        setLatexMdu2({ drumSet: resetDrumSet })
         if (onClearSessions) onClearSessions()
         setShowClearConfirm(false)
       } else {
@@ -165,46 +180,52 @@ export function Step1Scale({
     }
   }
 
-  async function handleLatexNotifyPL(r: number, mduV: MduVals, latexStd: number, setPending: (v: boolean) => void) {
+  async function postLatexRound(r: number, mduV: MduVals, latexStd: number) {
+    const res = await fetch('/api/scale-verifications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        production_detail_id: lot.id,
+        machine_code: r === 2 ? 'Auto Drumming' : 'Manual Drumming',
+        standard_weight_kg: latexStd,
+        measured_weight_kg: Number(mduV.w ?? 0),
+        recalibration_required: mduV.recalib === 'Yes',
+        round_no: r,
+      }),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error((err as { error?: string }).error || String(res.status))
+    }
+    return res.json()
+  }
+
+  async function handleLatexNotifyPLBoth() {
     try {
-      const res = await fetch('/api/scale-verifications', {
-        method: 'POST',
+      const latexStd1 = getStandardWeight(latexMdu1.drumSet, latexMdu1.drumSetCustom, lot.dept)
+      const latexStd2 = getStandardWeight(latexMdu2.drumSet, latexMdu2.drumSetCustom, lot.dept)
+      // Post Manual (round_no=1) and Auto (round_no=2) together as one action
+      await postLatexRound(1, latexMdu1, latexStd1)
+      await postLatexRound(2, latexMdu2, latexStd2)
+      await fetch(`/api/lots/${lot.id}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          production_detail_id: lot.id,
-          machine_code: r === 2 ? 'Auto Drumming' : 'Manual Drumming',
-          standard_weight_kg: latexStd,
-          measured_weight_kg: Number(mduV.w ?? 0),
-          recalibration_required: mduV.recalib === 'Yes',
-          round_no: r,
-        }),
+        body: JSON.stringify({ current_pk_step: pkStep }),
       })
-      if (res.ok) {
-        await res.json()
-        await fetch(`/api/lots/${lot.id}`, {
+      setLatexScalePending(true)
+      if (lot.status !== 'rejected') {
+        await fetch(`/api/lots/${lot.id}/status`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ current_pk_step: pkStep }),
+          body: JSON.stringify({ status: 'pl_review' }),
         })
-        setPending(true)
-        if (lot.status !== 'rejected') {
-          await fetch(`/api/lots/${lot.id}/status`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'pl_review' }),
-          })
-          setLots(p => p.map(l =>
-            l.id === lot.id ? { ...l, status: 'pl_review' as typeof l.status } : l
-          ))
-        }
-      } else {
-        const err = await res.json().catch(() => ({}))
-        console.error('[Step1Scale] error:', err)
-        alert('Failed to save scale: ' + ((err as { error?: string }).error || res.status))
+        setLots(p => p.map(l =>
+          l.id === lot.id ? { ...l, status: 'pl_review' as typeof l.status } : l
+        ))
       }
     } catch (err) {
       console.error('[Step1Scale] exception:', err)
-      alert('Failed to notify PL')
+      alert('Failed to notify PL: ' + (err instanceof Error ? err.message : String(err)))
     }
   }
 
@@ -236,95 +257,86 @@ export function Step1Scale({
             ))}
           </div>
 
-          {/* ── Latex round switcher — outside fieldset so it stays clickable in readOnly ── */}
-          {lot.dept === 'Latex' && (
-            <div className="flex gap-1 mb-3">
-              {[{ r: 1, l: 'รอบที่ 1: Manual', done: latexScale1Approved }, { r: 2, l: 'รอบที่ 2: Auto', done: latexScale2Approved }].map(rb => (
-                <button key={rb.r} onClick={() => setLatexScaleRound(rb.r)}
-                  className="flex-1 py-2.5 rounded-xl text-xs cursor-pointer border-2 min-h-[48px]"
-                  style={{
-                    borderColor: rb.done ? '#27500A' : latexScaleRound === rb.r ? dc : '#DDE2EE',
-                    background: rb.done ? '#EAF3DE' : latexScaleRound === rb.r ? dc + '12' : '#F4F5F7',
-                    color: rb.done ? '#27500A' : latexScaleRound === rb.r ? dc : '#9BA3BA',
-                    fontWeight: latexScaleRound === rb.r ? 600 : 400,
-                  }}>
-                  {rb.done ? '✓ ' : ''}{rb.l}
-                </button>
-              ))}
-            </div>
-          )}
-
           <fieldset disabled={readOnly} className="border-0 p-0 m-0">
-            {/* ── Latex 2-round ── */}
+            {/* ── Latex: Manual + Auto entered together on one screen ── */}
             {lot.dept === 'Latex' ? (
               <div className="mb-4">
+                {/* Packaging is one physical container for the whole lot — Manual and
+                    Auto must always verify against the same standard weight, so this
+                    picker is shown once and writes into both latexMdu1 and latexMdu2
+                    together (previously each round had its own independent picker,
+                    which let Manual and Auto silently diverge onto different
+                    packaging/standard weights). */}
+                <div className="mb-4 pb-4 border-b border-gray-200">
+                  <div className="text-xs font-semibold text-gray-600 mb-2">Packaging (ใช้ร่วมกันทั้ง Manual + Auto)</div>
+                  <div className="mb-3">
+                    <div className="text-xs text-gray-600 mb-2">Set Auto Drumming weight</div>
+                    <div className="flex gap-2 flex-wrap mb-2">
+                      {['Drum Set 200.0 Kg', 'Tote Set 1000.0 Kg', 'อื่นๆ'].map(opt => (
+                        <button key={opt}
+                          onClick={() => {
+                            setLatexMdu1(p => ({ ...p, drumSet: opt, drumSetCustom: '', customTolerance: '', w: '' }))
+                            setLatexMdu2(p => ({ ...p, drumSet: opt, drumSetCustom: '', customTolerance: '', w: '' }))
+                          }}
+                          className="px-3 py-2 rounded-lg text-xs cursor-pointer border-2 min-h-[40px]"
+                          style={{
+                            borderColor: latexMdu1.drumSet === opt ? dc : '#DDE2EE',
+                            background: latexMdu1.drumSet === opt ? dc + '12' : '#F4F5F7',
+                            color: latexMdu1.drumSet === opt ? dc : '#9BA3BA',
+                            fontWeight: latexMdu1.drumSet === opt ? 600 : 400,
+                          }}>
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                    {latexMdu1.drumSet === 'อื่นๆ' && (
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <div className="text-[10px] text-gray-500 mb-1">Standard weight (kg)</div>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={latexMdu1.drumSetCustom || ''}
+                            onChange={e => {
+                              const val = e.target.value
+                              if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                setLatexMdu1(p => ({ ...p, drumSetCustom: val, w: '' }))
+                                setLatexMdu2(p => ({ ...p, drumSetCustom: val, w: '' }))
+                              }
+                            }}
+                            placeholder="e.g. 500"
+                            className="w-full text-sm p-2.5 border rounded-lg outline-none min-h-[44px]" />
+                        </div>
+                        <div className="w-28">
+                          <div className="text-[10px] text-gray-500 mb-1">Tolerance (±kg)</div>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={latexMdu1.customTolerance || ''}
+                            onChange={e => {
+                              const val = e.target.value
+                              if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                setLatexMdu1(p => ({ ...p, customTolerance: val }))
+                                setLatexMdu2(p => ({ ...p, customTolerance: val }))
+                              }
+                            }}
+                            placeholder="0.5"
+                            className="w-full text-sm p-2.5 border rounded-lg outline-none min-h-[44px]" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {[1, 2].map(r => {
-                  const isActive = latexScaleRound === r
                   const mduV = r === 1 ? latexMdu1 : latexMdu2
                   const setMduV = r === 1 ? setLatexMdu1 : setLatexMdu2
-                  const approved = r === 1 ? latexScale1Approved : latexScale2Approved
-                  const pending = r === 1 ? latexScale1Pending : latexScale2Pending
-                  const setApproved = r === 1 ? setLatexScale1Approved : setLatexScale2Approved
-                  const setPending = r === 1 ? setLatexScale1Pending : setLatexScale2Pending
-                  if (!isActive) return null
                   const latexStd = getStandardWeight(mduV.drumSet, mduV.drumSetCustom, lot.dept)
                   const latexTol = getTolerance(mduV.drumSet, mduV.customTolerance)
                   const wOk = mduV.w ? Math.abs(+mduV.w - latexStd) <= latexTol : false
                   return (
-                    <div key={r}>
-                      <div className="text-xs font-semibold text-gray-600 mb-2">รอบที่ {r} — {r === 1 ? 'Manual' : 'Auto'} Drumming</div>
-                      <div className="mb-3">
-                        <div className="text-xs text-gray-600 mb-2">Set Auto Drumming weight</div>
-                        <div className="flex gap-2 flex-wrap mb-2">
-                          {['Drum Set 200.0 Kg', 'Tote Set 1000.0 Kg', 'อื่นๆ'].map(opt => (
-                            <button key={opt}
-                              onClick={() => setMduV(p => ({ ...p, drumSet: opt, drumSetCustom: '', customTolerance: '', w: '' }))}
-                              className="px-3 py-2 rounded-lg text-xs cursor-pointer border-2 min-h-[40px]"
-                              style={{
-                                borderColor: mduV.drumSet === opt ? dc : '#DDE2EE',
-                                background: mduV.drumSet === opt ? dc + '12' : '#F4F5F7',
-                                color: mduV.drumSet === opt ? dc : '#9BA3BA',
-                                fontWeight: mduV.drumSet === opt ? 600 : 400,
-                              }}>
-                              {opt}
-                            </button>
-                          ))}
-                        </div>
-                        {mduV.drumSet === 'อื่นๆ' && (
-                          <div className="flex gap-2">
-                            <div className="flex-1">
-                              <div className="text-[10px] text-gray-500 mb-1">Standard weight (kg)</div>
-                              <input
-                                type="text"
-                                inputMode="decimal"
-                                value={mduV.drumSetCustom || ''}
-                                onChange={e => {
-                                  const val = e.target.value
-                                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                    setMduV(p => ({ ...p, drumSetCustom: val, w: '' }))
-                                  }
-                                }}
-                                placeholder="e.g. 500"
-                                className="w-full text-sm p-2.5 border rounded-lg outline-none min-h-[44px]" />
-                            </div>
-                            <div className="w-28">
-                              <div className="text-[10px] text-gray-500 mb-1">Tolerance (±kg)</div>
-                              <input
-                                type="text"
-                                inputMode="decimal"
-                                value={mduV.customTolerance || ''}
-                                onChange={e => {
-                                  const val = e.target.value
-                                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                    setMduV(p => ({ ...p, customTolerance: val }))
-                                  }
-                                }}
-                                placeholder="0.5"
-                                className="w-full text-sm p-2.5 border rounded-lg outline-none min-h-[44px]" />
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                    <div key={r} className="mb-4 pb-4 border-b border-gray-200 last:border-b-0 last:pb-0 last:mb-0">
+                      <div className="text-xs font-semibold text-gray-600 mb-2">{r === 1 ? 'Manual' : 'Auto'} Drumming</div>
                       {mduV.drumSet && (mduV.drumSet !== 'อื่นๆ' || mduV.drumSetCustom) && (
                         <>
                           <div className="bg-amber-50 border border-amber-300 rounded-xl px-3 py-2 mb-3 text-xs text-amber-800">
@@ -362,58 +374,62 @@ export function Step1Scale({
                       )}
                       {mduV.w && !wOk && <Btn label="Log Issue + Notify SL" danger full onClick={() => doPause('paused_issue')} />}
                       {wOk && (
-                        <div className="mb-3">
+                        <div className="mb-1">
                           <div className="text-xs text-gray-600 mb-2">ต้องการสอบเทียบใหม่?</div>
                           <div className="flex gap-2">
-                            {['Yes', 'No'].map(v => {
-                              const recalibV = r === 1 ? latexMdu1.recalib : latexMdu2.recalib
-                              return (
-                                <button key={v} onClick={() => setMduV(p => ({ ...p, recalib: v }))}
-                                  className="flex-1 py-2.5 rounded-lg text-sm font-medium cursor-pointer border min-h-[48px]"
-                                  style={{
-                                    borderColor: recalibV === v ? (v === 'Yes' ? '#E24B4A' : '#27500A') : '#DDE2EE',
-                                    background: recalibV === v ? (v === 'Yes' ? '#FCEBEB' : '#EAF3DE') : '#F4F5F7',
-                                    color: recalibV === v ? (v === 'Yes' ? '#791F1F' : '#27500A') : '#9BA3BA',
-                                  }}>
-                                  {v}
-                                </button>
-                              )
-                            })}
+                            {['Yes', 'No'].map(v => (
+                              <button key={v} onClick={() => setMduV(p => ({ ...p, recalib: v }))}
+                                className="flex-1 py-2.5 rounded-lg text-sm font-medium cursor-pointer border min-h-[48px]"
+                                style={{
+                                  borderColor: mduV.recalib === v ? (v === 'Yes' ? '#E24B4A' : '#27500A') : '#DDE2EE',
+                                  background: mduV.recalib === v ? (v === 'Yes' ? '#FCEBEB' : '#EAF3DE') : '#F4F5F7',
+                                  color: mduV.recalib === v ? (v === 'Yes' ? '#791F1F' : '#27500A') : '#9BA3BA',
+                                }}>
+                                {v}
+                              </button>
+                            ))}
                           </div>
-                        </div>
-                      )}
-                      {!readOnly && wOk && (r === 1 ? latexMdu1.recalib : latexMdu2.recalib) && !approved && !pending && (
-                        <div className="bg-purple-50 border-2 border-purple-400 rounded-xl p-4 mb-2">
-                          <div className="text-sm font-semibold text-purple-800 mb-2">รอ Pack Lead Approve — รอบที่ {r}</div>
-                          <Btn label="แจ้ง Pack Lead" color="#7C3AED" full
-                            onClick={() => handleLatexNotifyPL(r, mduV, latexStd, setPending)} />
-                        </div>
-                      )}
-                      {pending && !approved && (
-                        <div className="bg-[#EEEDFE] border border-[#534AB7] rounded-xl p-4 mb-2">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="w-4 h-4 border-2 border-[#534AB7] border-t-transparent rounded-full animate-spin" />
-                            <div className="text-[13px] font-semibold text-[#534AB7]">Waiting for Pack Lead approval — รอบที่ {r} ({r === 1 ? 'Manual' : 'Auto'} Drumming)...</div>
-                          </div>
-                          <div className="text-[11px] text-[#534AB7]">Pack Lead has been notified. This page will update automatically when approved.</div>
-                        </div>
-                      )}
-                      {approved && (
-                        <div className="bg-green-50 border-2 border-green-700 rounded-xl p-4 mb-2">
-                          <div className="text-sm font-bold text-green-800">✓ Pack Lead Approved — รอบที่ {r} ({r === 1 ? 'Manual' : 'Auto'} Drumming)</div>
-                          {r === 1 && !latexScale2Approved && (
-                            <button onClick={() => setLatexScaleRound(2)}
-                              className="mt-2 w-full py-2 rounded-lg text-sm font-bold cursor-pointer border-none text-white min-h-[44px]"
-                              style={{ background: dc }}>
-                              ดำเนินการ Scale รอบที่ 2
-                            </button>
-                          )}
                         </div>
                       )}
                     </div>
                   )
                 })}
-                {latexScale1Approved && latexScale2Approved && (
+
+                {(() => {
+                  const std1 = getStandardWeight(latexMdu1.drumSet, latexMdu1.drumSetCustom, lot.dept)
+                  const tol1 = getTolerance(latexMdu1.drumSet, latexMdu1.customTolerance)
+                  const w1Ok = latexMdu1.w ? Math.abs(+latexMdu1.w - std1) <= tol1 : false
+                  const std2 = getStandardWeight(latexMdu2.drumSet, latexMdu2.drumSetCustom, lot.dept)
+                  const tol2 = getTolerance(latexMdu2.drumSet, latexMdu2.customTolerance)
+                  const w2Ok = latexMdu2.w ? Math.abs(+latexMdu2.w - std2) <= tol2 : false
+                  const bothReady = w1Ok && w2Ok && !!latexMdu1.recalib && !!latexMdu2.recalib
+                  return (
+                    <>
+                      {!readOnly && bothReady && !latexScaleApproved && !latexScalePending && (
+                        <div className="bg-purple-50 border-2 border-purple-400 rounded-xl p-4 mb-2">
+                          <div className="text-sm font-semibold text-purple-800 mb-2">รอ Pack Lead Approve — Manual + Auto</div>
+                          <Btn label="แจ้ง Pack Lead" color="#7C3AED" full onClick={handleLatexNotifyPLBoth} />
+                        </div>
+                      )}
+                      {latexScalePending && !latexScaleApproved && (
+                        <div className="bg-[#EEEDFE] border border-[#534AB7] rounded-xl p-4 mb-2">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-4 h-4 border-2 border-[#534AB7] border-t-transparent rounded-full animate-spin" />
+                            <div className="text-[13px] font-semibold text-[#534AB7]">Waiting for Pack Lead approval — Manual + Auto Drumming...</div>
+                          </div>
+                          <div className="text-[11px] text-[#534AB7]">Pack Lead has been notified. This page will update automatically when approved.</div>
+                        </div>
+                      )}
+                      {latexScaleApproved && (
+                        <div className="bg-green-50 border-2 border-green-700 rounded-xl p-4 mb-2">
+                          <div className="text-sm font-bold text-green-800">✓ Pack Lead Approved — Manual + Auto Drumming</div>
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
+
+                {latexScaleApproved && (
                   <div className="mt-3 p-4 bg-emerald-50 border border-emerald-400 rounded-xl">
                     <div className="text-xs font-bold text-emerald-800 mb-3">ข้อมูลการ Drumming — Latex</div>
                     {[
@@ -610,7 +626,7 @@ export function Step1Scale({
             <div className="grid grid-cols-3 gap-3 sticky bottom-0 bg-gray-100 pt-3 pb-3 border-t border-gray-200" style={{ gridTemplateColumns: '1fr 2fr' }}>
               <Btn label="Back" color="#9BA3BA" outline onClick={onBack} />
               <Btn label="Next: Pre-check" color={dc} full
-                disabled={lot.dept === 'Latex' ? !(latexScale1Approved && latexScale2Approved) : !scaleApproved}
+                disabled={lot.dept === 'Latex' ? !latexScaleApproved : !scaleApproved}
                 onClick={onNext} />
             </div>
           )}

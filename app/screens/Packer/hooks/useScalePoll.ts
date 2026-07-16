@@ -10,16 +10,11 @@ interface UseScalePollParams {
   setScalePendingPL: (v: boolean) => void;
   setScaleApprovedBy?: (v: string) => void;
   setScalePendingPLFalse?: () => void; // reset เมื่อ PL reject
-  // Latex round 1
-  latexScale1Pending: boolean;
-  latexScale1Approved: boolean;
-  setLatexScale1Approved: (v: boolean) => void;
-  setLatexScale1Pending: (v: boolean) => void;
-  // Latex round 2
-  latexScale2Pending: boolean;
-  latexScale2Approved: boolean;
-  setLatexScale2Approved: (v: boolean) => void;
-  setLatexScale2Pending: (v: boolean) => void;
+  // Latex (Manual + Auto submitted/approved together as one pair)
+  latexScalePending: boolean;
+  latexScaleApproved: boolean;
+  setLatexScaleApproved: (v: boolean) => void;
+  setLatexScalePending: (v: boolean) => void;
 }
 
 export function useScalePoll({
@@ -29,14 +24,10 @@ export function useScalePoll({
   setScaleApproved,
   setScalePendingPL,
   setScaleApprovedBy,
-  latexScale1Pending,
-  latexScale1Approved,
-  setLatexScale1Approved,
-  setLatexScale1Pending,
-  latexScale2Pending,
-  latexScale2Approved,
-  setLatexScale2Approved,
-  setLatexScale2Pending,
+  latexScalePending,
+  latexScaleApproved,
+  setLatexScaleApproved,
+  setLatexScalePending,
 }: UseScalePollParams) {
   // Poll for non-Latex scale approval
   useEffect(() => {
@@ -89,12 +80,10 @@ export function useScalePoll({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scalePendingPL, scaleApproved, lot.id]);
 
-  // Poll for Latex scale approval
+  // Poll for Latex scale approval (Manual round_no=1 + Auto round_no=2, approved as one pair)
   useEffect(() => {
     if (lot.dept !== "Latex") return;
-    const r1Poll = latexScale1Pending && !latexScale1Approved;
-    const r2Poll = latexScale2Pending && !latexScale2Approved;
-    if (!r1Poll && !r2Poll) return;
+    if (!latexScalePending || latexScaleApproved) return;
     const interval = setInterval(async () => {
       try {
         // เช็ค lot status ก่อน — ถ้า PL reject จะกลับมาเป็น in_progress
@@ -105,15 +94,9 @@ export function useScalePoll({
             lotData.detail_status === "in_progress" ||
             lotData.status === "in_progress"
           ) {
-            // PL rejected scale — reset เฉพาะรอบที่ยัง pending (ไม่แตะรอบที่ approve ไปแล้ว)
-            if (r1Poll) {
-              setLatexScale1Pending(false);
-              setLatexScale1Approved(false);
-            }
-            if (r2Poll) {
-              setLatexScale2Pending(false);
-              setLatexScale2Approved(false);
-            }
+            // PL rejected scale — reset ให้ Packer ทำ scale ใหม่ทั้งคู่ (Manual + Auto)
+            setLatexScalePending(false);
+            setLatexScaleApproved(false);
             clearInterval(interval);
             return;
           }
@@ -126,29 +109,22 @@ export function useScalePoll({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const list = (await res.json()) as any[];
         if (!Array.isArray(list)) return;
-        if (r1Poll) {
+        // ทั้ง Manual (round_no=1) และ Auto (round_no=2) ต้องถูก approve พร้อมกัน
+        const v1Approved = list.some(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const v1Approved = list.some(
-            (v: any) =>
-              v.round_no === 1 &&
-              (v.is_locked === true || v.pl_approved_at !== null),
-          );
-          if (v1Approved) {
-            setLatexScale1Approved(true);
-            setLatexScale1Pending(false);
-          }
-        }
-        if (r2Poll) {
+          (v: any) =>
+            v.round_no === 1 &&
+            (v.is_locked === true || v.pl_approved_at !== null),
+        );
+        const v2Approved = list.some(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const v2Approved = list.some(
-            (v: any) =>
-              v.round_no === 2 &&
-              (v.is_locked === true || v.pl_approved_at !== null),
-          );
-          if (v2Approved) {
-            setLatexScale2Approved(true);
-            setLatexScale2Pending(false);
-          }
+          (v: any) =>
+            v.round_no === 2 &&
+            (v.is_locked === true || v.pl_approved_at !== null),
+        );
+        if (v1Approved && v2Approved) {
+          setLatexScaleApproved(true);
+          setLatexScalePending(false);
         }
       } catch (err) {
         console.error("[Packer Scale] poll error:", err);
@@ -156,11 +132,5 @@ export function useScalePoll({
     }, 5000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    latexScale1Pending,
-    latexScale1Approved,
-    latexScale2Pending,
-    latexScale2Approved,
-    lot.id,
-  ]);
+  }, [latexScalePending, latexScaleApproved, lot.id]);
 }

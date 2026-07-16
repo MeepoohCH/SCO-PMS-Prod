@@ -18,7 +18,7 @@ import type { DeptKey } from '@/app/components/constants'
 import type { Lot, Session, RecheckEntry, DowntimeLog, MduVals, PauseTypeKey, ApiChecklistItem } from './types'
 import { useScalePoll } from './hooks/useScalePoll'
 import { Step0Date } from './steps/Step0Date'
-import { Step1Scale } from './steps/Step1Scale'
+import { Step1Scale, deriveLatexDrumSet } from './steps/Step1Scale'
 import { Step2PreCheck } from './steps/Step2PreCheck'
 import { Step3Drumming } from './steps/Step3Drumming'
 import { Step4PostCheck } from './steps/Step4PostCheck'
@@ -247,13 +247,14 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   const [scalePendingPL, setScalePendingPL] = useState(false)
   const [scaleVerificationId, setScaleVerificationId] = useState<number | null>(null)
   const [scaleApprovedBy, setScaleApprovedBy] = useState('')
-  const [latexScaleRound, setLatexScaleRound] = useState(1)
-  const [latexScale1Approved, setLatexScale1Approved] = useState(false)
-  const [latexScale1Pending, setLatexScale1Pending] = useState(false)
-  const [latexScale2Approved, setLatexScale2Approved] = useState(false)
-  const [latexScale2Pending, setLatexScale2Pending] = useState(false)
-  const [latexMdu1, setLatexMdu1] = useState<MduVals>({ drumSet: 'Tote Set 1000.0 Kg' })
-  const [latexMdu2, setLatexMdu2] = useState<MduVals>({ drumSet: 'Tote Set 1000.0 Kg' })
+  const [latexScaleApproved, setLatexScaleApproved] = useState(false)
+  const [latexScalePending, setLatexScalePending] = useState(false)
+  const [latexMdu1, setLatexMdu1] = useState<MduVals>(() => ({
+    drumSet: lot.dept === 'Latex' ? (deriveLatexDrumSet(lot.packaging_category) ?? 'Tote Set 1000.0 Kg') : 'Tote Set 1000.0 Kg',
+  }))
+  const [latexMdu2, setLatexMdu2] = useState<MduVals>(() => ({
+    drumSet: lot.dept === 'Latex' ? (deriveLatexDrumSet(lot.packaging_category) ?? 'Tote Set 1000.0 Kg') : 'Tote Set 1000.0 Kg',
+  }))
   const [latexRound1By, setLatexRound1By] = useState('')
   const [latexRound2By, setLatexRound2By] = useState('')
 
@@ -329,43 +330,32 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
             if (w === 1000) return 'Tote Set 1000.0 Kg'
             return 'อื่นๆ'
           }
-          if (r1?.pl_approved_at || r1?.is_locked) {
-            setLatexScale1Approved(true)
-            setLatexScale1Pending(false)
+          const r1Approved = !!(r1?.pl_approved_at || r1?.is_locked)
+          const r2Approved = !!(r2?.pl_approved_at || r2?.is_locked)
+          if (r1) {
             if (r1.standard_weight_kg != null)
               setLatexMdu1(p => ({ ...p, drumSet: deriveDrumSet(r1.standard_weight_kg) }))
             if (r1.measured_weight_kg)
               setLatexMdu1(p => ({ ...p, w: String(r1.measured_weight_kg) }))
             if (r1.recalibration_required != null)
               setLatexMdu1(p => ({ ...p, recalib: r1.recalibration_required ? 'Yes' : 'No' }))
-            if (r1.pl_approver?.full_name) setLatexRound1By(r1.pl_approver.full_name)
-          } else if (r1) {
-            setLatexScale1Pending(true)
-            if (r1.standard_weight_kg != null)
-              setLatexMdu1(p => ({ ...p, drumSet: deriveDrumSet(r1.standard_weight_kg) }))
-            if (r1.measured_weight_kg)
-              setLatexMdu1(p => ({ ...p, w: String(r1.measured_weight_kg) }))
-            if (r1.recalibration_required != null)
-              setLatexMdu1(p => ({ ...p, recalib: r1.recalibration_required ? 'Yes' : 'No' }))
+            if (r1Approved && r1.pl_approver?.full_name) setLatexRound1By(r1.pl_approver.full_name)
           }
-          if (r2?.pl_approved_at || r2?.is_locked) {
-            setLatexScale2Approved(true)
-            setLatexScale2Pending(false)
+          if (r2) {
             if (r2.standard_weight_kg != null)
               setLatexMdu2(p => ({ ...p, drumSet: deriveDrumSet(r2.standard_weight_kg) }))
             if (r2.measured_weight_kg)
               setLatexMdu2(p => ({ ...p, w: String(r2.measured_weight_kg) }))
             if (r2.recalibration_required != null)
               setLatexMdu2(p => ({ ...p, recalib: r2.recalibration_required ? 'Yes' : 'No' }))
-            if (r2.pl_approver?.full_name) setLatexRound2By(r2.pl_approver.full_name)
-          } else if (r2) {
-            setLatexScale2Pending(true)
-            if (r2.standard_weight_kg != null)
-              setLatexMdu2(p => ({ ...p, drumSet: deriveDrumSet(r2.standard_weight_kg) }))
-            if (r2.measured_weight_kg)
-              setLatexMdu2(p => ({ ...p, w: String(r2.measured_weight_kg) }))
-            if (r2.recalibration_required != null)
-              setLatexMdu2(p => ({ ...p, recalib: r2.recalibration_required ? 'Yes' : 'No' }))
+            if (r2Approved && r2.pl_approver?.full_name) setLatexRound2By(r2.pl_approver.full_name)
+          }
+          // Manual + Auto are submitted and approved together as one pair
+          if (r1Approved && r2Approved) {
+            setLatexScaleApproved(true)
+            setLatexScalePending(false)
+          } else if (r1 || r2) {
+            setLatexScalePending(true)
           }
         } else {
           const anyApproved = data.some((v: any) =>
@@ -764,8 +754,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   // ── Scale approval polling ────────────────────────────────────
   useScalePoll({
     lot, scalePendingPL, scaleApproved, setScaleApproved, setScalePendingPL, setScaleApprovedBy,
-    latexScale1Pending, latexScale1Approved, setLatexScale1Approved, setLatexScale1Pending,
-    latexScale2Pending, latexScale2Approved, setLatexScale2Approved, setLatexScale2Pending,
+    latexScalePending, latexScaleApproved, setLatexScaleApproved, setLatexScalePending,
   })
 
   // ── Derived checklist data (keyed by item.id) ────────────────
@@ -871,7 +860,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
 
   // ── canProceed per step (bottom nav gate) ────────────────────
   const step1ScaleOk = lot.dept === 'Latex'
-    ? latexScale1Approved && latexScale2Approved
+    ? latexScaleApproved
     : scaleApproved
   const canProceed = (() => {
     switch (pkStep) {
@@ -1612,11 +1601,8 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           scaleApprovedBy={scaleApprovedBy}
           setScaleVerificationId={setScaleVerificationId}
           setScalePendingPL={setScalePendingPL}
-          latexScaleRound={latexScaleRound} setLatexScaleRound={setLatexScaleRound}
-          latexScale1Approved={latexScale1Approved} latexScale1Pending={latexScale1Pending}
-          setLatexScale1Approved={setLatexScale1Approved} setLatexScale1Pending={setLatexScale1Pending}
-          latexScale2Approved={latexScale2Approved} latexScale2Pending={latexScale2Pending}
-          setLatexScale2Approved={setLatexScale2Approved} setLatexScale2Pending={setLatexScale2Pending}
+          latexScaleApproved={latexScaleApproved} latexScalePending={latexScalePending}
+          setLatexScaleApproved={setLatexScaleApproved} setLatexScalePending={setLatexScalePending}
           latexMdu1={latexMdu1} setLatexMdu1={setLatexMdu1}
           latexMdu2={latexMdu2} setLatexMdu2={setLatexMdu2}
           latexRound1By={latexRound1By} latexRound2By={latexRound2By}

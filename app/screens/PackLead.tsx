@@ -149,9 +149,40 @@ interface ScaleApprovalCardProps {
   onReject: () => void;
 }
 
+function ScaleDataGrid({ lot, scaleData }: { lot: PLLot; scaleData: Record<string, unknown> }) {
+  const defaultStdWeight = lot.dept === 'Latex' ? 200 : 210
+  const measured = Number(scaleData.measured_weight_kg);
+  const stdWeight = Number(scaleData.standard_weight_kg || defaultStdWeight);
+  const wOk = !isNaN(measured) && Math.abs(measured - stdWeight) <= 0.5;
+
+  return (
+    <div className="grid grid-cols-2 gap-1.5">
+      {([
+        ["Machine", getMachineLabel(lot, scaleData)],
+        ["Measured", !isNaN(measured) ? `${measured} kg` : "-"],
+        ["Standard", !isNaN(stdWeight) ? `${stdWeight} ± 0.5 kg` : `${defaultStdWeight} ± 0.5 kg`],
+        ["Result", !isNaN(measured) ? (wOk ? "PASS" : "FAIL") : "-"],
+        ["Recalibration", scaleData.recalibration_required ? "Required" : "Not required"],
+        ["Checked by", String((scaleData.checker as { full_name?: string } | null)?.full_name ?? "-")],
+      ] as [string, string][]).map(([l, v]) => (
+        <div key={l} className="bg-white rounded-lg px-2.5 py-1.5">
+          <div className="text-[10px] text-[#534AB7] font-medium mb-0.5">{l}</div>
+          <div className="text-[12px] font-semibold"
+            style={{ color: l === "Result" ? (v === "PASS" ? "#27500A" : "#CC0000") : "#26215C" }}>
+            {v}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ScaleApprovalCard({ lot, onApprove, onReject }: ScaleApprovalCardProps) {
   const [scaleData, setScaleData] = useState<Record<string, unknown> | null>(null);
+  const [latexRound1, setLatexRound1] = useState<Record<string, unknown> | null>(null);
+  const [latexRound2, setLatexRound2] = useState<Record<string, unknown> | null>(null);
   const [approving, setApproving] = useState(false);
+  const isLatex = lot.dept === 'Latex';
 
   useEffect(() => {
     console.log('[ScaleApprovalCard] lot.id:', lot.id)
@@ -165,46 +196,41 @@ function ScaleApprovalCard({ lot, onApprove, onReject }: ScaleApprovalCardProps)
       .then((data: unknown) => {
         console.log('[ScaleApprovalCard] data:', JSON.stringify(data))
         if (!Array.isArray(data)) { setScaleData(null); return }
-        const sorted = [...data].sort((a: any, b: any) => (a.round_no ?? 0) - (b.round_no ?? 0))
-        const pending = sorted.find((v: any) => !v.pl_approved_at)
-        setScaleData(pending ?? sorted[sorted.length - 1] ?? null)
+        if (isLatex) {
+          // Manual (round_no=1) + Auto (round_no=2) shown together — approved/rejected as one pair
+          setLatexRound1(data.find((v: any) => v.round_no === 1) ?? null)
+          setLatexRound2(data.find((v: any) => v.round_no === 2) ?? null)
+        } else {
+          const sorted = [...data].sort((a: any, b: any) => (a.round_no ?? 0) - (b.round_no ?? 0))
+          const pending = sorted.find((v: any) => !v.pl_approved_at)
+          setScaleData(pending ?? sorted[sorted.length - 1] ?? null)
+        }
       })
       .catch(err => {
         console.error('[ScaleApprovalCard] fetch error:', err)
       })
-  }, [lot.id]);
-
-  const defaultStdWeight = lot.dept === 'Latex' ? 200 : 210
-  const measured = scaleData ? Number(scaleData.measured_weight_kg) : NaN;
-  const stdWeight = scaleData ? Number(scaleData.standard_weight_kg || defaultStdWeight) : defaultStdWeight;
-  const wOk = !isNaN(measured) && Math.abs(measured - stdWeight) <= 0.5;
+  }, [lot.id, isLatex]);
 
   return (
     <div className="bg-[#EEEDFE] border border-[#534AB7] rounded-xl p-3 mt-2.5">
       <div className="text-[11px] font-bold text-[#534AB7] mb-2">
         Scale MDU Verification — Awaiting Approval
       </div>
-      {scaleData ? (
-        <div className="grid grid-cols-2 gap-1.5 mb-3">
-          {([
-            ["Machine", getMachineLabel(lot, scaleData)],
-            ["Measured", !isNaN(measured) ? `${measured} kg` : "-"],
-            ["Standard", !isNaN(stdWeight) ? `${stdWeight} ± 0.5 kg` : `${defaultStdWeight} ± 0.5 kg`],
-            ["Result", !isNaN(measured) ? (wOk ? "PASS" : "FAIL") : "-"],
-            ["Recalibration", scaleData.recalibration_required ? "Required" : "Not required"],
-            ["Checked by", String((scaleData.checker as { full_name?: string } | null)?.full_name ?? "-")],
-          ] as [string, string][]).map(([l, v]) => (
-            <div key={l} className="bg-white rounded-lg px-2.5 py-1.5">
-              <div className="text-[10px] text-[#534AB7] font-medium mb-0.5">{l}</div>
-              <div className="text-[12px] font-semibold"
-                style={{ color: l === "Result" ? (v === "PASS" ? "#27500A" : "#CC0000") : "#26215C" }}>
-                {v}
-              </div>
-            </div>
-          ))}
-        </div>
+      {isLatex ? (
+        (latexRound1 || latexRound2) ? (
+          <div className="flex flex-col gap-2 mb-3">
+            {latexRound1 && <ScaleDataGrid lot={lot} scaleData={latexRound1} />}
+            {latexRound2 && <ScaleDataGrid lot={lot} scaleData={latexRound2} />}
+          </div>
+        ) : (
+          <div className="text-[11px] text-[#9BA3BA] mb-3">Loading scale data...</div>
+        )
       ) : (
-        <div className="text-[11px] text-[#9BA3BA] mb-3">Loading scale data...</div>
+        scaleData ? (
+          <div className="mb-3"><ScaleDataGrid lot={lot} scaleData={scaleData} /></div>
+        ) : (
+          <div className="text-[11px] text-[#9BA3BA] mb-3">Loading scale data...</div>
+        )
       )}
       <div className="grid grid-cols-[1fr_2fr] gap-2">
         <button
@@ -321,8 +347,29 @@ export default function PackLeadScreen() {
     new Date(l.date).getFullYear() === thisYear
   )
 
+  async function approveLatexScalePair(lot: PLLot) {
+    // Manual (round_no=1) + Auto (round_no=2) approved together in one action
+    const res = await fetch('/api/scale-verifications/approve-latex-pair', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ production_detail_id: lot.id }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      console.error('[PL] approve-latex-pair error:', err);
+      throw new Error(err.error || `Failed to approve (${res.status})`);
+    }
+  }
+
   async function approveScale(lot: PLLot) {
     console.log('[PL] action: approveScale lot id:', lot.id);
+    if (lot.dept === 'Latex') {
+      await approveLatexScalePair(lot);
+      setLots(p => p.map(l => l.id === lot.id
+        ? { ...l, scPending: false, scOk: true, scBy: session?.user?.name || user }
+        : l));
+      return;
+    }
     let svId = lot.scale_verifications?.[0]?.id;
     if (!svId) {
       const fetchRes = await fetch(`/api/scale-verifications?production_detail_id=${lot.id}`);
@@ -686,29 +733,33 @@ export default function PackLeadScreen() {
                   lot={lot}
                   onApprove={async () => {
                     console.log('[PL Approve] lot:', lot.id, lot.lot)
-                    const lotId = Number(lot.id)
-                    const fetchRes = await fetch(`/api/scale-verifications?production_detail_id=${lotId}`);
-                    if (!fetchRes.ok) { alert('Failed to fetch scale verification'); return; }
-                    const verifications = await fetchRes.json() as { id: number; round_no?: number; pl_approved_at?: string | null }[];
-                    console.log('[PL Approve] verifications found:', Array.isArray(verifications) ? verifications.length : 'not array')
-                    console.log('[PL Approve] verifications data:', JSON.stringify(verifications))
-                    const sorted = [...verifications].sort((a, b) => (a.round_no ?? 0) - (b.round_no ?? 0))
-                    const verification = sorted.find(v => !v.pl_approved_at) ?? sorted[sorted.length - 1]
-                    if (!verification) {
-                      console.error('[PL Approve] no verification for lot id:', lot.id)
-                      alert(`No scale verification found for lot ${lot.lot} (id: ${lot.id})`)
-                      return
-                    }
+                    if (lot.dept === 'Latex') {
+                      await approveLatexScalePair(lot)
+                    } else {
+                      const lotId = Number(lot.id)
+                      const fetchRes = await fetch(`/api/scale-verifications?production_detail_id=${lotId}`);
+                      if (!fetchRes.ok) { alert('Failed to fetch scale verification'); return; }
+                      const verifications = await fetchRes.json() as { id: number; round_no?: number; pl_approved_at?: string | null }[];
+                      console.log('[PL Approve] verifications found:', Array.isArray(verifications) ? verifications.length : 'not array')
+                      console.log('[PL Approve] verifications data:', JSON.stringify(verifications))
+                      const sorted = [...verifications].sort((a, b) => (a.round_no ?? 0) - (b.round_no ?? 0))
+                      const verification = sorted.find(v => !v.pl_approved_at) ?? sorted[sorted.length - 1]
+                      if (!verification) {
+                        console.error('[PL Approve] no verification for lot id:', lot.id)
+                        alert(`No scale verification found for lot ${lot.lot} (id: ${lot.id})`)
+                        return
+                      }
 
-                    await fetch(`/api/scale-verifications/${verification.id}`, {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        pl_approved_by: Number(session?.user?.id),
-                        pl_approved_at: new Date().toISOString(),
-                        is_locked: true,
-                      }),
-                    });
+                      await fetch(`/api/scale-verifications/${verification.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          pl_approved_by: Number(session?.user?.id),
+                          pl_approved_at: new Date().toISOString(),
+                          is_locked: true,
+                        }),
+                      });
+                    }
 
                     if (lot.status !== 'rejected') {
                       await fetch(`/api/lots/${lot.id}/status`, {

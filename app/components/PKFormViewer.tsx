@@ -10,7 +10,7 @@ import { buildPlanFields } from '@/lib/planFields'
 
 import type { Lot as PackerLot, MduVals, ApiChecklistItem, DowntimeLog } from '@/app/screens/Packer/types'
 import { Step0Date } from '@/app/screens/Packer/steps/Step0Date'
-import { Step1Scale, getStandardWeight, getTolerance } from '@/app/screens/Packer/steps/Step1Scale'
+import { Step1Scale, getStandardWeight, getTolerance, deriveLatexDrumSet } from '@/app/screens/Packer/steps/Step1Scale'
 import { Step2PreCheck } from '@/app/screens/Packer/steps/Step2PreCheck'
 import { Step3Drumming } from '@/app/screens/Packer/steps/Step3Drumming'
 import { Step4PostCheck } from '@/app/screens/Packer/steps/Step4PostCheck'
@@ -80,15 +80,17 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
   const [scaleApproved, setScaleApproved] = useState(false)
   const [scalePendingPL, setScalePendingPL] = useState(false)
   const [scaleApprovedBy, setScaleApprovedBy] = useState('')
-  const [latexMdu1, setLatexMdu1] = useState<MduVals>({ drumSet: 'Tote Set 1000.0 Kg' })
-  const [latexMdu2, setLatexMdu2] = useState<MduVals>({ drumSet: 'Tote Set 1000.0 Kg' })
-  const [latexScale1Approved, setLatexScale1Approved] = useState(false)
-  const [latexScale2Approved, setLatexScale2Approved] = useState(false)
+  const [latexMdu1, setLatexMdu1] = useState<MduVals>(() => ({
+    drumSet: lot.dept === 'Latex' ? (deriveLatexDrumSet(lot.packaging_category) ?? 'Tote Set 1000.0 Kg') : 'Tote Set 1000.0 Kg',
+  }))
+  const [latexMdu2, setLatexMdu2] = useState<MduVals>(() => ({
+    drumSet: lot.dept === 'Latex' ? (deriveLatexDrumSet(lot.packaging_category) ?? 'Tote Set 1000.0 Kg') : 'Tote Set 1000.0 Kg',
+  }))
+  const [latexScaleApproved, setLatexScaleApproved] = useState(false)
   const [latexRound1Machine, setLatexRound1Machine] = useState('')
   const [latexRound2Machine, setLatexRound2Machine] = useState('')
   const [latexRound1By, setLatexRound1By] = useState('')
   const [latexRound2By, setLatexRound2By] = useState('')
-  const [viewingLatexRound, setViewingLatexRound] = useState(1)
 
   // Step 2
   const [preChk, setPreChk] = useState<Record<number, string>>({})
@@ -261,6 +263,8 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
             if (lot.dept === 'Latex') {
               const r1 = svData.find((v: any) => v.round_no === 1)
               const r2 = svData.find((v: any) => v.round_no === 2)
+              const r1Approved = !!(r1?.is_locked || r1?.pl_approved_at)
+              const r2Approved = !!(r2?.is_locked || r2?.pl_approved_at)
               if (r1) {
                 if (r1.standard_weight_kg != null) {
                   const w1 = Number(r1.standard_weight_kg)
@@ -269,8 +273,7 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
                 if (r1.measured_weight_kg) setLatexMdu1(p => ({ ...p, w: String(r1.measured_weight_kg) }))
                 if (r1.recalibration_required != null) setLatexMdu1(p => ({ ...p, recalib: r1.recalibration_required ? 'Yes' : 'No' }))
                 if (r1.machine_code) setLatexRound1Machine(String(r1.machine_code))
-                if (r1.pl_approver?.full_name) setLatexRound1By(r1.pl_approver.full_name)
-                if (r1.is_locked || r1.pl_approved_at) setLatexScale1Approved(true)
+                if (r1Approved && r1.pl_approver?.full_name) setLatexRound1By(r1.pl_approver.full_name)
               }
               if (r2) {
                 if (r2.standard_weight_kg != null) {
@@ -280,9 +283,10 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
                 if (r2.measured_weight_kg) setLatexMdu2(p => ({ ...p, w: String(r2.measured_weight_kg) }))
                 if (r2.recalibration_required != null) setLatexMdu2(p => ({ ...p, recalib: r2.recalibration_required ? 'Yes' : 'No' }))
                 if (r2.machine_code) setLatexRound2Machine(String(r2.machine_code))
-                if (r2.pl_approver?.full_name) setLatexRound2By(r2.pl_approver.full_name)
-                if (r2.is_locked || r2.pl_approved_at) setLatexScale2Approved(true)
+                if (r2Approved && r2.pl_approver?.full_name) setLatexRound2By(r2.pl_approver.full_name)
               }
+              // Manual + Auto are approved together as one pair
+              if (r1Approved && r2Approved) setLatexScaleApproved(true)
             } else {
               const latest = svData[0]
               if (latest.measured_weight_kg) setMduVals(p => ({ ...p, w: String(latest.measured_weight_kg) }))
@@ -605,7 +609,7 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
         {/* Scale MDU summary — always show */}
         {(() => {
           const isLatex = lot.dept === 'Latex'
-          const approved = isLatex ? (latexScale1Approved && latexScale2Approved) : scaleApproved
+          const approved = isLatex ? latexScaleApproved : scaleApproved
           const machineLabel = isLatex
             ? ([latexRound1Machine, latexRound2Machine].filter(Boolean).join(' → ') || '—')
             : (mduLocked || '—')
@@ -716,11 +720,8 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
           scaleApprovedBy={scaleApprovedBy}
           setScaleVerificationId={() => { }} setScalePendingPL={() => { }}
           isIssueMode={false} pkStep={1}
-          latexScaleRound={viewingLatexRound} setLatexScaleRound={setViewingLatexRound}
-          latexScale1Approved={latexScale1Approved} latexScale1Pending={false}
-          setLatexScale1Approved={() => { }} setLatexScale1Pending={() => { }}
-          latexScale2Approved={latexScale2Approved} latexScale2Pending={false}
-          setLatexScale2Approved={() => { }} setLatexScale2Pending={() => { }}
+          latexScaleApproved={latexScaleApproved} latexScalePending={false}
+          setLatexScaleApproved={() => { }} setLatexScalePending={() => { }}
           latexMdu1={latexMdu1} setLatexMdu1={() => { }}
           latexMdu2={latexMdu2} setLatexMdu2={() => { }}
           latexRound1By={latexRound1By} latexRound2By={latexRound2By}

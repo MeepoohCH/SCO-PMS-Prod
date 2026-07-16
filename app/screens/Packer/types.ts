@@ -22,6 +22,8 @@ export interface Lot {
   country_label?: string;
   customer?: string;
   packaging?: string;
+  packaging_category?: string | null;
+  packaging_standard_weight_kg?: string | number | null;
   planned_pallets: number;
   done_pallets: number;
   actual_mt?: number;

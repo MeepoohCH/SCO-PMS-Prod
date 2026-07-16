@@ -1,4 +1,3 @@
-import { safeLog } from '@/lib/utils'
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -45,7 +44,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     const { id } = await params
     const body = await req.json() as { status: string; reject_remark?: string; pl_remark?: string }
     const { status: newStatus, reject_remark, pl_remark } = body
-    console.log('[PATCH /api/lots/' + safeLog(id) + '/status]', safeLog({ status: newStatus }))
+    console.log('[PATCH /api/lots/' + id + '/status] status:', newStatus)
 
     if (!newStatus) return NextResponse.json({ error: 'status is required' }, { status: 400 })
 
@@ -89,6 +88,19 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
             remark:               reject_remark ?? null,
             created_at:           new Date(),
           },
+        })
+      }
+
+      // pl_review -> in_progress happens both when PL approves the scale (then
+      // hands the lot back to the Packer) and when PL rejects it — only the
+      // reject case should clear scale_verifications, so scope the delete to
+      // still-pending rows (pl_approved_at: null). Approved rows already have
+      // pl_approved_at set by the time this transition fires, so they're
+      // untouched; only a rejected/never-approved reading gets cleared,
+      // preventing it from being read back as "still awaiting PL" on next load.
+      if (fromStatus === 'pl_review' && newStatus === 'in_progress') {
+        await tx.scale_verifications.deleteMany({
+          where: { production_detail_id: Number(id), pl_approved_at: null },
         })
       }
 

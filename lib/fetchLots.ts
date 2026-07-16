@@ -33,6 +33,8 @@ export function flattenLot(l: any) {
       : typeof l.packaging === 'object' && l.packaging !== null
         ? (l.packaging as any)?.name ?? null
         : l.packaging ?? null,
+    packaging_category:  l.packaging_type?.packaging_category ?? l.packaging_category ?? null,
+    packaging_standard_weight_kg: l.packaging_type?.standard_weight_kg ?? l.packaging_standard_weight_kg ?? null,
     ibc_operator_name:   ibc?.operator_name     ?? l.ibc_operator_name    ?? null,
     ibc_quality_status:  ibc?.quality_status_lab ?? l.ibc_quality_status   ?? null,
     ibc_residue_kg:      ibc?.residue_kg         ?? l.ibc_residue_kg       ?? null,
