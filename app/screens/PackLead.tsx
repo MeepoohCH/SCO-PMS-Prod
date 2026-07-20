@@ -453,7 +453,7 @@ export default function PackLeadScreen() {
       l: "Scale",
       icon: <Scale size={14} />,
       iconLg: <Scale size={20} />,
-      cnt: scalePending.length,
+     cnt: scalePending.length + plReview.length, 
       color: "#7C3AED",
       bg: "#F5F3FF",
     },
