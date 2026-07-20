@@ -62,7 +62,7 @@ interface PLLot {
 
 function getStdWeight(pkg: string, dept?: string): number {
   const p = (pkg || '').toLowerCase()
-  if (p.includes('1000') || p.includes('tote') || p.includes('ibc')) return 1000
+  if (p.includes('1000') || p.includes('tote')) return 1000
   return dept === 'Latex' ? 200 : 210
 }
 

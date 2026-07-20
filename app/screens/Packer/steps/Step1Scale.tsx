@@ -475,10 +475,7 @@ export function Step1Scale({
               <div className={`mb-4 ${!mduLocked ? 'opacity-60 pointer-events-none' : ''}`}>
                 <div className="text-xs font-semibold text-gray-600 mb-2">Row 2 - Set Auto Drumming weight</div>
                 <div className="flex gap-2 flex-wrap mb-2">
-                  {(lot.dept === 'IBC'
-                    ? ['Tote Set 1000.0 Kg', 'อื่นๆ']
-                    : ['Drum Set 210.0 Kg', 'Tote Set 1000.0 Kg', 'อื่นๆ']
-                  ).map(opt => (
+                  {['Drum Set 210.0 Kg', 'Tote Set 1000.0 Kg', 'อื่นๆ'].map(opt => (
                     <button key={opt}
                       onClick={() => setMduVals(p => ({ ...p, drumSet: opt, drumSetCustom: '', customTolerance: '', w: '' }))}
                       className="px-3 py-2 rounded-lg text-xs cursor-pointer border-2 min-h-[40px]"
