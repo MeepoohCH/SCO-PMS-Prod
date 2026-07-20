@@ -2,9 +2,31 @@
  * user input (query params, body fields, etc.) can't forge fake log lines.
  * CodeQL: js/log-injection. */
 export function safeLog(value: unknown): string {
-  if (value === null || value === undefined) return String(value)
-  const s = typeof value === 'string' ? value : JSON.stringify(value)
-  return s.replace(/[\r\n]+/g, ' ').slice(0, 500)
+  if (value === null || value === undefined) {
+    return ''
+  }
+
+  // 1. แปลงค่าทุกประเภทให้อยู่ในรูป String
+  let str: string
+  if (typeof value === 'string') {
+    str = value
+  } else if (typeof value === 'number' || typeof value === 'boolean') {
+    str = String(value)
+  } else {
+    try {
+      str = JSON.stringify(value)
+    } catch {
+      str = String(value)
+    }
+  }
+
+  // 2. ลบ Control Characters ทั้งหมด (รวม \r, \n, \t) และแทนที่ด้วยช่องว่าง
+  // การใช้ \s หรือ [\r\n\t] แบบ Sanitizer จะทำให้ CodeQL มั่นใจว่าปลอดภัย
+  return str
+    .replace(/[\r\n\t]/g, ' ')
+    .replace(/[\x00-\x1F\x7F]/g, '') // ลบ ASCII control characters
+    .trim()
+    .slice(0, 500)
 }
 
 export function formatDate(dateStr: string | null | undefined): string {

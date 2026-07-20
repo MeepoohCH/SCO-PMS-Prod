@@ -5,16 +5,16 @@ import { safeLog } from '@/lib/utils'
 import type { DetailStatus, ApprovalAction } from '@prisma/client'
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  draft:            ['waiting',                                        'rejected'],
-  waiting:          ['in_progress',                                    'rejected'],
+  draft:            ['waiting',                                         'rejected'],
+  waiting:          ['in_progress',                                     'rejected'],
   in_progress:      ['submitted', 'pl_review',
                      'paused_shift_end', 'paused_issue', 'paused_emergency', 'rejected'],
-  pl_review:        ['in_progress',                                    'rejected'],
-  paused_shift_end: ['in_progress',                                    'rejected'],
-  paused_issue:     ['in_progress',                                    'rejected'],
-  paused_emergency: ['in_progress',                                    'rejected'],
-  submitted:        ['head_approved', 'completed',                     'rejected'],
-  head_approved:    ['completed', 'sl_rejected',                       'rejected'],
+  pl_review:        ['in_progress',                                     'rejected'],
+  paused_shift_end: ['in_progress',                                     'rejected'],
+  paused_issue:     ['in_progress',                                     'rejected'],
+  paused_emergency: ['in_progress',                                     'rejected'],
+  submitted:        ['head_approved', 'completed',                      'rejected'],
+  head_approved:    ['completed', 'sl_rejected',                        'rejected'],
   sl_rejected:      ['rejected'],
   completed:        [],
   rejected:         ['submitted'],
@@ -30,8 +30,8 @@ function resolveApprovalAction(
   if (toStatus === 'rejected') return roles.includes('pl') ? 'rejected_by_pl' : 'rejected_by_sl'
   if ((fromStatus === 'in_progress' || fromStatus === 'pl_review') && toStatus === 'submitted') return 'pack_lead_approved'
   if (fromStatus === 'submitted'     && toStatus === 'head_approved') return 'submitted'
-  if (fromStatus === 'submitted'     && toStatus === 'completed')     return 'completed'
-  if (fromStatus === 'head_approved' && toStatus === 'completed')     return 'completed'
+  if (fromStatus === 'submitted'     && toStatus === 'completed')      return 'completed'
+  if (fromStatus === 'head_approved' && toStatus === 'completed')      return 'completed'
   return null
 }
 
@@ -45,11 +45,20 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     const { id } = await params
     const body = await req.json() as { status: string; reject_remark?: string; pl_remark?: string }
     const { status: newStatus, reject_remark, pl_remark } = body
-   console.log('[PATCH /api/lots/' + safeLog(id) + '/status] status:', safeLog(newStatus))
+
+    // ✅ Sanitization ID และ newStatus สำหรับ Log ให้ปลอดภัย
+    const safeId = safeLog(id)
+    const safeStatus = safeLog(newStatus)
+    console.log(`[PATCH /api/lots/${safeId}/status] status: ${safeStatus}`)
 
     if (!newStatus) return NextResponse.json({ error: 'status is required' }, { status: 400 })
 
-    const lot = await prisma.production_details.findUnique({ where: { id: Number(id) } })
+    const numericId = Number(id)
+    if (isNaN(numericId)) {
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 })
+    }
+
+    const lot = await prisma.production_details.findUnique({ where: { id: numericId } })
     if (!lot) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const fromStatus = lot.detail_status as string
@@ -67,7 +76,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
     const updated = await prisma.$transaction(async (tx) => {
       const result = await tx.production_details.update({
-        where: { id: Number(id) },
+        where: { id: numericId },
         data: {
           detail_status: newStatus as DetailStatus,
           ...(newStatus === 'rejected'    && { reject_remark: reject_remark ?? null }),
@@ -81,7 +90,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       if (approvalAction) {
         await tx.approval_logs.create({
           data: {
-            production_detail_id: Number(id),
+            production_detail_id: numericId,
             action:               approvalAction,
             from_status:          fromStatus,
             to_status:            newStatus,
@@ -92,26 +101,24 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         })
       }
 
-      // pl_review -> in_progress happens both when PL approves the scale (then
-      // hands the lot back to the Packer) and when PL rejects it — only the
-      // reject case should clear scale_verifications, so scope the delete to
-      // still-pending rows (pl_approved_at: null). Approved rows already have
-      // pl_approved_at set by the time this transition fires, so they're
-      // untouched; only a rejected/never-approved reading gets cleared,
-      // preventing it from being read back as "still awaiting PL" on next load.
       if (fromStatus === 'pl_review' && newStatus === 'in_progress') {
         await tx.scale_verifications.deleteMany({
-          where: { production_detail_id: Number(id), pl_approved_at: null },
+          where: { production_detail_id: numericId, pl_approved_at: null },
         })
       }
 
       return result
     })
 
-    console.log('[PATCH /api/lots/' + safeLog(id) + '/status] done:', updated.detail_status) 
+    // ✅ ใช้ safeLog กรองผลลัพธ์สถานะก่อนพิมพ์ลง Log
+    console.log(`[PATCH /api/lots/${safeId}/status] done: ${safeLog(updated.detail_status)}`) 
+
     return NextResponse.json({ id: updated.id, status: updated.detail_status })
   } catch (err) {
-    console.error('[PATCH /api/lots/[id]/status]', err)
+    // ✅ ครอบ safeLog ใน Catch Block เพื่อป้องกัน Log Injection ผ่าน Error Message
+    const errorMessage = err instanceof Error ? safeLog(err.message) : 'Unknown error'
+    console.error('[PATCH /api/lots/[id]/status]', errorMessage)
+
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
