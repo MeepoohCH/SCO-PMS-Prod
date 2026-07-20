@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, hasRole } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { safeLog } from '@/lib/utils'   // ← เพิ่ม import
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    console.log('[POST /api/scale-verifications/approve-latex-pair] approved rows:', result.count, 'for lot:', production_detail_id)
+    console.log('[POST /api/scale-verifications/approve-latex-pair] approved rows:', result.count, 'for lot:', safeLog(production_detail_id))
     return NextResponse.json({ approved: result.count })
   } catch (err) {
     console.error('[POST /api/scale-verifications/approve-latex-pair]', err)

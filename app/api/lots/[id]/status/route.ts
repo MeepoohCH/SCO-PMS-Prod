@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { safeLog } from '@/lib/utils'  
 import type { DetailStatus, ApprovalAction } from '@prisma/client'
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -44,7 +45,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     const { id } = await params
     const body = await req.json() as { status: string; reject_remark?: string; pl_remark?: string }
     const { status: newStatus, reject_remark, pl_remark } = body
-    console.log('[PATCH /api/lots/' + id + '/status] status:', newStatus)
+   console.log('[PATCH /api/lots/' + safeLog(id) + '/status] status:', safeLog(newStatus))
 
     if (!newStatus) return NextResponse.json({ error: 'status is required' }, { status: 400 })
 
@@ -107,7 +108,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       return result
     })
 
-    console.log('[PATCH /api/lots/' + id + '/status] done:', updated.detail_status)
+    console.log('[PATCH /api/lots/' + safeLog(id) + '/status] done:', updated.detail_status) 
     return NextResponse.json({ id: updated.id, status: updated.detail_status })
   } catch (err) {
     console.error('[PATCH /api/lots/[id]/status]', err)
