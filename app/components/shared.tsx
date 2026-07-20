@@ -230,6 +230,7 @@ export function Inp({ label, value, onChange, type = "text", readOnly, placehold
           sm ? "h-11 px-3 text-xs" : (type === 'date' || type === 'time' || type === 'datetime-local') ? "h-12 px-2.5 text-sm font-medium" : "h-12 px-4 text-sm font-medium",
           mono ? " " : "font-sans",
           readOnly ? "bg-slate-50 text-[#9BA3BA] cursor-not-allowed border-dashed" : "bg-white text-[#0E1117]",
+          type === 'date' ? "max-w-full min-w-[100px] inline-block appearance-none" : "",
           className,
         ].join(" ")}
       />

@@ -350,7 +350,7 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
       </div>
 
       {/* ════════════════ [SHARED] Plan date + Blender ════════════════ */}
-      <div className="grid grid-cols-2 gap-2.5">
+     <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
         <div>
           <Inp type="date" label="Plan date" req value={(plan.date as string) || ""} onChange={v => set("date", v)} />
         </div>
