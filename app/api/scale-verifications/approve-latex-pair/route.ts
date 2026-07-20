@@ -40,11 +40,14 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    console.log(`[POST /api/scale-verifications/approve-latex-pair] approved rows: ${result.count} for lot: ${safeLog(production_detail_id)}`)
-    return NextResponse.json({ approved: result.count })
+   const safeLotId = String(production_detail_id).replace(/[\r\n]/g, '');
+
+    console.log(`[POST /api/scale-verifications/approve-latex-pair] approved rows: ${result.count} for lot: ${safeLotId}`);
+    return NextResponse.json({ approved: result.count });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-  console.error(`[POST /api/scale-verifications/approve-latex-pair] Error: ${safeLog(message)}`)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    
+    const safeError = err instanceof Error ? err.message.replace(/[\r\n]/g, '') : 'Unknown error';
+    console.error('[POST /api/scale-verifications/approve-latex-pair]', safeError);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

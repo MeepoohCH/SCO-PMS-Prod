@@ -46,9 +46,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     const body = await req.json() as { status: string; reject_remark?: string; pl_remark?: string }
     const { status: newStatus, reject_remark, pl_remark } = body
 
-    // ✅ Sanitization ID และ newStatus สำหรับ Log ให้ปลอดภัย
-    const safeId = safeLog(id)
-    const safeStatus = safeLog(newStatus)
+   const safeId = String(id).replace(/[\r\n\t]/g, '');
+const safeStatus = String(newStatus ?? '').replace(/[\r\n\t]/g, '');
     console.log(`[PATCH /api/lots/${safeId}/status] status: ${safeStatus}`)
 
     if (!newStatus) return NextResponse.json({ error: 'status is required' }, { status: 400 })
@@ -110,12 +109,12 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       return result
     })
 
-    // ✅ ใช้ safeLog กรองผลลัพธ์สถานะก่อนพิมพ์ลง Log
+    
     console.log(`[PATCH /api/lots/${safeId}/status] done: ${safeLog(updated.detail_status)}`) 
 
     return NextResponse.json({ id: updated.id, status: updated.detail_status })
   } catch (err) {
-    // ✅ ครอบ safeLog ใน Catch Block เพื่อป้องกัน Log Injection ผ่าน Error Message
+    
     const errorMessage = err instanceof Error ? safeLog(err.message) : 'Unknown error'
     console.error('[PATCH /api/lots/[id]/status]', errorMessage)
 
