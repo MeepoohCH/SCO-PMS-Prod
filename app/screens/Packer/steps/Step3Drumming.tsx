@@ -156,16 +156,16 @@ export function Step3Drumming({
       'หากผลการชั่งสอบทวนไม่ได้อยู่ในช่วงที่ควบคุม ต้องแจ้ง Site logistics โดยทันที',
     ]
     : lotDept === 'Latex'
-    ? [
-      'จุดที่ใช้ในการทวนสอบเครื่องชั่งถูกระบุในตารางด้านบน',
-      'ใช้ drum มาตรฐาน น้ำหนักที่ 200 kg หรือ Tote 1000 Kg เป็นมาตรฐาน',
-      'หากผลการชั่งสอบทวนไม่ได้อยู่ในช่วงที่ควบคุม ต้องแจ้ง Site logistics โดยทันที',
-    ]
-    : [
-      'จุดที่ใช้ในการทวนสอบเครื่องชั่งถูกระบุในตารางด้านบน',
-      'ใช้ drum มาตรฐาน น้ำหนักที่ 210 kg หรือ Tote 1000 Kg เป็นมาตรฐาน',
-      'หากผลการชั่งสอบทวนไม่ได้อยู่ในช่วงที่ควบคุม ต้องแจ้ง Site logistics โดยทันที',
-    ]
+      ? [
+        'จุดที่ใช้ในการทวนสอบเครื่องชั่งถูกระบุในตารางด้านบน',
+        'ใช้ drum มาตรฐาน น้ำหนักที่ 200 kg หรือ Tote 1000 Kg เป็นมาตรฐาน',
+        'หากผลการชั่งสอบทวนไม่ได้อยู่ในช่วงที่ควบคุม ต้องแจ้ง Site logistics โดยทันที',
+      ]
+      : [
+        'จุดที่ใช้ในการทวนสอบเครื่องชั่งถูกระบุในตารางด้านบน',
+        'ใช้ drum มาตรฐาน น้ำหนักที่ 210 kg หรือ Tote 1000 Kg เป็นมาตรฐาน',
+        'หากผลการชั่งสอบทวนไม่ได้อยู่ในช่วงที่ควบคุม ต้องแจ้ง Site logistics โดยทันที',
+      ]
 
   return (
     <fieldset disabled={readOnly} className="border-0 p-0 m-0">
@@ -178,7 +178,7 @@ export function Step3Drumming({
               <div className="text-[11px] text-gray-400">{sessions.length} pallets done</div>
             </div>
             <div className="text-3xl font-bold" style={{ color: dc }}>
-              #{sessions.length + 1 > totalP ? sessions.length + 1 : palletNo}<span className="text-sm text-gray-400 font-normal">/{totalP}</span>
+              #{sessions.length + 1 > totalP ? totalP : palletNo}<span className="text-sm text-gray-400 font-normal">/{totalP}</span>
             </div>
           </div>
           <div className="h-2 bg-gray-200 rounded-full">
