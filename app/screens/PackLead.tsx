@@ -276,7 +276,7 @@ function SLRejectedCard({ lot, onViewDetails }: SLRejectedCardProps) {
         <Btn
           label={
             <span className="flex items-center justify-center gap-1.5">
-              View Details &amp; Acknowledge
+               Acknowledge
             </span>
           }
           color="#E24B4A"
