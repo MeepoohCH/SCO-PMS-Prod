@@ -281,7 +281,7 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
 
   const [addingBlender, setAddingBlender] = useState(false);
   const [addingPackaging, setAddingPackaging] = useState(false);
-
+  const [duplicateLotNo, setDuplicateLotNo] = useState(false);
   // Quick-create Blender ตรงจากฟอร์มนี้เลย — เรียก POST /api/blenders (non-admin
   // จะสร้างได้แค่ code + dept, capacity_mt ปล่อยเป็น null ให้ Admin ไปตั้งทีหลัง)
   async function handleAddBlender(codeRaw: string) {
@@ -435,13 +435,35 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
             />
           </div>
 
-          <Inp
-            label="Lot No"
-            req
-            value={(plan.lot_no as string) || ""}
-            onChange={v => set("lot_no", v)}
-            placeholder="e.g. C617Q57012"
-          />
+          <div>
+            <Inp
+              label="Lot No"
+              req
+              value={(plan.lot_no as string) || ""}
+              onChange={async v => {
+                set("lot_no", v)
+                if (v.trim().length > 2) {
+                  try {
+                    const res = await fetch(`/api/lots`)
+                    const data = res.ok ? await res.json() : []
+                    const found = Array.isArray(data) && data.some(
+                      (l: any) => l.lot_no === v.trim() && l.id !== (plan as any).id
+                    )
+                    setDuplicateLotNo(found)
+                  } catch { setDuplicateLotNo(false) }
+                } else {
+                  setDuplicateLotNo(false)
+                }
+              }}
+              placeholder="e.g. C617Q57012"
+            />
+            {duplicateLotNo && (
+              <div className="text-[11px] text-amber-600 mb-1 leading-snug">
+                ⚠ Lot No นี้มีอยู่ในระบบแล้ว กด Save ได้ถ้าต้องการบันทึกเพิ่ม
+              </div>
+            )}
+          </div>
+
           <Inp
             label="Target Amount (MT)"
             type="number"

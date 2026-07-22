@@ -156,7 +156,7 @@ async function main() {
   ]
 
   for (const def of pausedLotDefs) {
-    const detail = await prisma.production_details.findUnique({ where: { lot_no: def.lot_no } })
+    const detail = await prisma.production_details.findFirst({ where: { lot_no: def.lot_no } })
     if (!detail) { console.log(`  ⚠  Skipped session for ${def.lot_no} (lot not found)`); continue }
 
     const existing = await prisma.drumming_sessions.findFirst({ where: { production_detail_id: detail.id } })

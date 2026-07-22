@@ -227,7 +227,7 @@ model production_details {
   product_id              Int?         @db.UnsignedInt
   customer_id             Int?         @db.UnsignedInt
   packaging_type_id       Int?         @db.UnsignedInt
-  lot_no                  String       @unique @db.VarChar(30)
+  lot_no                  String       @db.VarChar(30)
   country_label           String?      @db.VarChar(100)
   cut_off_date            DateTime?    @db.Date
   draft_note              String?      @db.Text
