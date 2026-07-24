@@ -268,7 +268,8 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
               if (r1) {
                 if (r1.standard_weight_kg != null) {
                   const w1 = Number(r1.standard_weight_kg)
-                  setLatexMdu1(p => ({ ...p, drumSet: w1 === 200 ? 'Drum Set 200.0 Kg' : w1 === 1000 ? 'Tote Set 1000.0 Kg' : 'อื่นๆ' }))
+                  // 200 = legacy records, 210 = current validation standard — both show as "Drum Set 200.0 Kg"
+                  setLatexMdu1(p => ({ ...p, drumSet: (w1 === 200 || w1 === 210) ? 'Drum Set 200.0 Kg' : w1 === 1000 ? 'Tote Set 1000.0 Kg' : 'อื่นๆ' }))
                 }
                 if (r1.measured_weight_kg) setLatexMdu1(p => ({ ...p, w: String(r1.measured_weight_kg) }))
                 if (r1.recalibration_required != null) setLatexMdu1(p => ({ ...p, recalib: r1.recalibration_required ? 'Yes' : 'No' }))
@@ -278,7 +279,8 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
               if (r2) {
                 if (r2.standard_weight_kg != null) {
                   const w2 = Number(r2.standard_weight_kg)
-                  setLatexMdu2(p => ({ ...p, drumSet: w2 === 200 ? 'Drum Set 200.0 Kg' : w2 === 1000 ? 'Tote Set 1000.0 Kg' : 'อื่นๆ' }))
+                  // 200 = legacy records, 210 = current validation standard — both show as "Drum Set 200.0 Kg"
+                  setLatexMdu2(p => ({ ...p, drumSet: (w2 === 200 || w2 === 210) ? 'Drum Set 200.0 Kg' : w2 === 1000 ? 'Tote Set 1000.0 Kg' : 'อื่นๆ' }))
                 }
                 if (r2.measured_weight_kg) setLatexMdu2(p => ({ ...p, w: String(r2.measured_weight_kg) }))
                 if (r2.recalibration_required != null) setLatexMdu2(p => ({ ...p, recalib: r2.recalibration_required ? 'Yes' : 'No' }))

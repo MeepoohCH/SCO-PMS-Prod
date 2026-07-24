@@ -45,8 +45,13 @@ export interface Step1ScaleProps {
 
 }
 
+// Validation standard is 210 kg for ALL depts, including Latex — Latex's
+// drum is only LABELED "200.0 Kg" in the UI (see the drumSet option strings
+// below and deriveLatexDrumSet()), but the actual scale-verification pass/
+// fail tolerance has always been the same physical 210 kg standard used by
+// PUF/PU/IBC. Do not reintroduce a dept-based default here.
 export function getStandardWeight(drumSet?: string, custom?: string, dept?: string): number {
-  const defaultWeight = dept === 'Latex' ? 200 : 210
+  const defaultWeight = 210
   if (!drumSet) return defaultWeight
   if (drumSet.includes('210') || drumSet.includes('200')) return defaultWeight
   if (drumSet.includes('1000')) return 1000
@@ -71,12 +76,10 @@ export function getTolerance(drumSet?: string, customTol?: string): number {
 // Note: this intentionally does NOT read packaging_types.standard_weight_kg —
 // that column is nullable (left blank for ibc/isotank/flexibag rows created
 // via the SL quick-create flow, see PACKAGING_CATEGORY_DEFAULTS in
-// app/api/packaging-types/route.ts) and, more importantly, Latex's drum
-// standard is a fixed 200kg business rule independent of whatever generic
-// packaging_type row a lot happens to reference (that same "drum" category
-// is 210kg for PUF/PU/IBC) — getStandardWeight()'s hardcoded per-dept
-// threshold is the correct source of truth for the verification weight, not
-// the shared master-data row.
+// app/api/packaging-types/route.ts) and, more importantly, this only controls
+// the UI LABEL ("200.0 Kg" vs "210.0 Kg") shown for the drum option — the
+// actual verification weight always comes from getStandardWeight(), which
+// validates at 210 kg regardless of dept (see comment there).
 export function deriveLatexDrumSet(packagingCategory?: string | null): string | null {
   if (packagingCategory === 'tote' || packagingCategory === 'ibc') return 'Tote Set 1000.0 Kg'
   if (packagingCategory === 'drum') return 'Drum Set 200.0 Kg'
@@ -232,8 +235,8 @@ export function Step1Scale({
   const notes = lot.dept === 'Latex'
     ? [
       'จุดที่ใช้ในการทวนสอบเครื่องชั่งถูกระบุในตารางด้านบน',
-      'ใช้ drum มาตรฐาน น้ำหนักที่ 200 kg เป็นมาตรฐานที่ใช้ในการสอบทวน',
-      'หากผลการชั่งสอบทวนไม่ได้อยู่ในช่วงที่ควบคุม (199.5 - 200.5 kg) ต้องแจ้ง Site logistics โดยทันที',
+      'ใช้ drum มาตรฐาน น้ำหนักที่ 210 kg เป็นมาตรฐานที่ใช้ในการสอบทวน',
+      'หากผลการชั่งสอบทวนไม่ได้อยู่ในช่วงที่ควบคุม (209.5 - 210.5 kg) ต้องแจ้ง Site logistics โดยทันที',
       'ต้องมั่นใจว่าได้ทำการเตรียมภาชนะบรรจุถูกต้องตามใบแจ้งบรรจุ',
     ]
     : [
@@ -272,7 +275,7 @@ export function Step1Scale({
                   <div className="mb-3">
                     <div className="text-xs text-gray-600 mb-2">Set Auto Drumming weight</div>
                     <div className="flex gap-2 flex-wrap mb-2">
-                      {['Drum Set 200.0 Kg', 'Tote Set 1000.0 Kg', 'อื่นๆ'].map(opt => (
+                      {['Drum Set 210.0 Kg', 'Tote Set 1000.0 Kg', 'อื่นๆ'].map(opt => (
                         <button key={opt}
                           onClick={() => {
                             setLatexMdu1(p => ({ ...p, drumSet: opt, drumSetCustom: '', customTolerance: '', w: '' }))

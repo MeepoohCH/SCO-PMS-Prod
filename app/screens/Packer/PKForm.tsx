@@ -25,8 +25,11 @@ import { Step4PostCheck } from './steps/Step4PostCheck'
 import { Step5Submit } from './steps/Step5Submit'
 
 
+// Validation standard is 210 kg for ALL depts, including Latex — Latex's
+// drum is only LABELED "200.0 Kg" in the UI, but scale-verification
+// pass/fail always uses the same physical 210 kg standard as PUF/PU/IBC.
 export function getStandardWeight(drumSet?: string, custom?: string, dept?: string): number {
-  const defaultWeight = dept === 'Latex' ? 200 : 210
+  const defaultWeight = 210
   if (!drumSet) return defaultWeight
   if (drumSet.includes('210') || drumSet.includes('200')) return defaultWeight
   if (drumSet.includes('1000')) return 1000
@@ -326,7 +329,10 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           const r2 = data.find((v: any) => v.round_no === 2)
           const deriveDrumSet = (stdKg: unknown) => {
             const w = Number(stdKg)
-            if (w === 200) return 'Drum Set 200.0 Kg'
+            // 200 = legacy records saved before the validation standard was
+            // corrected to 210; 210 = current records. Both display as the
+            // same "Drum Set 200.0 Kg" UI label.
+            if (w === 200 || w === 210) return 'Drum Set 200.0 Kg'
             if (w === 1000) return 'Tote Set 1000.0 Kg'
             return 'อื่นๆ'
           }
