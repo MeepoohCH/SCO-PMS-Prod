@@ -620,7 +620,7 @@ export function Step3Drumming({
             </div>
           </div>
           <Inp label="น้ำหนักรวมที่บรรจุได้ Kg. (Batch size)" type="text" value={batchSizeKg} onChange={setBatchSizeKg} placeholder="กรอกตัวเลข หรือ -" req />
-          <div className="text-xs font-medium text-gray-600 mb-2">จำนวนภาชนะที่ใช้ไปทั้งหมด</div>
+          <div className="text-xs font-medium text-gray-600 mb-2 pt-2">จำนวนภาชนะที่ใช้ไปทั้งหมด</div>
           {lotDept === 'Latex' ? (
             <div className="flex flex-col gap-2">
               {[{ label: 'Lot 1', val: latexLot1Qty, set: setLatexLot1Qty }, { label: 'Lot 2', val: latexLot2Qty, set: setLatexLot2Qty }].map(({ label, val, set }) => (
