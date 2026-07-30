@@ -3,8 +3,8 @@ import React, { useState } from 'react'
 import { RotateCcw } from 'lucide-react'
 import { Card, Inp, Btn, Toggle, AutosaveTag, Combo, PalletRow, TimePicker, ConfirmModal } from '@/app/components/shared'
 import { useUsers } from '../hooks/useUsers'
-import { MDU_MACHINE_OPTS, LOCAL_EXPORT_IBC_OPTS, DRUM_MM_OPTS } from '@/app/components/constants'
-import type { MduMachine, LocalExportIbc, DrumMmType, WtStandard } from '@/app/components/constants'
+import { MDU_MACHINE_OPTS, LOCAL_EXPORT_IBC_OPTS, DRUM_MM_OPTS, MDU2450_PALLET_STD_OPTS } from '@/app/components/constants'
+import type { MduMachine, LocalExportIbc, DrumMmType, WtStandard, Mdu2450PalletStd } from '@/app/components/constants'
 import type { Session, RecheckEntry, AutosaveStatus, ApiChecklistItem, DowntimeLog } from '../types'
 
 export interface Step3DrummingProps {
@@ -23,6 +23,8 @@ export interface Step3DrummingProps {
   setWtDrumType: (v: DrumMmType | '') => void
   wtIbcSub: 'Local' | 'Export' | ''
   setWtIbcSub: (v: 'Local' | 'Export' | '') => void
+  wtMdu2450PalletStd: Mdu2450PalletStd | ''
+  setWtMdu2450PalletStd: (v: Mdu2450PalletStd | '') => void
   wtStandard: WtStandard | null
   sessionWt: string
   setSessionWt: (v: string) => void
@@ -101,7 +103,8 @@ export function Step3Drumming({
   dc, lotId, lotDept, totalP, isTote,
   sessions, palletNo,
   wtMachine, setWtMachine, wtCategory, setWtCategory,
-  wtDrumType, setWtDrumType, wtIbcSub, setWtIbcSub, wtStandard,
+  wtDrumType, setWtDrumType, wtIbcSub, setWtIbcSub,
+  wtMdu2450PalletStd, setWtMdu2450PalletStd, wtStandard,
   sessionWt, setSessionWt,
   recheckList, recheckDone, wPass, wFail, skipWeightCheck,
   drumStart, setDrumStart, drumAS,
@@ -168,7 +171,6 @@ export function Step3Drumming({
       ]
       : [
         'จุดที่ใช้ในการทวนสอบเครื่องชั่งถูกระบุในตารางด้านบน',
-        'ใช้ drum มาตรฐาน น้ำหนักที่ 210 kg หรือ Tote 1000 Kg เป็นมาตรฐาน',
         'หากผลการชั่งสอบทวนไม่ได้อยู่ในช่วงที่ควบคุม ต้องแจ้ง Site logistics โดยทันที',
       ]
 
@@ -287,7 +289,7 @@ export function Step3Drumming({
               <div className="text-xs font-medium text-gray-600 mb-2">Local / Export / IBC Tote</div>
               <div className="grid grid-cols-3 gap-1.5 mb-3">
                 {LOCAL_EXPORT_IBC_OPTS.map(c => (
-                  <button key={c} onClick={() => { setWtCategory(c); setWtDrumType(''); setWtIbcSub(''); }}
+                  <button key={c} onClick={() => { setWtCategory(c); setWtDrumType(''); setWtIbcSub(''); setWtMdu2450PalletStd(''); }}
                     className="p-2.5 rounded-lg text-center cursor-pointer border min-h-[44px] text-sm font-semibold"
                     style={{ borderColor: wtCategory === c ? dc : '#DDE2EE', background: wtCategory === c ? dc + '10' : '#fff', color: wtCategory === c ? dc : '#5A617A' }}>
                     {c}
@@ -308,7 +310,7 @@ export function Step3Drumming({
                   </div>
                 </div>
               )}
-              {(wtCategory === 'Local' || wtCategory === 'Export') && (
+              {wtMachine === 'MDU2451/52' && (wtCategory === 'Local' || wtCategory === 'Export') && (
                 <div className="mb-3">
                   <div className="text-xs font-medium text-gray-600 mb-2">Drum type</div>
                   <div className="grid grid-cols-3 gap-1.5">
@@ -317,6 +319,22 @@ export function Step3Drumming({
                         className="p-2.5 rounded-lg text-center cursor-pointer border min-h-[44px] text-xs font-semibold"
                         style={{ borderColor: wtDrumType === dt ? dc : '#DDE2EE', background: wtDrumType === dt ? dc + '10' : '#fff', color: wtDrumType === dt ? dc : '#5A617A' }}>
                         {dt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {wtMachine === 'MDU2450' && (wtCategory === 'Local' || wtCategory === 'Export') && (
+                <div className="mb-3">
+                    <div className="text-xs font-medium text-gray-600 mb-2">
+                    Pallet standard weight
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {MDU2450_PALLET_STD_OPTS.map(std => (
+                      <button key={std} onClick={() => setWtMdu2450PalletStd(std)}
+                        className="p-2.5 rounded-lg text-center cursor-pointer border min-h-[44px] text-sm font-semibold"
+                        style={{ borderColor: wtMdu2450PalletStd === std ? dc : '#DDE2EE', background: wtMdu2450PalletStd === std ? dc + '10' : '#fff', color: wtMdu2450PalletStd === std ? dc : '#5A617A' }}>
+                        {std} kg ± 2
                       </button>
                     ))}
                   </div>

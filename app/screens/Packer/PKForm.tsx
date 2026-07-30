@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import { AlertTriangle, AlertOctagon, XCircle, ArrowLeft, ChevronRight, ChevronLeft, LogOut } from 'lucide-react'
 import { DEPT, getWtStandard, isPerPalletChecklistItem } from '@/app/components/constants'
-import type { MduMachine, LocalExportIbc, DrumMmType } from '@/app/components/constants'
+import type { MduMachine, LocalExportIbc, DrumMmType, Mdu2450PalletStd } from '@/app/components/constants'
 import {
   Card,
   DeptBadge,
@@ -292,6 +292,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   const [wtCategory, setWtCategory] = useState<LocalExportIbc | ''>('')
   const [wtDrumType, setWtDrumType] = useState<DrumMmType | ''>('')
   const [wtIbcSub, setWtIbcSub] = useState<'Local' | 'Export' | ''>('')
+  const [wtMdu2450PalletStd, setWtMdu2450PalletStd] = useState<Mdu2450PalletStd | ''>('')
   const [sessionWt, setSessionWt] = useState('')
   const [recheckList, setRecheckList] = useState<RecheckEntry[]>([])
   const [recheckDone, setRecheckDone] = useState(false)
@@ -800,7 +801,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   const wtStandard = (
     wtMachine && wtCategory &&
     (wtCategory !== 'IBC Tote'
-      ? !!wtDrumType
+      ? (wtMachine === 'MDU2450' ? !!wtMdu2450PalletStd : !!wtDrumType)
       : (wtMachine === 'MDU2450' || !!wtIbcSub))
   )
     ? getWtStandard(
@@ -808,6 +809,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
       wtCategory as LocalExportIbc,
       wtCategory === 'IBC Tote' ? null : (wtDrumType as DrumMmType),
       wtIbcSub as 'Local' | 'Export' | undefined || undefined,
+      wtMdu2450PalletStd || undefined,
     )
     : null
   const wPass = wtStandard != null && sessionWt !== '' &&
@@ -1666,6 +1668,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           wtCategory={wtCategory} setWtCategory={setWtCategory}
           wtDrumType={wtDrumType} setWtDrumType={setWtDrumType}
           wtIbcSub={wtIbcSub} setWtIbcSub={setWtIbcSub}
+          wtMdu2450PalletStd={wtMdu2450PalletStd} setWtMdu2450PalletStd={setWtMdu2450PalletStd}
           wtStandard={wtStandard}
           sessionWt={sessionWt} setSessionWt={setSessionWt}
           recheckList={recheckList} recheckDone={recheckDone}

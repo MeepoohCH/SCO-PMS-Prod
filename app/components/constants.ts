@@ -77,6 +77,15 @@ export type DrumMmType     = 'Drum 1.0mm' | 'Drum 1.2mm' | 'Drum 1.5mm'
 
 export interface WtStandard { ref: number; tol: number }
 
+// MDU2450 pallet (non-tote) standard weight: the paper form lists TWO
+// candidate values (840kg / 760kg) both labeled identically
+// "Local/Export pallet", with no confirmed distinguishing factor —
+// unlike MDU2451/52, which cleanly separates by Local vs Export. Rather
+// than guess, the Packer picks the applicable standard manually (see
+// MDU2450_PALLET_STD_OPTS + the picker in Step3Drumming.tsx).
+export type Mdu2450PalletStd = 840 | 760
+export const MDU2450_PALLET_STD_OPTS: Mdu2450PalletStd[] = [840, 760]
+
 export const MDU_MACHINE_OPTS:     MduMachine[]     = ['MDU2450', 'MDU2451/52']
 export const LOCAL_EXPORT_IBC_OPTS: LocalExportIbc[] = ['Local', 'Export', 'IBC Tote']
 export const DRUM_MM_OPTS:          DrumMmType[]     = ['Drum 1.0mm', 'Drum 1.2mm', 'Drum 1.5mm']
@@ -87,12 +96,17 @@ export const DRUM_MM_OPTS:          DrumMmType[]     = ['Drum 1.0mm', 'Drum 1.2m
  *
  * ibcSubChoice is required only when machine === 'MDU2451/52' AND
  * category === 'IBC Tote' (that combination still splits by Local/Export).
+ *
+ * mdu2450PalletStd is required only when machine === 'MDU2450' AND
+ * category !== 'IBC Tote' — see Mdu2450PalletStd comment above for why
+ * this is a manual pick rather than derived from category.
  */
 export function getWtStandard(
   machine:      MduMachine,
   category:     LocalExportIbc,
   drumType:     DrumMmType | null,
   ibcSubChoice?: 'Local' | 'Export',
+  mdu2450PalletStd?: Mdu2450PalletStd,
 ): WtStandard | null {
   if (machine === 'MDU2451/52') {
     if (category === 'IBC Tote') {
@@ -108,7 +122,8 @@ export function getWtStandard(
   }
   // MDU2450
   if (category === 'IBC Tote') return { ref: 1000, tol: 0.5 }
-  return { ref: category === 'Local' ? 840 : 760, tol: 2 }
+  if (!mdu2450PalletStd) return null
+  return { ref: mdu2450PalletStd, tol: 2 }
 }
 
 export interface ChecklistItem {
@@ -195,9 +210,11 @@ export const WT_REF: WtRefEntry[] = [
   { l: 'MDU2451/52 · Export + Drum 1.2 mm', ref: 932,  tol: 3   },
   { l: 'MDU2451/52 · Export + Drum 1.5 mm', ref: 953,  tol: 3   },
   { l: 'MDU2451/52 · Export + IBC Tote',    ref: 760,  tol: 3   },
-  // ── MDU2450 ──
-  { l: 'MDU2450 · Local/Export pallet',     ref: 840,  tol: 2   },
-  { l: 'MDU2450 · Export pallet',           ref: 760,  tol: 2   },
+  // ── MDU2450 ── pallet standard is ambiguous on the paper form (both
+  // options labeled "Local/Export pallet") — Packer picks manually,
+  // see Mdu2450PalletStd / getWtStandard().
+  { l: 'MDU2450 · Pallet (manual pick, option A)', ref: 840,  tol: 2   },
+  { l: 'MDU2450 · Pallet (manual pick, option B)', ref: 760,  tol: 2   },
   { l: 'MDU2450 · IBC Tote',                ref: 1000, tol: 0.5 },
 ];
 

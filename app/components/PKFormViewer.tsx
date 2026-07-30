@@ -777,6 +777,7 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
           wtCategory={''} setWtCategory={() => { }}
           wtDrumType={''} setWtDrumType={() => { }}
           wtIbcSub={''} setWtIbcSub={() => { }}
+          wtMdu2450PalletStd={''} setWtMdu2450PalletStd={() => { }}
           wtStandard={null}
           sessionWt={''} setSessionWt={() => { }}
           recheckList={[]} recheckDone={false}
