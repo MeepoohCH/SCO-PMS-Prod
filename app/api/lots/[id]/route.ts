@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth, hasRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+const sanitizeLog = (str: unknown) => String(str).replace(/[\n\r]/g, "_");
+
 function mapLot<T extends Record<string, unknown>>(lot: T) {
   const ibc = lot.production_detail_ibc as
     | Record<string, unknown>
@@ -59,9 +61,9 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
     const session = await auth();
     if (!session?.user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
     const { id } = await params;
-    console.log("[GET /api/lots/" + id + "] fetching...");
+    const safeId = sanitizeLog(id);
+    console.log(`[GET /api/lots/${safeId}] fetching...`);
 
     const lot = await prisma.production_details.findUnique({
       where: { id: Number(id) },
@@ -91,7 +93,7 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
       },
     });
 
-    console.log("[GET /api/lots/" + id + "] found:", !!lot);
+    console.log(`[GET /api/lots/${safeId}] found:`, !!lot);
     if (!lot) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     // 💡 ล็อกตรวจสอบโครงสร้างดิบที่ได้จาก Database
@@ -125,6 +127,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
+    const safeId = sanitizeLog(id);
 
     const existing = await prisma.production_details.findUnique({
       where: { id: Number(id) },
@@ -134,7 +137,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
     const body = (await req.json()) as Record<string, unknown>;
     console.log(
-      "[PATCH /api/lots/" + id + "] body payload:",
+      `[PATCH /api/lots/${safeId}] body payload:`,
       JSON.stringify(body),
     );
     const isAdmin = hasRole(session.user.roles, "admin");
@@ -212,7 +215,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         });
         resolvedProductId = newProduct.id;
         console.log(
-          "[PATCH /api/lots/" + id + "] auto-created product:",
+          `[PATCH /api/lots/${safeId}] auto-created product:`,
           newProduct.id,
           product_name,
         );
@@ -484,7 +487,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       }
     } catch (e) {
       console.error(
-        "[PATCH /api/lots/" + id + "] update plan updated_by failed:",
+        `[PATCH /api/lots/${safeId}] update plan updated_by failed:`,
         e,
       );
     }
@@ -508,7 +511,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     });
 
     console.log(
-      "[PATCH /api/lots/" + id + "] บันทึกสำเร็จ ข้อมูล IBC",
+      `[PATCH /api/lots/${safeId}] บันทึกสำเร็จ ข้อมูล IBC`,
       finalLotWithIbc?.production_detail_ibc,
     );
     return NextResponse.json(
@@ -525,6 +528,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(_req: NextRequest, { params }: RouteParams) {
   const { id: idStr } = await params;
+  const safeId = sanitizeLog(idStr);
   const id = Number(idStr);
   try {
     const session = await auth();
@@ -533,7 +537,7 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
     if (!hasRole(session.user.roles, "sl", "admin"))
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    console.log("[DELETE /api/lots/" + id + "] starting...");
+    console.log(`[DELETE /api/lots/${safeId}] starting...`);
 
     const detail = await prisma.production_details.findUnique({
       where: { id },
@@ -574,7 +578,7 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
     });
 
     await prisma.production_details.delete({ where: { id } });
-    console.log("[DELETE /api/lots/" + id + "] lot deleted");
+    console.log(`[DELETE /api/lots/${safeId}] lot deleted`);
 
     if (planId) {
       const remaining = await prisma.production_details.count({
@@ -583,7 +587,7 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
       if (remaining === 0) {
         await prisma.production_plans.delete({ where: { id: planId } });
         console.log(
-          "[DELETE /api/lots/" + id + "] empty plan",
+          `[DELETE /api/lots/${safeId}] empty plan`,
           planId,
           "deleted",
         );
@@ -592,7 +596,7 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("[DELETE /api/lots/" + id + "] error:", err);
+    console.error(`[DELETE /api/lots/${safeId}] error:`, err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
