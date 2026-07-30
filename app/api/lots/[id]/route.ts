@@ -96,11 +96,6 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
     console.log(`[GET /api/lots/${safeId}] found:`, !!lot);
     if (!lot) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    // 💡 ล็อกตรวจสอบโครงสร้างดิบที่ได้จาก Database
-    console.log("================ [GET RAW IBC DATA] ================");
-    console.log(JSON.stringify(lot.production_detail_ibc, null, 2));
-    console.log("====================================================");
-
     const allLotsForRanking = await prisma.production_details.findMany({
       select: { id: true },
       orderBy: { id: "asc" },
@@ -136,10 +131,11 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const body = (await req.json()) as Record<string, unknown>;
-    console.log(
-      `[PATCH /api/lots/${safeId}] body payload:`,
-      JSON.stringify(body),
-    );
+
+    // ป้องกัน Log Injection โดยการ sanitize ข้อมูลก่อนนำไปพิมพ์ Log
+    const safeBodyLog = sanitizeLog(JSON.stringify(body));
+    console.log(`[PATCH /api/lots/${safeId}] body payload: ${safeBodyLog}`);
+
     const isAdmin = hasRole(session.user.roles, "admin");
 
     const {
@@ -189,7 +185,6 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       empty_tank,
     } = body;
 
-    // ── Auto-find or create product from product_name (free text) ──────────
     let resolvedProductId: number | null | undefined = product_id as
       | number
       | null
@@ -215,9 +210,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         });
         resolvedProductId = newProduct.id;
         console.log(
-          `[PATCH /api/lots/${safeId}] auto-created product:`,
-          newProduct.id,
-          product_name,
+          `[PATCH /api/lots/${safeId}] auto-created product ID: ${newProduct.id}`,
         );
       }
     }
@@ -235,7 +228,6 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         ? await validFk("packaging_types", packaging_type_id)
         : undefined;
 
-    // อัปเดตตารางหลัก production_details
     await prisma.production_details.update({
       where: { id: Number(id) },
       data: {
@@ -388,7 +380,6 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       } as any,
     });
 
-    // 1. เคสกระจายฟิลด์ระเบิดด้านบน (Bypass เช็กหาค่าแมปปิ้งตารางย่อย)
     const ibcFields = {
       operator_name,
       quality_status,
@@ -431,7 +422,6 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       });
     }
 
-    // 2. เคสวัตถุ JSON ซ้อนซ่อนรูป (ibc_data ก้อนจริงที่หน้าฟอร์ม Admin ยิงมา)
     const ibc_data_nested = body.ibc_data as
       | {
           operator_name?: string;
@@ -470,7 +460,6 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       });
     }
 
-    // แสตมป์ประวัติคนแก้ไขล่าสุด
     try {
       const detail = await prisma.production_details.findUnique({
         where: { id: Number(id) },
@@ -487,12 +476,10 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       }
     } catch (e) {
       console.error(
-        `[PATCH /api/lots/${safeId}] update plan updated_by failed:`,
-        e,
+        `[PATCH /api/lots/${safeId}] update plan updated_by failed`,
       );
     }
 
-    // 💡 จุดสำคัญ: สั่งดึงข้อมูลชุดสมบูรณ์จาก Database ขึ้นมาใหม่อีกรอบพร้อม Relation หลังบันทึกทุกตารางเสร็จสิ้น
     const finalLotWithIbc = await prisma.production_details.findUnique({
       where: { id: Number(id) },
       include: {
@@ -506,19 +493,15 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
             updater: { select: { id: true, full_name: true } },
           },
         },
-        production_detail_ibc: true, // 👈 โหลดข้อมูลชุดอัปเดตล่าสุดของ "TEST" และ "LAB" ขึ้นมาประกอบร่าง
+        production_detail_ibc: true,
       },
     });
 
-    console.log(
-      `[PATCH /api/lots/${safeId}] บันทึกสำเร็จ ข้อมูล IBC`,
-      finalLotWithIbc?.production_detail_ibc,
-    );
     return NextResponse.json(
       mapLot(finalLotWithIbc as unknown as Record<string, unknown>),
     );
   } catch (err) {
-    console.error("[PATCH /api/lots/[id]] error:", err);
+    console.error("[PATCH /api/lots/[id]] error");
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
@@ -586,17 +569,13 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
       });
       if (remaining === 0) {
         await prisma.production_plans.delete({ where: { id: planId } });
-        console.log(
-          `[DELETE /api/lots/${safeId}] empty plan`,
-          planId,
-          "deleted",
-        );
+        console.log(`[DELETE /api/lots/${safeId}] empty plan deleted`);
       }
     }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error(`[DELETE /api/lots/${safeId}] error:`, err);
+    console.error(`[DELETE /api/lots/${safeId}] error`);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
