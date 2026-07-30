@@ -161,6 +161,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       label_no_end,
       label_count,
       label_pkg_type,
+      label_remark,
       flush_kg,
       purge_kg,
       drain_kg,
@@ -168,6 +169,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       container_tote,
       cap_large,
       cap_small,
+      actual_drum_count,
+      actual_tote_count,
       batch_size_kg,
       empty_drum_wt,
       draft_note,
@@ -184,15 +187,21 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     } = body;
 
     // ── Auto-find or create product from product_name (free text) ──────────
-    let resolvedProductId: number | null | undefined = product_id as number | null | undefined
-    const product_name = body.product_name as string | undefined
+    let resolvedProductId: number | null | undefined = product_id as
+      | number
+      | null
+      | undefined;
+    const product_name = body.product_name as string | undefined;
     if (resolvedProductId == null && product_name?.trim()) {
-      const dept = (body.dept as string) || existing.dept || undefined
+      const dept = (body.dept as string) || existing.dept || undefined;
       const existingProduct = await prisma.products.findFirst({
-        where: { product_name: product_name.trim(), ...(dept && { dept: dept as any }) },
-      })
+        where: {
+          product_name: product_name.trim(),
+          ...(dept && { dept: dept as any }),
+        },
+      });
       if (existingProduct) {
-        resolvedProductId = existingProduct.id
+        resolvedProductId = existingProduct.id;
       } else {
         const newProduct = await prisma.products.create({
           data: {
@@ -200,8 +209,13 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
             dept: dept as any,
             is_active: true,
           },
-        })
-        resolvedProductId = newProduct.id
+        });
+        resolvedProductId = newProduct.id;
+        console.log(
+          "[PATCH /api/lots/" + id + "] auto-created product:",
+          newProduct.id,
+          product_name,
+        );
       }
     }
 
@@ -285,6 +299,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
               : Number(label_count),
         }),
         ...(label_pkg_type !== undefined && { label_pkg_type }),
+        ...(label_remark !== undefined && { label_remark }),
         ...(flush_kg !== undefined && { flush_kg }),
         ...(purge_kg !== undefined && { purge_kg }),
         ...(drain_kg !== undefined && { drain_kg }),
@@ -307,6 +322,18 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         ...(cap_small !== undefined && {
           cap_small:
             cap_small === "" || cap_small === null ? null : Number(cap_small),
+        }),
+        ...(actual_drum_count !== undefined && {
+          actual_drum_count:
+            actual_drum_count === "" || actual_drum_count === null
+              ? null
+              : Number(actual_drum_count),
+        }),
+        ...(actual_tote_count !== undefined && {
+          actual_tote_count:
+            actual_tote_count === "" || actual_tote_count === null
+              ? null
+              : Number(actual_tote_count),
         }),
         ...(batch_size_kg !== undefined && { batch_size_kg }),
         ...(empty_drum_wt !== undefined && { empty_drum_wt }),
@@ -481,9 +508,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     });
 
     console.log(
-      "[PATCH /api/lots/" +
-        id +
-        "] บันทึกสำเร็จ ข้อมูล IBC",
+      "[PATCH /api/lots/" + id + "] บันทึกสำเร็จ ข้อมูล IBC",
       finalLotWithIbc?.production_detail_ibc,
     );
     return NextResponse.json(

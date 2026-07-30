@@ -95,6 +95,8 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
         }),
         cap_large: capSmall ? Number(capSmall) : null,
         cap_small: capXSmall ? Number(capXSmall) : null,
+        actual_drum_count: actualDrumCount ? Number(actualDrumCount) : null,
+        actual_tote_count: actualToteCount ? Number(actualToteCount) : null,
         actual_pallet_count: sessions.length > 0 ? sessions.length : null,
 
         // Step 5
@@ -299,7 +301,9 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   const [capLarge, setCapLarge] = useState('')
   const [capSmall, setCapSmall] = useState('')
   const [capXSmall, setCapXSmall] = useState('')
-  const lotRecordAS = useAutosave({ batchSizeKg, containerQty, capLarge, capSmall, capXSmall }, () => { })
+  const [actualDrumCount, setActualDrumCount] = useState('')
+  const [actualToteCount, setActualToteCount] = useState('')
+  const lotRecordAS = useAutosave({ batchSizeKg, containerQty, capLarge, capSmall, capXSmall, actualDrumCount, actualToteCount }, () => { })
 
   // ── Checklist items from DB (keyed by item.id) ───────────────
   const [preItemsDB, setPreItemsDB] = useState<ApiChecklistItem[]>([])
@@ -482,6 +486,8 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
         }
         if (data.cap_large) setCapSmall(String(data.cap_large))
         if (data.cap_small) setCapXSmall(String(data.cap_small))
+        if (data.actual_drum_count) setActualDrumCount(String(data.actual_drum_count))
+        if (data.actual_tote_count) setActualToteCount(String(data.actual_tote_count))
 
         // Step 5
         if (data.lot_drumming_end) {
@@ -853,6 +859,8 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
       if (!drainKg.trim()) step3MissingFields.push('Drain (kg)')
     }
     if (!batchSizeKg.trim()) step3MissingFields.push('Batch size (kg)')
+    if (!actualDrumCount.trim()) step3MissingFields.push('จำนวนเต็ม Drum ที่ใช้จริง (ทั้งหมด)')
+    if (!actualToteCount.trim()) step3MissingFields.push('จำนวนเต็ม Tote ที่ใช้จริง (ทั้งหมด)')
     if (lot.dept === 'Latex') {
       if (!latexLot1Qty.trim()) step3MissingFields.push('Lot 1 — Drum/Tote (ใบ)')
       if (!latexLot2Qty.trim()) step3MissingFields.push('Lot 2 — Drum/Tote (ใบ)')
@@ -1259,6 +1267,8 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
             }),
             cap_large: capSmall ? Number(capSmall) : null,
             cap_small: capXSmall ? Number(capXSmall) : null,
+            actual_drum_count: actualDrumCount ? Number(actualDrumCount) : null,
+            actual_tote_count: actualToteCount ? Number(actualToteCount) : null,
             actual_pallet_count: updatedSessions.length,
             current_pk_step: updatedSessions.length < effectiveTotalP ? 3 : 4,
           }),
@@ -1670,6 +1680,8 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           capLarge={capLarge} setCapLarge={setCapLarge}
           capSmall={capSmall} setCapSmall={setCapSmall}
           capXSmall={capXSmall} setCapXSmall={setCapXSmall}
+          actualDrumCount={actualDrumCount} setActualDrumCount={setActualDrumCount}
+          actualToteCount={actualToteCount} setActualToteCount={setActualToteCount}
           latexPrevProduct={latexPrevProduct} setLatexPrevProduct={setLatexPrevProduct}
           latexPrevProductName={latexPrevProductName} setLatexPrevProductName={setLatexPrevProductName}
           latexSample={latexSample} setLatexSample={setLatexSample}

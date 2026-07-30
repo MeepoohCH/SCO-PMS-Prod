@@ -247,6 +247,8 @@ model production_details {
   export_on_pallet        Boolean?     @default(false)
   empty_tank              Boolean?     @default(false)
   actual_pallet_count     Int?         @db.SmallInt
+  actual_drum_count       Int?         @db.SmallInt
+  actual_tote_count       Int?         @db.SmallInt
   container_drum          Int?         @db.SmallInt
   container_tote          Int?         @db.SmallInt
   cap_large               Int?         @db.SmallInt

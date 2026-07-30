@@ -50,6 +50,10 @@ export interface Step3DrummingProps {
   setCapSmall: (v: string) => void
   capXSmall: string
   setCapXSmall: (v: string) => void
+  actualDrumCount: string
+  setActualDrumCount: (v: string) => void
+  actualToteCount: string
+  setActualToteCount: (v: string) => void
   latexPrevProduct: string
   setLatexPrevProduct: (v: string) => void
   latexPrevProductName: string
@@ -104,6 +108,7 @@ export function Step3Drumming({
   flushKg, setFlushKg, purgeKg, setPurgeKg, drainKg, setDrainKg,
   batchSizeKg, setBatchSizeKg,
   containerQty, setContainerQty, capLarge, setCapLarge, capSmall, setCapSmall, capXSmall, setCapXSmall,
+  actualDrumCount, setActualDrumCount, actualToteCount, setActualToteCount,
   latexPrevProduct, setLatexPrevProduct,
   latexPrevProductName, setLatexPrevProductName,
   latexSample, setLatexSample,
@@ -572,7 +577,7 @@ export function Step3Drumming({
           )}
 
           <div className="text-xs font-medium text-gray-600 mb-2">เศษ Packaging (kg)</div>
-          <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="grid grid-cols-3 gap-2 mb-2">
             {lotDept === 'Latex' ? (
               <>
                 <Inp label="Product Purge" type="text" value={latexProductPurgeKg} onChange={setLatexProductPurgeKg} placeholder="-" req />
@@ -586,6 +591,33 @@ export function Step3Drumming({
                 <Inp label="Drain" type="text" value={drainKg} onChange={setDrainKg} placeholder="-" req />
               </>
             )}
+          </div>
+          <div className="text-xs font-medium text-gray-600 mb-2">จำนวนเต็ม Drum/Tote ที่ใช้จริง (ทั้งหมด)</div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="mb-4 min-w-0">
+              <div className="flex justify-between items-center mb-1.5 select-none">
+                <span className="text-xs text-[#5A617A] font-bold tracking-wide">
+                  <span className="text-[#E24B4A]">* </span>Drum
+                </span>
+              </div>
+              <input type="number" min={1} value={actualDrumCount}
+                onChange={e => setActualDrumCount(e.target.value)} placeholder="-"
+                onWheel={e => e.currentTarget.blur()}
+                onKeyDown={e => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault() }}
+                className="w-full min-w-0 border border-[#DDE2EE] rounded-xl outline-none box-border transition-all duration-150 focus:border-[#185FA5] focus:ring-2 focus:ring-[#185FA5]/10 flex items-center leading-normal h-12 px-4 text-sm font-medium bg-white text-[#0E1117]" />
+            </div>
+            <div className="mb-4 min-w-0">
+              <div className="flex justify-between items-center mb-1.5 select-none">
+                <span className="text-xs text-[#5A617A] font-bold tracking-wide">
+                  <span className="text-[#E24B4A]">* </span>Tote
+                </span>
+              </div>
+              <input type="number" min={1} value={actualToteCount}
+                onChange={e => setActualToteCount(e.target.value)} placeholder="-"
+                onWheel={e => e.currentTarget.blur()}
+                onKeyDown={e => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault() }}
+                className="w-full min-w-0 border border-[#DDE2EE] rounded-xl outline-none box-border transition-all duration-150 focus:border-[#185FA5] focus:ring-2 focus:ring-[#185FA5]/10 flex items-center leading-normal h-12 px-4 text-sm font-medium bg-white text-[#0E1117]" />
+            </div>
           </div>
           <Inp label="น้ำหนักรวมที่บรรจุได้ Kg. (Batch size)" type="text" value={batchSizeKg} onChange={setBatchSizeKg} placeholder="กรอกตัวเลข หรือ -" req />
           <div className="text-xs font-medium text-gray-600 mb-2">จำนวนภาชนะที่ใช้ไปทั้งหมด</div>

@@ -106,6 +106,8 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
   const [capLarge, setCapLarge] = useState('')
   const [capSmall, setCapSmall] = useState('')
   const [capXSmall, setCapXSmall] = useState('')
+  const [actualDrumCount, setActualDrumCount] = useState('')
+  const [actualToteCount, setActualToteCount] = useState('')
   const [flushKg, setFlushKg] = useState('')
   const [purgeKg, setPurgeKg] = useState('')
   const [drainKg, setDrainKg] = useState('')
@@ -188,6 +190,8 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
           }
           if (data.cap_large) setCapSmall(String(data.cap_large))
           if (data.cap_small) setCapXSmall(String(data.cap_small))
+          if (data.actual_drum_count) setActualDrumCount(String(data.actual_drum_count))
+          if (data.actual_tote_count) setActualToteCount(String(data.actual_tote_count))
           if (data.flush_kg) setFlushKg(String(data.flush_kg))
           if (data.purge_kg) setPurgeKg(String(data.purge_kg))
           if (data.drain_kg) setDrainKg(String(data.drain_kg))
@@ -552,6 +556,20 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
               </div>
             </div>
 
+            <div className="bg-[#F8FAFC] border border-[#DDE2EE] rounded-xl px-3 py-2.5">
+              <div className="text-[10px] text-[#9BA3BA] font-medium mb-0.5">จำนวนเต็ม Drum ที่ใช้จริง (ทั้งหมด)</div>
+              <div className="text-[13px] font-semibold text-[#0E1117]">
+                {actualDrumCount || '—'}
+              </div>
+            </div>
+
+            <div className="bg-[#F8FAFC] border border-[#DDE2EE] rounded-xl px-3 py-2.5">
+              <div className="text-[10px] text-[#9BA3BA] font-medium mb-0.5">จำนวนเต็ม Tote ที่ใช้จริง (ทั้งหมด)</div>
+              <div className="text-[13px] font-semibold text-[#0E1117]">
+                {actualToteCount || '—'}
+              </div>
+            </div>
+
             {/* PL who approved — always show */}
             <div className="bg-[#F8FAFC] border border-[#DDE2EE] rounded-xl px-3 py-2.5">
               <div className="text-[10px] text-[#9BA3BA] font-medium mb-0.5">Pack Lead (อนุมัติ)</div>
@@ -773,6 +791,8 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
           capLarge={capLarge} setCapLarge={() => { }}
           capSmall={capSmall} setCapSmall={() => { }}
           capXSmall={capXSmall} setCapXSmall={() => { }}
+          actualDrumCount={actualDrumCount} setActualDrumCount={() => { }}
+          actualToteCount={actualToteCount} setActualToteCount={() => { }}
           latexPrevProduct={latexPrevProduct} setLatexPrevProduct={() => { }}
           latexPrevProductName={latexPrevProductName} setLatexPrevProductName={() => { }}
           latexSample={latexSample} setLatexSample={() => { }}
