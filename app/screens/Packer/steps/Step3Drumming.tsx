@@ -653,7 +653,7 @@ export function Step3Drumming({
                 <div key={label} className="bg-gray-100 rounded-xl p-3">
                   <div className="text-[11px] font-bold text-gray-600 mb-2">{label}</div>
                   <div className="grid grid-cols-2 gap-2">
-                    <Inp label="เลข lot " type="text" value={refVal} onChange={setRef} placeholder="-" />
+                    <Inp label="Lot no." type="text" value={refVal} onChange={setRef} placeholder="-" />
                     <Inp label="Drum / Tote (ใบ)" type="text" value={val} onChange={set} placeholder="-" req />
                   </div>
                 </div>

@@ -138,7 +138,7 @@ export default function Navbar() {
 
         {/* ชื่อระบบโชว์ตั้งแต่หน้าจอแท็บเล็ตเป็นต้นไป */}
         <span className="hidden sm:inline text-sm md:text-base font-bold text-white leading-tight truncate tracking-wide font-sans">
-          <span className="hidden md:inline">Packing Web-Based </span>
+          <span className="hidden md:inline">Packing Web-Based </span> <span className="text-[#EF9F27]">System</span>
         </span>
       </div>
 

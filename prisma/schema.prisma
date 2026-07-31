@@ -1,6 +1,5 @@
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -402,6 +401,164 @@ model approval_logs {
 
   production_detail production_details @relation(fields: [production_detail_id], references: [id])
   actor             users              @relation(fields: [actor_id], references: [id])
+}
+
+// ── ARCHIVE (Data Lifecycle Management) ────────────────────────
+// Read-only/audit tables populated only by the archive_yearly()
+// stored procedure — never written to by application code. No
+// relations to live tables (none exist as real FK constraints in
+// the DB). Structure confirmed via SHOW CREATE TABLE against
+// production, not assumed from the live tables' shape.
+
+model production_details_archive {
+  id                  Int          @id @default(autoincrement()) @db.UnsignedInt
+  plan_id             Int          @db.UnsignedInt
+  product_id          Int?         @db.UnsignedInt
+  customer_id         Int?         @db.UnsignedInt
+  packaging_type_id   Int?         @db.UnsignedInt
+  lot_no              String       @unique(map: "production_details_lot_no_key") @db.VarChar(30)
+  country_label       String?      @db.VarChar(100)
+  draft_note          String?      @db.Text
+  label_no_start      String?      @db.VarChar(50)
+  label_no_end        String?      @db.VarChar(50)
+  label_count         Int?         @db.SmallInt
+  label_pkg_type      String?      @db.VarChar(50)
+  label_check         String?      @db.VarChar(10)
+  target_amount_mt    Decimal?     @db.Decimal(10, 3)
+  empty_drum_wt       Decimal?     @db.Decimal(6, 2)
+  flush_kg            Decimal?     @db.Decimal(8, 2)
+  flush_blender       String?      @db.VarChar(50)
+  purge_kg            Decimal?     @db.Decimal(8, 2)
+  drain_kg            Decimal?     @db.Decimal(8, 2)
+  planned_pallets     Int?         @db.SmallInt
+  actual_pallet_count Int?         @db.SmallInt
+  container_drum      Int?         @db.SmallInt
+  container_tote      Int?         @db.SmallInt
+  cap_large           Int?         @db.SmallInt
+  cap_small           Int?         @db.SmallInt
+  batch_size_kg       Decimal?     @db.Decimal(10, 2)
+  cut_off_date        DateTime?    @db.Date
+  operation_date      DateTime?    @db.Date
+  lot_drumming_start  DateTime?    @db.DateTime(0)
+  lot_drumming_end    DateTime?    @db.DateTime(0)
+  detail_status       DetailStatus @default(draft)
+  current_pk_step     Int?         @db.TinyInt
+  mdu_machine         String?      @db.VarChar(50)
+  drum_set            String?      @db.VarChar(50)
+  recalibration       String?      @db.VarChar(5)
+  sample_type         String?      @db.VarChar(100)
+  reject_remark       String?      @db.Text
+  submitted_at        DateTime?    @db.DateTime(0)
+  recorded_by         Int?         @db.UnsignedInt
+  created_at          DateTime?    @db.DateTime(0)
+  updated_at          DateTime?    @db.DateTime(0)
+  operators_json      String?      @db.Text
+  dept                String?      @db.VarChar(20)
+  special_comm        String?      @db.Text
+  export_on_pallet    Boolean?     @default(false)
+  empty_tank          Boolean?     @default(false)
+  pl_remark           String?      @db.Text
+
+  @@index([plan_id], map: "production_details_plan_id_fkey")
+  @@index([recorded_by], map: "production_details_recorded_by_fkey")
+  @@index([product_id], map: "production_details_product_id_fkey")
+  @@index([customer_id], map: "production_details_customer_id_fkey")
+  @@index([packaging_type_id], map: "production_details_packaging_type_id_fkey")
+}
+
+model drumming_sessions_archive {
+  id                    Int           @id @default(autoincrement()) @db.UnsignedInt
+  production_detail_id  Int           @db.UnsignedInt
+  session_no            Int           @db.SmallInt
+  operator_id           Int?          @db.UnsignedInt
+  started_at            DateTime?     @db.DateTime(0)
+  finished_at           DateTime?     @db.DateTime(0)
+  session_status        SessionStatus
+  created_at            DateTime?     @db.DateTime(0)
+  updated_at            DateTime?     @db.DateTime(0)
+
+  @@index([production_detail_id], map: "drumming_sessions_production_detail_id_fkey")
+  @@index([operator_id], map: "drumming_sessions_operator_id_fkey")
+}
+
+model scale_verifications_archive {
+  id                     Int       @id @default(autoincrement()) @db.UnsignedInt
+  production_detail_id   Int       @db.UnsignedInt
+  machine_code           String?   @db.VarChar(100)
+  standard_weight_kg     Decimal?  @db.Decimal(8, 2)
+  measured_weight_kg     Decimal?  @db.Decimal(8, 2)
+  recalibration_required Boolean?
+  is_locked              Boolean?
+  locked_at              DateTime? @db.DateTime(0)
+  round_no               Int?      @db.TinyInt
+  checked_by             Int?      @db.UnsignedInt
+  checked_at             DateTime? @db.DateTime(0)
+  pl_approved_by         Int?      @db.UnsignedInt
+  pl_approved_at         DateTime? @db.DateTime(0)
+
+  @@index([production_detail_id], map: "scale_verifications_production_detail_id_fkey")
+  @@index([checked_by], map: "scale_verifications_checked_by_fkey")
+  @@index([pl_approved_by], map: "scale_verifications_pl_approved_by_fkey")
+}
+
+model recheck_weight_logs_archive {
+  id                  Int         @id @default(autoincrement()) @db.UnsignedInt
+  drumming_session_id Int         @db.UnsignedInt
+  pallet_no           Int?        @db.SmallInt
+  attempt_no          Int?        @db.SmallInt
+  weight_kg           Decimal?    @db.Decimal(8, 2)
+  fail_reason         FailReason?
+  action_taken        String?     @db.VarChar(300)
+  logged_by           Int         @db.UnsignedInt
+  logged_at           DateTime?   @db.DateTime(0)
+
+  @@index([drumming_session_id], map: "recheck_weight_logs_drumming_session_id_fkey")
+  @@index([logged_by], map: "recheck_weight_logs_logged_by_fkey")
+}
+
+model downtime_logs_archive {
+  id                   Int          @id @default(autoincrement()) @db.UnsignedInt
+  production_detail_id Int          @db.UnsignedInt
+  downtime_type        DowntimeType
+  start_time           DateTime?    @db.DateTime(0)
+  end_time             DateTime?    @db.DateTime(0)
+  duration_min         Int?         @db.SmallInt
+  reason               String?      @db.VarChar(500)
+  logged_by            Int          @db.UnsignedInt
+  created_at           DateTime?    @db.DateTime(0)
+
+  @@index([production_detail_id], map: "downtime_logs_production_detail_id_fkey")
+  @@index([logged_by], map: "downtime_logs_logged_by_fkey")
+}
+
+model approval_logs_archive {
+  id                   Int            @id @default(autoincrement()) @db.UnsignedInt
+  production_detail_id Int            @db.UnsignedInt
+  action               ApprovalAction
+  from_status          String?        @db.VarChar(50)
+  to_status            String?        @db.VarChar(50)
+  actor_id             Int            @db.UnsignedInt
+  remark               String?        @db.VarChar(500)
+  created_at           DateTime?      @db.DateTime(0)
+
+  @@index([production_detail_id], map: "approval_logs_production_detail_id_fkey")
+  @@index([actor_id], map: "approval_logs_actor_id_fkey")
+}
+
+model checklist_responses_archive {
+  id                   Int       @id @default(autoincrement()) @db.UnsignedInt
+  production_detail_id Int       @db.UnsignedInt
+  checklist_item_id    Int       @db.UnsignedInt
+  phase                Phase
+  pallet_no            Int?      @db.SmallInt
+  response_value       String?   @db.VarChar(500)
+  responded_by         Int       @db.UnsignedInt
+  responded_at         DateTime? @db.DateTime(0)
+  created_at           DateTime? @db.DateTime(0)
+
+  @@index([production_detail_id], map: "checklist_responses_production_detail_id_fkey")
+  @@index([checklist_item_id], map: "checklist_responses_checklist_item_id_fkey")
+  @@index([responded_by], map: "checklist_responses_responded_by_fkey")
 }
 
 // ── LATEX-SPECIFIC ────────────────────────────────────────────
