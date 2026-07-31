@@ -147,7 +147,9 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
             tag_status: latexTagStatus || null,
             tag_checked_by: latexTagBy || null,
             lot1_qty: latexLot1Qty || null,
+            lot1_ref_note: latexLot1RefNote || null,
             lot2_qty: latexLot2Qty || null,
+            lot2_ref_note: latexLot2RefNote || null,
           }),
         }).catch(e => console.error('[PKForm] Latex save failed:', e))
       }
@@ -280,7 +282,9 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   const [latexSample, setLatexSample] = useState('')
   const [latexDrummer, setLatexDrummer] = useState('')
   const [latexLot1Qty, setLatexLot1Qty] = useState('')
+  const [latexLot1RefNote, setLatexLot1RefNote] = useState('')
   const [latexLot2Qty, setLatexLot2Qty] = useState('')
+  const [latexLot2RefNote, setLatexLot2RefNote] = useState('')
   const [latexProductPurgeKg, setLatexProductPurgeKg] = useState('')
   const [latexDrainKg, setLatexDrainKg] = useState('')
   const [latexTotalKg, setLatexTotalKg] = useState('')
@@ -550,7 +554,9 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           if (lx.tag_status) setLatexTagStatus(lx.tag_status)
           if (lx.tag_checked_by) setLatexTagBy(lx.tag_checked_by)
           if (lx.lot1_qty) setLatexLot1Qty(String(lx.lot1_qty))
+          if (lx.lot1_ref_note) setLatexLot1RefNote(lx.lot1_ref_note)
           if (lx.lot2_qty) setLatexLot2Qty(String(lx.lot2_qty))
+          if (lx.lot2_ref_note) setLatexLot2RefNote(lx.lot2_ref_note)
         }
 
       } catch (err) {
@@ -1694,7 +1700,9 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           latexDrainKg={latexDrainKg} setLatexDrainKg={setLatexDrainKg}
           latexTotalKg={latexTotalKg} setLatexTotalKg={setLatexTotalKg}
           latexLot1Qty={latexLot1Qty} setLatexLot1Qty={setLatexLot1Qty}
+          latexLot1RefNote={latexLot1RefNote} setLatexLot1RefNote={setLatexLot1RefNote}
           latexLot2Qty={latexLot2Qty} setLatexLot2Qty={setLatexLot2Qty}
+          latexLot2RefNote={latexLot2RefNote} setLatexLot2RefNote={setLatexLot2RefNote}
           preChk={preChk} setPreChk={setPreChk}
           preItems45={preItems45} pre45Ok={pre45Ok} pre45Asked={pre45Asked}
           sampleType={sampleType} setSampleType={setSampleType}

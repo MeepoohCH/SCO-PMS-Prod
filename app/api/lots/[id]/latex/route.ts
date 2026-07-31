@@ -38,7 +38,9 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   // tag_status       → tag_status
   // tag_checked_by   → tag_checked_by
   // lot1_qty         → lot1_qty
+  // lot1_ref_note    → lot1_ref_note
   // lot2_qty         → lot2_qty
+  // lot2_ref_note    → lot2_ref_note
 
   try {
     const result = await prisma.latex_drumming_data.upsert({
@@ -60,7 +62,9 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         ...(body.tag_status         !== undefined && { tag_status:               body.tag_status         as string | null }),
         ...(body.tag_checked_by     !== undefined && { tag_checked_by:           body.tag_checked_by     as string | null }),
         ...(body.lot1_qty           !== undefined && { lot1_qty:                 body.lot1_qty           ? Number(body.lot1_qty) : null }),
+        ...(body.lot1_ref_note      !== undefined && { lot1_ref_note:            body.lot1_ref_note      as string | null }),
         ...(body.lot2_qty           !== undefined && { lot2_qty:                 body.lot2_qty           ? Number(body.lot2_qty) : null }),
+        ...(body.lot2_ref_note      !== undefined && { lot2_ref_note:            body.lot2_ref_note      as string | null }),
         updated_at: new Date(),
       },
       create: {
@@ -81,7 +85,9 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         tag_status:               (body.tag_status         as string | null) ?? null,
         tag_checked_by:           (body.tag_checked_by     as string | null) ?? null,
         lot1_qty:                 body.lot1_qty             ? Number(body.lot1_qty)  : null,
+        lot1_ref_note:            (body.lot1_ref_note      as string | null) ?? null,
         lot2_qty:                 body.lot2_qty             ? Number(body.lot2_qty)  : null,
+        lot2_ref_note:            (body.lot2_ref_note      as string | null) ?? null,
         created_at: new Date(),
         updated_at: new Date(),
       },

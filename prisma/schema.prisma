@@ -422,7 +422,9 @@ model latex_drumming_data {
   total_kg                 Decimal?  @db.Decimal(8, 2)
   lab_sample_detail        String?   @db.VarChar(255)
   lot1_qty                 Int?      @db.SmallInt
+  lot1_ref_note            String?   @db.VarChar(50)
   lot2_qty                 Int?      @db.SmallInt
+  lot2_ref_note            String?   @db.VarChar(50)
   storage_area_by          String?   @db.VarChar(100)
   tag_status               String?   @db.VarChar(100)
   tag_checked_by           String?   @db.VarChar(100)

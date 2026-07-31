@@ -121,7 +121,9 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
   const [latexDrainKg, setLatexDrainKg] = useState('')
   const [latexTotalKg, setLatexTotalKg] = useState('')
   const [latexLot1Qty, setLatexLot1Qty] = useState('')
+  const [latexLot1RefNote, setLatexLot1RefNote] = useState('')
   const [latexLot2Qty, setLatexLot2Qty] = useState('')
+  const [latexLot2RefNote, setLatexLot2RefNote] = useState('')
 
   // Step 4
   const [postChk, setPostChk] = useState<Record<number, string>>({})
@@ -229,7 +231,9 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
             if (lx.drain_kg) setLatexDrainKg(String(lx.drain_kg))
             if (lx.total_kg) setLatexTotalKg(String(lx.total_kg))
             if (lx.lot1_qty) setLatexLot1Qty(String(lx.lot1_qty))
+            if (lx.lot1_ref_note) setLatexLot1RefNote(lx.lot1_ref_note)
             if (lx.lot2_qty) setLatexLot2Qty(String(lx.lot2_qty))
+            if (lx.lot2_ref_note) setLatexLot2RefNote(lx.lot2_ref_note)
             // Step 4 Latex
             if (lx.storage_area_by) setLatexStorageArea(lx.storage_area_by)
             if (lx.tag_status) setLatexTagStatus(lx.tag_status)
@@ -803,7 +807,9 @@ export default function PKFormViewer({ lot, onBack, onApprove, onReject, approve
           latexDrainKg={latexDrainKg} setLatexDrainKg={() => { }}
           latexTotalKg={latexTotalKg} setLatexTotalKg={() => { }}
           latexLot1Qty={latexLot1Qty} setLatexLot1Qty={() => { }}
+          latexLot1RefNote={latexLot1RefNote} setLatexLot1RefNote={() => { }}
           latexLot2Qty={latexLot2Qty} setLatexLot2Qty={() => { }}
+          latexLot2RefNote={latexLot2RefNote} setLatexLot2RefNote={() => { }}
           preChk={preChk} setPreChk={() => { }}
           preItems45={preItems45}
           pre45Ok={true} pre45Asked={sessions.length > 0}

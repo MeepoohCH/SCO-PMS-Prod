@@ -74,8 +74,12 @@ export interface Step3DrummingProps {
   setLatexTotalKg: (v: string) => void
   latexLot1Qty: string
   setLatexLot1Qty: (v: string) => void
+  latexLot1RefNote: string
+  setLatexLot1RefNote: (v: string) => void
   latexLot2Qty: string
   setLatexLot2Qty: (v: string) => void
+  latexLot2RefNote: string
+  setLatexLot2RefNote: (v: string) => void
   preChk: Record<number, string>
   setPreChk: React.Dispatch<React.SetStateAction<Record<number, string>>>
   preItems45: ApiChecklistItem[]
@@ -120,7 +124,8 @@ export function Step3Drumming({
   latexProductPurgeKg, setLatexProductPurgeKg,
   latexDrainKg, setLatexDrainKg,
   latexTotalKg, setLatexTotalKg,
-  latexLot1Qty, setLatexLot1Qty, latexLot2Qty, setLatexLot2Qty,
+  latexLot1Qty, setLatexLot1Qty, latexLot1RefNote, setLatexLot1RefNote,
+  latexLot2Qty, setLatexLot2Qty, latexLot2RefNote, setLatexLot2RefNote,
   preChk, setPreChk, preItems45, pre45Ok, pre45Asked,
   sampleType, setSampleType,
   missingFields,
@@ -641,10 +646,16 @@ export function Step3Drumming({
           <div className="text-xs font-medium text-gray-600 mb-2 pt-2">จำนวนภาชนะที่ใช้ไปทั้งหมด</div>
           {lotDept === 'Latex' ? (
             <div className="flex flex-col gap-2">
-              {[{ label: 'Lot 1', val: latexLot1Qty, set: setLatexLot1Qty }, { label: 'Lot 2', val: latexLot2Qty, set: setLatexLot2Qty }].map(({ label, val, set }) => (
+              {[
+                { label: 'Lot 1', val: latexLot1Qty, set: setLatexLot1Qty, refVal: latexLot1RefNote, setRef: setLatexLot1RefNote },
+                { label: 'Lot 2', val: latexLot2Qty, set: setLatexLot2Qty, refVal: latexLot2RefNote, setRef: setLatexLot2RefNote },
+              ].map(({ label, val, set, refVal, setRef }) => (
                 <div key={label} className="bg-gray-100 rounded-xl p-3">
                   <div className="text-[11px] font-bold text-gray-600 mb-2">{label}</div>
-                  <Inp label="Drum / Tote (ใบ)" type="text" value={val} onChange={set} placeholder="-" req />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Inp label="เลข lot " type="text" value={refVal} onChange={setRef} placeholder="-" />
+                    <Inp label="Drum / Tote (ใบ)" type="text" value={val} onChange={set} placeholder="-" req />
+                  </div>
                 </div>
               ))}
             </div>
