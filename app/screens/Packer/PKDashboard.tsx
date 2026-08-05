@@ -106,7 +106,7 @@ function applyFilter(lots: Lot[], statusTab: string, deptSel: string[], allowedD
     if (l.status === 'completed') {
       const d = new Date(l.packing_date || '')
       const monthOk = d.getMonth() === thisMonth && d.getFullYear() === thisYear
-      return statusOk && deptOk && monthOk
+      return statusOk && deptOk 
     }
     return statusOk && deptOk
   })
