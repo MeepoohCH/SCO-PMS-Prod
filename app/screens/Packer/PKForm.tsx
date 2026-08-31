@@ -787,7 +787,15 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
     if (i === 2 && preChk[item.id] === 'Yes' && !emptyDrumWt.trim()) return false
     return true
   })
-  const preFail = preItems.some((item, i) => i !== 2 && preChk[item.id] === 'No')
+  const targetLabel =
+    'บันทึกน้ำหนักถังเปล่าก่อนนำมา Flush line (น้ำหนักของที่เหลือในถังต้องไม่เกิน 20 kg)'
+
+  const preFail = preItems.some(
+    item =>
+      item.item_label !== targetLabel &&
+      preChk[item.id] === 'No'
+  )
+
   const pre45Ok = (() => {
     if (palletNo > 1) return true        // only asked on pallet #1
     if (preItems45.length === 0) return true

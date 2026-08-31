@@ -331,7 +331,7 @@ export function Step3Drumming({
               )}
               {wtMachine === 'MDU2450' && (wtCategory === 'Local' || wtCategory === 'Export') && (
                 <div className="mb-3">
-                    <div className="text-xs font-medium text-gray-600 mb-2">
+                  <div className="text-xs font-medium text-gray-600 mb-2">
                     Pallet standard weight
                   </div>
                   <div className="grid grid-cols-2 gap-1.5">
@@ -615,7 +615,7 @@ export function Step3Drumming({
               </>
             )}
           </div>
-          <div className="text-xs font-medium text-gray-600 mb-2">จำนวนเต็ม Drum/Tote ที่ใช้จริง (ทั้งหมด)</div>
+          <div className="text-xs font-medium text-gray-600 mb-2">จำนวนเต็มที่บรรจุได้จริงของ Drum/Tote</div>
           <div className="grid grid-cols-2 gap-2">
             <div className="mb-4 min-w-0">
               <div className="flex justify-between items-center mb-1.5 select-none">
@@ -643,7 +643,7 @@ export function Step3Drumming({
             </div>
           </div>
           <Inp label="น้ำหนักรวมที่บรรจุได้ Kg. (Batch size)" type="text" value={batchSizeKg} onChange={setBatchSizeKg} placeholder="กรอกตัวเลข หรือ -" req />
-          <div className="text-xs font-medium text-gray-600 mb-2 pt-2">จำนวนภาชนะที่ใช้ไปทั้งหมด</div>
+          <div className="text-xs font-medium text-gray-600 mb-2 pt-2">จำนวน "บรรจุภัณฑ์ใหม่" ที่นำมาใช้ในการบรรจุ</div>
           {lotDept === 'Latex' ? (
             <div className="flex flex-col gap-2">
               {[
