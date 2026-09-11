@@ -227,7 +227,9 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       packaging_type_id !== undefined
         ? await validFk("packaging_types", packaging_type_id)
         : undefined;
-
+    const todayThai = new Date(Date.now() + 7 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
     await prisma.production_details.update({
       where: { id: Number(id) },
       data: {
@@ -357,7 +359,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
             ? new Date(
                 String(body.lot_drumming_start).includes("T")
                   ? String(body.lot_drumming_start)
-                  : `${new Date().toISOString().slice(0, 10)}T${body.lot_drumming_start}:00`,
+                  : `${todayThai}T${body.lot_drumming_start}:00+07:00`,
               )
             : null,
         }),
@@ -366,7 +368,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
             ? new Date(
                 String(body.lot_drumming_end).includes("T")
                   ? String(body.lot_drumming_end)
-                  : `${new Date().toISOString().slice(0, 10)}T${body.lot_drumming_end}:00`,
+                  : `${todayThai}T${body.lot_drumming_end}:00+07:00`,
               )
             : null,
         }),

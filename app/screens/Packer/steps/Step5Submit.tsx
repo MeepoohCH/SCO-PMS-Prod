@@ -48,27 +48,27 @@ export function Step5Submit({
             {sessions.length} pallets · Start: {drumStart} · End: {drumEnd} · Operator: {currentUser}
           </div>
           {!readOnly && (
-          <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 2fr' }}>
-            <Btn label="Back" color="#9BA3BA" outline onClick={() => setPkStep(4)} />
-            <Btn label="Submit to Pack Lead" color="#534AB7" full disabled={!drumEnd}
-              onClick={async () => {
-                try {
-                  await fetch(`/api/lots/${lot.id}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ lot_drumming_end: drumEnd, current_pk_step: 6 }),
-                  })
-                  await fetch(`/api/lots/${lot.id}/status`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: 'submitted', submitted_at: new Date().toISOString() }),
-                  })
-                } catch (err) {
-                  console.error('[Step5Submit] submit failed:', err)
-                }
-                onSubmit({ drumEnd, sessions, downtimeLogs })
-              }} />
-          </div>
+            <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 2fr' }}>
+              <Btn label="Back" color="#9BA3BA" outline onClick={() => setPkStep(4)} />
+              <Btn label="Submit to Pack Lead" color="#534AB7" full disabled={!drumEnd}
+                onClick={async () => {
+                  try {
+                    await fetch(`/api/lots/${lot.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ lot_drumming_end: drumEnd, current_pk_step: 6 }),
+                    })
+                    await fetch(`/api/lots/${lot.id}/status`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ status: 'submitted', submitted_at: new Date().toISOString() }),
+                    })
+                  } catch (err) {
+                    console.error('[Step5Submit] submit failed:', err)
+                  }
+                  onSubmit({ drumEnd, sessions, downtimeLogs })
+                }} />
+            </div>
           )}
         </Card>
       )}
@@ -81,22 +81,33 @@ export function Step5Submit({
               <div className="bg-[#FCEBEB] border border-[#E24B4A] rounded-xl p-3 mb-3">
                 <div className="text-[12px] text-[#791F1F]">Review all steps above, then resubmit to Pack Lead.</div>
               </div>
+              <TimePicker
+                label="lot_drumming_end — confirm or edit"
+                value={drumEnd}
+                onChange={setDrumEnd}
+                readOnly={readOnly}
+              />
               {!readOnly && (
-              <Btn
-                label={<span className="flex items-center justify-center gap-1.5"><CheckCircle2 size={14} />Resubmit to Pack Lead</span>}
-                color="#534AB7" full
-                onClick={async () => {
-                  await fetch(`/api/lots/${lot.id}/status`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: 'submitted' }),
-                  })
-                  if (onResubmitOperator) await onResubmitOperator()
-                  setLots(p => p.map(l =>
-                    l.id === lot.id ? { ...l, status: 'submitted' as typeof l.status } : l
-                  ))
-                  onBackToList()
-                }} />
+                <Btn
+                  label={<span className="flex items-center justify-center gap-1.5"><CheckCircle2 size={14} />Resubmit to Pack Lead</span>}
+                  color="#534AB7" full
+                  onClick={async () => {
+                    await fetch(`/api/lots/${lot.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ lot_drumming_end: drumEnd }),
+                    })
+                    await fetch(`/api/lots/${lot.id}/status`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ status: 'submitted' }),
+                    })
+                    if (onResubmitOperator) await onResubmitOperator()
+                    setLots(p => p.map(l =>
+                      l.id === lot.id ? { ...l, status: 'submitted' as typeof l.status } : l
+                    ))
+                    onBackToList()
+                  }} />
               )}
             </>
           ) : (
