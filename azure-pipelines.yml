@@ -34,7 +34,7 @@ steps:
         - .next
         - prisma/migrations
 
-- task: NodeTool@0
+- task: UseNode@0
   displayName: "Use Node.js 22"
   inputs:
     versionSpec: '22.x'
