@@ -2,12 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { ArrowLeft, ArrowDown, ArrowUp, AlertTriangle, CheckCircle2, Eye, PencilLine } from "lucide-react";
+import { ArrowLeft, ArrowDown, ArrowUp, AlertTriangle, CheckCircle2, Eye, PencilLine, Download } from "lucide-react";
 import { Btn } from "../components/shared";
 import { LotForm } from "../components/LotForm";
 import type { LotPlan } from "../components/LotForm";
 import { formatDate, cleanDate } from "@/lib/utils";
 import { flattenLot } from "@/lib/fetchLots";
+import * as XLSX from "xlsx";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -59,7 +60,7 @@ interface DowntimeLogEntry {
 
 const DT_LABEL: Record<string, string> = {
   emergency: 'Emergency',
-  issue:     'Issue',
+  issue: 'Issue',
 }
 
 // ── Constants ──────────────────────────────────────────────────
@@ -563,6 +564,58 @@ export function SuccessTab({ lots, onEdit, onViewProgress, isAdmin = false }: Su
     setDeptFilter(p => (p.includes(d) ? p.filter(x => x !== d) : [...p, d]));
   }
 
+
+  function exportToExcel() {
+    const rows = filtered.map(l => ({
+      'Packing Date': l.packing_date
+        ? new Date(l.packing_date)
+        : '',
+      'Product Name': l.product || '',
+      'Lot No.': l.lot || '',
+      'Drum (ใบ)': (l as any).actual_drum_count ?? '',
+      'Tote (ใบ)': (l as any).actual_tote_count ?? '',
+      'Flush (kg)': (l as any).flush_kg ?? '',
+      'Purge (kg)': (l as any).purge_kg ?? '',
+      'Drain (kg)': (l as any).drain_kg ?? '',
+      'น้ำหนักรวม Batch (kg)': (l as any).batch_size_kg ?? '',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+
+    // กำหนดรูปแบบ Packing Date เป็นวันที่
+    rows.forEach((_, index) => {
+      const cell = worksheet[`A${index + 2}`];
+      if (cell && cell.v instanceof Date) {
+        cell.t = 'd';
+        cell.z = 'dd/mm/yyyy';
+      }
+    });
+
+    worksheet['!cols'] = [
+      { wch: 15 }, // Packing Date
+      { wch: 25 }, // Product Name
+      { wch: 18 }, // Lot No.
+      { wch: 12 }, // Drum
+      { wch: 12 }, // Tote
+      { wch: 12 }, // Flush
+      { wch: 12 }, // Purge
+      { wch: 12 }, // Drain
+      { wch: 24 }, // น้ำหนักรวม Batch
+    ];
+
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      'Packing Report'
+    );
+
+    XLSX.writeFile(
+      workbook,
+      `packing_report_${new Date().toISOString().slice(0, 10)}.xlsx`
+    );
+  }
   const quickPresets: [string, number][] = [["7d", 7], ["30d", 30], ["90d", 90], ["1y", 365]];
 
   return (
@@ -682,6 +735,18 @@ export function SuccessTab({ lots, onEdit, onViewProgress, isAdmin = false }: Su
             <p className="text-sm font-semibold   break-all" style={{ color: s.color }}>{s.v}</p>
           </div>
         ))}
+      </div>
+
+      {/* ── Export button ── */}
+      <div className="flex justify-end mb-3">
+        <button
+          onClick={exportToExcel}
+          disabled={filtered.length === 0}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-[#27500A] text-[#27500A] bg-[#EAF3DE] disabled:opacity-40 disabled:cursor-default cursor-pointer"
+        >
+          <Download size={14} />
+          Export to Excel ({filtered.length} lots)
+        </button>
       </div>
 
       {/* ── Lot list ── */}
@@ -863,26 +928,26 @@ export function AdminEditLot({ lots, setLots, editLot, setEditLot }: AdminEditLo
     const r = lot as Record<string, unknown>;
     const flatLot: AdminPlan = {
       ...lot,
-      packing_date:      cleanDate(lot.packing_date),
-      date:              cleanDate(r.operation_date as string || lot.packing_date),
-      cut_off_date:      cleanDate(r.cut_off_date as string),
-      target_mt:         (r.target_amount_mt as number) || lot.target_mt || 0,
-      packaging_type:    typeof r.packaging_type === "object"
+      packing_date: cleanDate(lot.packing_date),
+      date: cleanDate(r.operation_date as string || lot.packing_date),
+      cut_off_date: cleanDate(r.cut_off_date as string),
+      target_mt: (r.target_amount_mt as number) || lot.target_mt || 0,
+      packaging_type: typeof r.packaging_type === "object"
         ? (r.packaging_type as Record<string, string>)?.name || ""
         : (r.packaging_type as string) || "",
       packaging_type_id: (r.packaging_type as Record<string, unknown>)?.id as number | undefined,
-      product_name:      (r.product_name as string)
+      product_name: (r.product_name as string)
         || (r.product as Record<string, unknown>)?.product_name as string
         || lot.product || "",
-      product_id:        (r.product as Record<string, unknown>)?.id as number | undefined,
-      customer:          (r.customer as Record<string, unknown>)?.country_label as string
+      product_id: (r.product as Record<string, unknown>)?.id as number | undefined,
+      customer: (r.customer as Record<string, unknown>)?.country_label as string
         || lot.customer || "",
-      country_label:     (r.customer as Record<string, unknown>)?.country_label as string
+      country_label: (r.customer as Record<string, unknown>)?.country_label as string
         || (r.country_label as string) || "",
-      customer_id:       (r.customer as Record<string, unknown>)?.id as number | undefined,
-      blender:           (r.blender as Record<string, unknown>)?.code as string
+      customer_id: (r.customer as Record<string, unknown>)?.id as number | undefined,
+      blender: (r.blender as Record<string, unknown>)?.code as string
         || (r.blender as string) || lot.blender || "",
-      lot_no:            (r.lot_no as string) || lot.lot || "",
+      lot_no: (r.lot_no as string) || lot.lot || "",
     };
     setPlan(flatLot);
   }
@@ -901,32 +966,35 @@ export function AdminEditLot({ lots, setLots, editLot, setEditLot }: AdminEditLo
     }));
     try {
       const ibcData = plan.dept === 'IBC' ? {
-        operator_name:       plan.operator_name       ?? null,
-        quality_status:      plan.quality_status      ?? null,
-        ibc_residue_kg:      plan.ibc_residue_kg      ?? null,
+        operator_name: plan.operator_name ?? null,
+        quality_status: plan.quality_status ?? null,
+        ibc_residue_kg: plan.ibc_residue_kg ?? null,
         ibc_empty_before_kg: plan.ibc_empty_before_kg ?? null,
         ibc_with_product_kg: plan.ibc_with_product_kg ?? null,
-        ibc_product_net_kg:  plan.ibc_product_net_kg  ?? null,
+        ibc_product_net_kg: plan.ibc_product_net_kg ?? null,
       } : undefined;
       const savePayload = {
-        lot_no:            plan.lot_no || plan.lot,
-        product_id:        plan.product_id,
-        customer_id:       plan.customer_id,
+        lot_no: plan.lot_no || plan.lot,
+        product_id: plan.product_id,
+        customer_id: plan.customer_id,
         packaging_type_id: plan.packaging_type_id,
-        target_mt:         plan.target_mt,
-        packing_date:      plan.date || plan.packing_date,
-        cut_off_date:      plan.cut_off_date,
-        planned_pallets:   plan.planned_pallets,
-        country_label:     plan.country_label,
-        draft_note:        plan.draft_note,
-        flush_blender:     plan.flush_blender,
-        label_no_start:    plan.drum_serial_start,
-        label_no_end:      plan.drum_serial_end,
-        label_count:       plan.label_count,
-        label_pkg_type:    plan.label_pkg_type,
-        detail_status:     plan.status,
+        target_mt: plan.target_mt,
+        packing_date: plan.date || plan.packing_date,
+        cut_off_date: plan.cut_off_date,
+        planned_pallets: plan.planned_pallets,
+        country_label: plan.country_label,
+        draft_note: plan.draft_note,
+        flush_blender: plan.flush_blender,
+        label_no_start: plan.drum_serial_start,
+        label_no_end: plan.drum_serial_end,
+        label_count: plan.label_count,
+        label_pkg_type: plan.label_pkg_type,
+        detail_status: plan.status,
+        export_on_pallet: plan.export_on_pallet,  // ← เพิ่ม
+        empty_tank: plan.empty_tank,               // ← เพิ่ม
+        special_comm: plan.special_comm,           // ← เพิ่มด้วยถ้ายังไม่มี
         ...(ibcData && { ibc_data: ibcData }),
-      };
+      }
       console.log('[AdminEditLot handleSave] PATCH payload:', JSON.stringify(savePayload));
       const res = await fetch(`/api/lots/${plan.id}`, {
         method: "PATCH",

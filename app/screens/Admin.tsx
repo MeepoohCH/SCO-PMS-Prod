@@ -224,6 +224,16 @@ const ROLE_COLORS: Record<string, { bg: string; color: string; border: string }>
 };
 const ALL_ROLES = ["admin", "sl", "pl", "packer", "staff"] as const;
 
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Admin",
+  sl: "Site Logistics",
+  pl: "Pack Lead",
+  packer: "Packer",
+  staff: "Staff",
+
+};
+const roleLabel = (role: string) => ROLE_LABELS[role.trim()] ?? role.trim();
+
 const DEPT_COLORS: Record<string, { bg: string; color: string; border: string }> = {
   all: { bg: "#F4F5F7", color: "#5A617A", border: "#DDE2EE" },
   PUF: { bg: "#EEEDFE", color: "#26215C", border: "#534AB7" },
@@ -972,7 +982,7 @@ export default function AdminScreen({ lots, setLots }: AdminScreenProps) {
                                 <button key={role} onClick={() => !disabled && toggleRole(role)}
                                   className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border-[1.5px]"
                                   style={{ opacity: disabled ? 0.4 : 1, cursor: disabled ? "not-allowed" : "pointer", background: on ? c.bg : "#F4F5F7", color: on ? c.color : "#9BA3BA", borderColor: on ? c.border : "#DDE2EE" }}>
-                                  {on && <CheckCircle2 size={12} />}{role}
+                                  {on && <CheckCircle2 size={12} />}{roleLabel(role)}
                                 </button>
                               );
                             })}
@@ -1142,7 +1152,7 @@ export default function AdminScreen({ lots, setLots }: AdminScreenProps) {
                           <div className="flex gap-1 flex-shrink-0">
                             {(Array.isArray(row.roles) ? row.roles as string[] : String(row.roles ?? "").split(",").filter(Boolean)).map(role => {
                               const c = ROLE_COLORS[role.trim()] ?? { bg: "#F4F5F7", color: "#5A617A", border: "#DDE2EE" };
-                              return <span key={role} className="text-[10px] font-semibold px-2 py-0.5 rounded-full border-[1px]" style={{ background: c.bg, color: c.color, borderColor: c.border }}>{role.trim()}</span>;
+                              return <span key={role} className="text-[10px] font-semibold px-2 py-0.5 rounded-full border-[1px]" style={{ background: c.bg, color: c.color, borderColor: c.border }}>{roleLabel(role)}</span>;
                             })}
                           </div>
                           <div className="flex gap-1 flex-shrink-0">
