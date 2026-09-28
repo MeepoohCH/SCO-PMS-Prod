@@ -34,20 +34,24 @@ steps:
         - .next
         - prisma/migrations
 
-- task: UseNode@0
-  displayName: "Use Node.js 22"
+# ── Node.js ──
+- task: UseNode@1
+  displayName: "Use Node.js 24"
   inputs:
-    versionSpec: '24.x'
+    version: '24.x'
 
+# ── Install & Audit ──
 - bash: |
     npm ci
     npm audit --audit-level=high || true
   displayName: "Secure Install"
 
+# ── Type Check ──
 - bash: |
     npx tsc --noEmit
   displayName: "Type Check [blocking]"
 
+# ── ESLint ──
 - bash: |
     npm run lint || true
   displayName: "ESLint [report-only]"
