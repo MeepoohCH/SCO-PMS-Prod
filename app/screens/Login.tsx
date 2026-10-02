@@ -764,7 +764,12 @@ export function SuccessTab({ lots, onEdit, onViewProgress, isAdmin = false }: Su
               <div key={i}
                 className="bg-white border-l-[3px] border border-gray-200 rounded-r-xl px-3.5 py-3 mb-2 cursor-pointer"
                 style={{ borderLeftColor: "#27500A" }}
-                onClick={() => { setExpanded(isExp ? null : lot.id); if (!isExp) loadDowntime(lot.id); }}
+                onClick={() => {
+                  setExpanded(isExp ? null : lot.id); if (!isExp) {
+                    loadDowntime(lot.id);
+                    console.log('LOT DATA:', lot)
+                  }
+                }}
               >
                 <div className="flex justify-between items-center">
                   <div>
@@ -786,14 +791,21 @@ export function SuccessTab({ lots, onEdit, onViewProgress, isAdmin = false }: Su
                   <div className="mt-3 pt-3 border-t border-gray-100">
                     <div className="grid grid-cols-3 gap-2.5 mb-2.5">
                       {[
-                        { l: "Customer", v: lot.customer || "—" },
+                        { l: "Customer", v: (lot as any).country_label || lot.customer || "—" },
                         { l: "Tank No./Blender No.", v: lot.blender || "—" },
                         { l: "Target MT", v: `${lot.target_mt || "—"} MT` },
                         { l: "LOT no.", v: lot.lot || "—" },
                         { l: "Packing date", v: formatDate(lot.packing_date) },
-                        { l: "Site Logistic", v: (lot.sl_name || lot.recorded_by_name) as string || "—" },
-                        { l: "Pack Lead", v: (lot.pl_approved_by || lot.pl_name) as string || "—" },
-                        { l: "Packer", v: lot.packer_name as string || "—" },
+                        { l: "Site Logistics", v: (lot as any).plan_created_by || "—" },
+                        { l: "Pack Lead", v: (lot as any).plan_updated_by || "—" },
+                        {
+                          l: "Packer", v: (() => {
+                            try {
+                              const ops = JSON.parse((lot as any).operators_json || '[]')
+                              return ops[0]?.name || "—"
+                            } catch { return "—" }
+                          })()
+                        },
                       ].map((r, ri) => (
                         <div key={ri} className="bg-gray-100 rounded-lg px-2.5 py-2">
                           <p className="text-[10px] text-gray-400 mb-0.5">{r.l}</p>
