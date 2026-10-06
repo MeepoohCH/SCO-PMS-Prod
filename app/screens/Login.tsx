@@ -879,7 +879,7 @@ export function SuccessTab({ lots, onEdit, onViewProgress, isAdmin = false }: Su
                             onClick={() => onViewProgress(lot)}
                           />
                         )}
-                        {(onEdit || isAdmin) && (
+                        {lot.data_source !== "archive" && (onEdit || isAdmin) && (
                           <Btn
                             label={<span className="flex items-center gap-1.5"><PencilLine size={13} />Edit</span>}
                             color="#534AB7"
