@@ -6,42 +6,99 @@ import type { DowntimeType } from "@prisma/client";
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user)
+
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { searchParams } = new URL(req.url);
+
     const production_detail_id = searchParams.get("production_detail_id");
+
     const open = searchParams.get("open") === "true";
 
-    // ?open=true → return single open log (no end_time) or null
+    const detailId = production_detail_id
+      ? Number(production_detail_id)
+      : undefined;
+
+    // =========================
+    // OPEN LOG
+    // =========================
     if (open) {
-      const log = await prisma.downtime_logs.findFirst({
+      const mainOpen = await prisma.downtime_logs.findFirst({
         where: {
-          ...(production_detail_id && {
-            production_detail_id: Number(production_detail_id),
+          ...(detailId !== undefined && {
+            production_detail_id: detailId,
           }),
           end_time: null,
         },
-        orderBy: { start_time: "desc" },
+        orderBy: {
+          start_time: "desc",
+        },
       });
-      return NextResponse.json(log ?? null);
+
+      if (mainOpen) {
+        return NextResponse.json(mainOpen);
+      }
+
+      const archiveOpen = await prisma.downtime_logs_archive.findFirst({
+        where: {
+          ...(detailId !== undefined && {
+            production_detail_id: detailId,
+          }),
+          end_time: null,
+        },
+        orderBy: {
+          start_time: "desc",
+        },
+      });
+
+      return NextResponse.json(archiveOpen ?? null);
     }
 
-    const logs = await prisma.downtime_logs.findMany({
+    // =========================
+    // MAIN
+    // =========================
+    const mainLogs = await prisma.downtime_logs.findMany({
       where: {
-        ...(production_detail_id && {
-          production_detail_id: Number(production_detail_id),
+        ...(detailId !== undefined && {
+          production_detail_id: detailId,
         }),
       },
       include: {
-        logger: { select: { full_name: true } },
+        logger: {
+          select: {
+            full_name: true,
+          },
+        },
       },
-      orderBy: { created_at: "asc" },
+      orderBy: {
+        created_at: "asc",
+      },
     });
 
-    return NextResponse.json(logs);
+    if (mainLogs.length > 0) {
+      return NextResponse.json(mainLogs);
+    }
+
+    // =========================
+    // ARCHIVE
+    // =========================
+    const archiveLogs = await prisma.downtime_logs_archive.findMany({
+      where: {
+        ...(detailId !== undefined && {
+          production_detail_id: detailId,
+        }),
+      },
+      orderBy: {
+        created_at: "asc",
+      },
+    });
+
+    return NextResponse.json(archiveLogs);
   } catch (err) {
     console.error("[GET /api/downtime]", err);
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

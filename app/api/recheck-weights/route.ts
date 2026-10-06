@@ -5,26 +5,52 @@ import type { FailReason } from '@prisma/client'
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const session = await auth();
 
-    const { searchParams } = new URL(req.url)
-    const drumming_session_id = searchParams.get('drumming_session_id')
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    const weights = await prisma.recheck_weight_logs.findMany({
+    const { searchParams } = new URL(req.url);
+
+    const drumming_session_id = searchParams.get("drumming_session_id");
+
+    const sessionId = Number(drumming_session_id);
+
+    // =========================
+    // MAIN
+    // =========================
+    const mainWeights = await prisma.recheck_weight_logs.findMany({
       where: {
-        ...(drumming_session_id && { drumming_session_id: Number(drumming_session_id) }),
+        ...(drumming_session_id && {
+          drumming_session_id: sessionId,
+        }),
       },
-      orderBy: [
-        { pallet_no:  'asc' },
-        { attempt_no: 'asc' },
-      ],
-    })
+      orderBy: [{ pallet_no: "asc" }, { attempt_no: "asc" }],
+    });
 
-    return NextResponse.json(weights)
+    if (mainWeights.length > 0) {
+      return NextResponse.json(mainWeights);
+    }
+
+    // =========================
+    // ARCHIVE
+    // =========================
+    const archiveWeights = await prisma.recheck_weight_logs_archive.findMany({
+      where: {
+        drumming_session_id: sessionId,
+      },
+      orderBy: [{ pallet_no: "asc" }, { attempt_no: "asc" }],
+    });
+
+    return NextResponse.json(archiveWeights);
   } catch (err) {
-    console.error('[GET /api/recheck-weights]', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error("[GET /api/recheck-weights]", err);
+
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 

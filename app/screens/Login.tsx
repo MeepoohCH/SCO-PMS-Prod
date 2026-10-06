@@ -554,7 +554,7 @@ export function SuccessTab({ lots, onEdit, onViewProgress, isAdmin = false }: Su
     .sort((a, b) => {
       if (sortBy === "date_asc") return (a.packing_date ?? "").localeCompare(b.packing_date ?? "");
       if (sortBy === "mt_desc") return (Number(b.actual_mt) || 0) - (Number(a.actual_mt) || 0);
-      return (b.packing_date ?? "").localeCompare(b.packing_date ?? "");
+      return (b.packing_date ?? "").localeCompare(a.packing_date ?? "");
     });
 
   const totalMT = filtered.reduce((s, l) => s + (parseFloat(String(l.actual_mt)) || 0), 0);
@@ -931,8 +931,17 @@ export function AdminEditLot({ lots, setLots, editLot, setEditLot }: AdminEditLo
   }, [plan?.id]);
 
   const filtered = (lots ?? []).filter(l => {
+    // หน้า Edit แสดงเฉพาะ Main เท่านั้น ไม่แสดง Archive
+    if (l.data_source === "archive") return false;
+
     const kw = search.toLowerCase();
-    return !kw || (l.product ?? "").toLowerCase().includes(kw) || (l.lot ?? "").toLowerCase().includes(kw) || (l.customer ?? "").toLowerCase().includes(kw);
+
+    return (
+      !kw ||
+      (l.product ?? "").toLowerCase().includes(kw) ||
+      (l.lot ?? "").toLowerCase().includes(kw) ||
+      (l.customer ?? "").toLowerCase().includes(kw)
+    );
   });
 
   function openEdit(lot: Lot) {
@@ -1236,9 +1245,18 @@ export function AdminEditLot({ lots, setLots, editLot, setEditLot }: AdminEditLo
       ) : (
         filtered.map((lot, i) => {
           const deptColor = DEPT[lot.dept]?.accent || "#185FA5";
+          const isArchive = lot.data_source === "archive";
+
           return (
-            <div key={i} onClick={() => openEdit(lot)}
-              className="bg-white border border-gray-200 border-l-4 rounded-r-xl p-4 mb-3 cursor-pointer hover:bg-blue-50 transition-colors"
+            <div
+              key={i}
+              onClick={() => {
+                if (!isArchive) openEdit(lot);
+              }}
+              className={`bg-white border border-gray-200 border-l-4 rounded-r-xl p-4 mb-3 transition-colors ${isArchive
+                ? "cursor-not-allowed opacity-60"
+                : "cursor-pointer hover:bg-blue-50"
+                }`}
               style={{ borderLeftColor: deptColor }}
             >
               <div className="flex justify-between items-start">
@@ -1246,6 +1264,11 @@ export function AdminEditLot({ lots, setLots, editLot, setEditLot }: AdminEditLo
                   <div className="flex gap-1.5 mb-1.5 flex-wrap items-center">
                     <DeptBadge dept={lot.dept} />
                     <Badge s={lot.status} />
+                    {lot.data_source === "archive" && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">
+                        Archive · Read-only · View History
+                      </span>
+                    )}
                     {lot.packing_date && <span className="text-[11px] text-gray-400">{formatDate(lot.packing_date)}</span>}
                   </div>
                   <div className="text-sm font-semibold text-gray-900">{lot.product || "(no product)"}</div>

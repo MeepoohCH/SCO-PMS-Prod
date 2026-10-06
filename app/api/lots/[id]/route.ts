@@ -59,58 +59,481 @@ type RouteParams = { params: Promise<{ id: string }> };
 export async function GET(_req: NextRequest, { params }: RouteParams) {
   try {
     const session = await auth();
-    if (!session?.user)
+
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
     const safeId = sanitizeLog(id);
+    const detailId = Number(id);
+
+    if (!Number.isFinite(detailId)) {
+      return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+    }
+
     console.log(`[GET /api/lots/${safeId}] fetching...`);
 
-    const lot = await prisma.production_details.findUnique({
-      where: { id: Number(id) },
+    // =========================================================
+    // 1. MAIN
+    // =========================================================
+
+    const mainLot = await prisma.production_details.findUnique({
+      where: { id: detailId },
       include: {
         product: true,
         customer: true,
         packaging_type: true,
+
         plan: {
           include: {
             blender: true,
-            creator: { select: { id: true, full_name: true } },
-            updater: { select: { id: true, full_name: true } },
+            creator: {
+              select: {
+                id: true,
+                full_name: true,
+              },
+            },
+            updater: {
+              select: {
+                id: true,
+                full_name: true,
+              },
+            },
           },
         },
+
         production_detail_ibc: true,
         latex_drumming_data: true,
-        recorder: { select: { id: true, full_name: true } },
-        drumming_sessions: {
-          include: { recheck_weight_logs: true },
+
+        recorder: {
+          select: {
+            id: true,
+            full_name: true,
+          },
         },
+
+        drumming_sessions: {
+          include: {
+            recheck_weight_logs: true,
+          },
+        },
+
         scale_verifications: true,
-        checklist_responses: { include: { checklist_item: true } },
+
+        checklist_responses: {
+          include: {
+            checklist_item: true,
+          },
+        },
+
         approval_logs: {
-          include: { actor: { select: { id: true, full_name: true } } },
-          orderBy: { created_at: "asc" },
+          include: {
+            actor: {
+              select: {
+                id: true,
+                full_name: true,
+              },
+            },
+          },
+          orderBy: {
+            created_at: "asc",
+          },
         },
       },
     });
 
-    console.log(`[GET /api/lots/${safeId}] found:`, !!lot);
-    if (!lot) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    // =========================================================
+    // 2. ถ้าเจอใน MAIN → ใช้ของเดิม
+    // =========================================================
 
-    const allLotsForRanking = await prisma.production_details.findMany({
-      select: { id: true },
-      orderBy: { id: "asc" },
+    if (mainLot) {
+      console.log(`[GET /api/lots/${safeId}] found in MAIN`);
+
+      const allLotsForRanking = await prisma.production_details.findMany({
+        select: {
+          id: true,
+        },
+        orderBy: {
+          id: "asc",
+        },
+      });
+
+      const rank = allLotsForRanking.findIndex((l) => l.id === mainLot.id) + 1;
+
+      return NextResponse.json({
+        ...mapLot(mainLot as unknown as Record<string, unknown>),
+        display_no: rank > 0 ? rank : null,
+        data_source: "main",
+      });
+    }
+
+    // =========================================================
+    // 3. ไม่เจอ Main → หา ARCHIVE
+    // =========================================================
+
+    const archiveLot = await prisma.production_details_archive.findUnique({
+      where: {
+        id: detailId,
+      },
     });
-    const rank = allLotsForRanking.findIndex((l) => l.id === lot.id) + 1;
+
+    console.log(`[GET /api/lots/${safeId}] found in ARCHIVE:`, !!archiveLot);
+
+    if (!archiveLot) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    // =========================================================
+    // 4. Master Data
+    // =========================================================
+
+    const [product, customer, packagingType, recorder, planArchive] =
+      await Promise.all([
+        archiveLot.product_id
+          ? prisma.products.findUnique({
+              where: {
+                id: archiveLot.product_id,
+              },
+            })
+          : null,
+
+        archiveLot.customer_id
+          ? prisma.customers.findUnique({
+              where: {
+                id: archiveLot.customer_id,
+              },
+            })
+          : null,
+
+        archiveLot.packaging_type_id
+          ? prisma.packaging_types.findUnique({
+              where: {
+                id: archiveLot.packaging_type_id,
+              },
+            })
+          : null,
+
+        archiveLot.recorded_by
+          ? prisma.users.findUnique({
+              where: {
+                id: archiveLot.recorded_by,
+              },
+              select: {
+                id: true,
+                full_name: true,
+              },
+            })
+          : null,
+
+        prisma.production_plans_archive.findUnique({
+          where: {
+            id: archiveLot.plan_id,
+          },
+        }),
+      ]);
+
+    // =========================================================
+    // 5. Plan + Master Data
+    // =========================================================
+
+    let plan = null;
+
+    if (planArchive) {
+      const [blender, creator, updater] = await Promise.all([
+        planArchive.blender_id
+          ? prisma.blenders.findUnique({
+              where: {
+                id: planArchive.blender_id,
+              },
+            })
+          : null,
+
+        planArchive.created_by
+          ? prisma.users.findUnique({
+              where: {
+                id: planArchive.created_by,
+              },
+              select: {
+                id: true,
+                full_name: true,
+              },
+            })
+          : null,
+
+        planArchive.updated_by
+          ? prisma.users.findUnique({
+              where: {
+                id: planArchive.updated_by,
+              },
+              select: {
+                id: true,
+                full_name: true,
+              },
+            })
+          : null,
+      ]);
+
+      plan = {
+        ...planArchive,
+        blender,
+        creator,
+        updater,
+      };
+    }
+
+    // =========================================================
+    // 6. IBC
+    // =========================================================
+
+    const ibc = await prisma.production_detail_ibc_archive.findUnique({
+      where: {
+        production_detail_id: detailId,
+      },
+    });
+
+    // =========================================================
+    // 7. Latex
+    // =========================================================
+
+    const latex = await prisma.latex_drumming_data_archive.findUnique({
+      where: {
+        production_detail_id: detailId,
+      },
+    });
+
+    // =========================================================
+    // 8. Drumming Sessions
+    // =========================================================
+
+    const sessions = await prisma.drumming_sessions_archive.findMany({
+      where: {
+        production_detail_id: detailId,
+      },
+      orderBy: {
+        session_no: "asc",
+      },
+    });
+
+    // Recheck ของแต่ละ Session
+    const sessionIds = sessions.map((session) => session.id);
+
+    const recheckLogs =
+      sessionIds.length > 0
+        ? await prisma.recheck_weight_logs_archive.findMany({
+            where: {
+              drumming_session_id: {
+                in: sessionIds,
+              },
+            },
+            orderBy: [
+              {
+                pallet_no: "asc",
+              },
+              {
+                attempt_no: "asc",
+              },
+            ],
+          })
+        : [];
+
+    const recheckMap = new Map<number, typeof recheckLogs>();
+
+    for (const log of recheckLogs) {
+      const existing = recheckMap.get(log.drumming_session_id) ?? [];
+
+      existing.push(log);
+      recheckMap.set(log.drumming_session_id, existing);
+    }
+
+    const drummingSessions = sessions.map((session) => ({
+      ...session,
+
+      recheck_weight_logs: recheckMap.get(session.id) ?? [],
+    }));
+
+    // =========================================================
+    // 9. Scale Verification
+    // =========================================================
+
+    const scaleVerifications =
+      await prisma.scale_verifications_archive.findMany({
+        where: {
+          production_detail_id: detailId,
+        },
+        orderBy: {
+          round_no: "asc",
+        },
+      });
+
+    // =========================================================
+    // 10. Checklist
+    // =========================================================
+
+    const checklistResponses =
+      await prisma.checklist_responses_archive.findMany({
+        where: {
+          production_detail_id: detailId,
+        },
+        orderBy: [
+          {
+            phase: "asc",
+          },
+          {
+            pallet_no: "asc",
+          },
+        ],
+      });
+
+    const checklistItemIds = [
+      ...new Set(
+        checklistResponses.map((response) => response.checklist_item_id),
+      ),
+    ];
+
+    const checklistItems =
+      checklistItemIds.length > 0
+        ? await prisma.checklist_items.findMany({
+            where: {
+              id: {
+                in: checklistItemIds,
+              },
+            },
+          })
+        : [];
+
+    const checklistItemMap = new Map(
+      checklistItems.map((item) => [item.id, item]),
+    );
+
+    const mappedChecklistResponses = checklistResponses.map((response) => ({
+      ...response,
+      checklist_item: checklistItemMap.get(response.checklist_item_id) ?? null,
+    }));
+
+    // =========================================================
+    // 11. Downtime
+    // =========================================================
+
+    const downtimeLogs = await prisma.downtime_logs_archive.findMany({
+      where: {
+        production_detail_id: detailId,
+      },
+      orderBy: {
+        start_time: "asc",
+      },
+    });
+
+    // =========================================================
+    // 12. Approval Logs + Actor
+    // =========================================================
+
+    const approvalLogs = await prisma.approval_logs_archive.findMany({
+      where: {
+        production_detail_id: detailId,
+      },
+      orderBy: {
+        created_at: "asc",
+      },
+    });
+
+    const actorIds = [...new Set(approvalLogs.map((log) => log.actor_id))];
+
+    const actors =
+      actorIds.length > 0
+        ? await prisma.users.findMany({
+            where: {
+              id: {
+                in: actorIds,
+              },
+            },
+            select: {
+              id: true,
+              full_name: true,
+            },
+          })
+        : [];
+
+    const actorMap = new Map(actors.map((actor) => [actor.id, actor]));
+
+    const mappedApprovalLogs = approvalLogs.map((log) => ({
+      ...log,
+      actor: actorMap.get(log.actor_id) ?? null,
+    }));
+
+    // =========================================================
+    // 13. สร้าง Object ให้หน้าบ้านใช้รูปแบบเดียวกับ MAIN
+    // =========================================================
+
+    const archiveLotForResponse = {
+      ...archiveLot,
+
+      product,
+      customer,
+      packaging_type: packagingType,
+
+      plan,
+
+      production_detail_ibc: ibc,
+      latex_drumming_data: latex,
+
+      recorder,
+
+      drumming_sessions: drummingSessions,
+
+      scale_verifications: scaleVerifications,
+
+      checklist_responses: mappedChecklistResponses,
+
+      downtime_logs: downtimeLogs,
+
+      approval_logs: mappedApprovalLogs,
+    };
+
+    // =========================================================
+    // 14. Ranking
+    // =========================================================
+
+    const [mainCount, archiveOlderIds] = await Promise.all([
+      prisma.production_details.count({
+        where: {
+          id: {
+            lt: detailId,
+          },
+        },
+      }),
+
+      prisma.production_details_archive.count({
+        where: {
+          id: {
+            lt: detailId,
+          },
+        },
+      }),
+    ]);
+
+    const rank = mainCount + archiveOlderIds + 1;
+
+    // =========================================================
+    // 15. Response
+    // =========================================================
 
     return NextResponse.json({
-      ...mapLot(lot as unknown as Record<string, unknown>),
-      display_no: rank > 0 ? rank : null,
+      ...mapLot(archiveLotForResponse as unknown as Record<string, unknown>),
+
+      display_no: rank,
+      data_source: "archive",
     });
   } catch (err) {
     console.error("[GET /api/lots/[id]]", err);
+
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
+      {
+        error: "Internal server error",
+      },
+      {
+        status: 500,
+      },
     );
   }
 }
@@ -227,9 +650,9 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       packaging_type_id !== undefined
         ? await validFk("packaging_types", packaging_type_id)
         : undefined;
-    const todayThai = new Date(Date.now() + 7 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 10);
+const todayThai = new Date(Date.now() + 7 * 60 * 60 * 1000)
+  .toISOString()
+  .slice(0, 10);
     await prisma.production_details.update({
       where: { id: Number(id) },
       data: {

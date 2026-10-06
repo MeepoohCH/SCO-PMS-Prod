@@ -5,30 +5,109 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    const { searchParams } = new URL(req.url)
-    const production_detail_id = searchParams.get('production_detail_id')
+    const { searchParams } = new URL(req.url);
+    const production_detail_id = searchParams.get("production_detail_id");
 
-    console.log('[GET /api/scale-verifications]', safeLog({ production_detail_id }))
+    console.log(
+      "[GET /api/scale-verifications]",
+      safeLog({ production_detail_id }),
+    );
 
-    const records = await prisma.scale_verifications.findMany({
+    const detailId = Number(production_detail_id);
+
+    // =========================
+    // MAIN
+    // =========================
+    const mainRecords = await prisma.scale_verifications.findMany({
       where: {
-        ...(production_detail_id && { production_detail_id: Number(production_detail_id) }),
+        ...(production_detail_id && {
+          production_detail_id: detailId,
+        }),
       },
       include: {
-        checker:     { select: { id: true, full_name: true } },
-        pl_approver: { select: { id: true, full_name: true } },
+        checker: {
+          select: {
+            id: true,
+            full_name: true,
+          },
+        },
+        pl_approver: {
+          select: {
+            id: true,
+            full_name: true,
+          },
+        },
       },
-      orderBy: { checked_at: 'desc' },
-    })
+      orderBy: {
+        checked_at: "desc",
+      },
+    });
 
-    console.log('[GET /api/scale-verifications] found:', records.length)
-    return NextResponse.json(records)
+    if (mainRecords.length > 0) {
+      return NextResponse.json(mainRecords);
+    }
+
+    // =========================
+    // ARCHIVE
+    // =========================
+    const archiveRecords = await prisma.scale_verifications_archive.findMany({
+      where: {
+        production_detail_id: detailId,
+      },
+      orderBy: {
+        checked_at: "desc",
+      },
+    });
+
+    // ดึงชื่อผู้ตรวจ / ผู้อนุมัติจาก users
+    const userIds = [
+      ...new Set(
+        archiveRecords.flatMap((r: any) =>
+          [r.checked_by, r.pl_approved_by].filter(
+            (id): id is number => id != null,
+          ),
+        ),
+      ),
+    ];
+
+    const users =
+      userIds.length > 0
+        ? await prisma.users.findMany({
+            where: {
+              id: {
+                in: userIds,
+              },
+            },
+            select: {
+              id: true,
+              full_name: true,
+            },
+          })
+        : [];
+
+    const userMap = new Map(users.map((u) => [u.id, u]));
+
+    const mappedArchive = archiveRecords.map((r: any) => ({
+      ...r,
+      checker: r.checked_by ? (userMap.get(r.checked_by) ?? null) : null,
+      pl_approver: r.pl_approved_by
+        ? (userMap.get(r.pl_approved_by) ?? null)
+        : null,
+    }));
+
+    return NextResponse.json(mappedArchive);
   } catch (err) {
-    console.error('[GET /api/scale-verifications]', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error("[GET /api/scale-verifications]", err);
+
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 

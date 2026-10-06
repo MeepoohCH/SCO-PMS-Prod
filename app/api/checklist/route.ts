@@ -5,23 +5,75 @@ import { prisma } from '@/lib/prisma'
 import type { Phase } from '@prisma/client'
 
 export async function GET(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user)
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const session = await auth();
 
-  const { searchParams } = new URL(req.url)
-  const production_detail_id = searchParams.get('production_detail_id')
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-  if (!production_detail_id)
-    return NextResponse.json([], { status: 200 })
+  const { searchParams } = new URL(req.url);
+  const production_detail_id = searchParams.get("production_detail_id");
 
-  const responses = await prisma.checklist_responses.findMany({
-    where:   { production_detail_id: Number(production_detail_id) },
-    include: { checklist_item: true },
-    orderBy: { id: 'asc' },
-  })
+  if (!production_detail_id) {
+    return NextResponse.json([], { status: 200 });
+  }
 
-  return NextResponse.json(responses)
+  const detailId = Number(production_detail_id);
+
+  // =========================
+  // MAIN
+  // =========================
+  const mainResponses = await prisma.checklist_responses.findMany({
+    where: {
+      production_detail_id: detailId,
+    },
+    include: {
+      checklist_item: true,
+    },
+    orderBy: {
+      id: "asc",
+    },
+  });
+
+  if (mainResponses.length > 0) {
+    return NextResponse.json(mainResponses);
+  }
+
+  // =========================
+  // ARCHIVE
+  // =========================
+  const archiveResponses = await prisma.checklist_responses_archive.findMany({
+    where: {
+      production_detail_id: detailId,
+    },
+    orderBy: {
+      id: "asc",
+    },
+  });
+
+  const itemIds = [
+    ...new Set(archiveResponses.map((r) => r.checklist_item_id)),
+  ];
+
+  const items =
+    itemIds.length > 0
+      ? await prisma.checklist_items.findMany({
+          where: {
+            id: {
+              in: itemIds,
+            },
+          },
+        })
+      : [];
+
+  const itemMap = new Map(items.map((item) => [item.id, item]));
+
+  const mappedArchive = archiveResponses.map((response) => ({
+    ...response,
+    checklist_item: itemMap.get(response.checklist_item_id) ?? null,
+  }));
+
+  return NextResponse.json(mappedArchive);
 }
 
 export async function POST(req: NextRequest) {

@@ -4,23 +4,56 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const session = await auth();
 
-    const { searchParams } = new URL(req.url)
-    const production_detail_id = searchParams.get('production_detail_id')
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    const sessions = await prisma.drumming_sessions.findMany({
+    const { searchParams } = new URL(req.url);
+
+    const production_detail_id = searchParams.get("production_detail_id");
+
+    const detailId = Number(production_detail_id);
+
+    // =========================
+    // MAIN
+    // =========================
+    const mainSessions = await prisma.drumming_sessions.findMany({
       where: {
-        ...(production_detail_id && { production_detail_id: Number(production_detail_id) }),
+        ...(production_detail_id && {
+          production_detail_id: detailId,
+        }),
       },
-      orderBy: { started_at: 'asc' },
-    })
+      orderBy: {
+        started_at: "asc",
+      },
+    });
 
-    return NextResponse.json(sessions)
+    if (mainSessions.length > 0) {
+      return NextResponse.json(mainSessions);
+    }
+
+    // =========================
+    // ARCHIVE
+    // =========================
+    const archiveSessions = await prisma.drumming_sessions_archive.findMany({
+      where: {
+        production_detail_id: detailId,
+      },
+      orderBy: {
+        started_at: "asc",
+      },
+    });
+
+    return NextResponse.json(archiveSessions);
   } catch (err) {
-    console.error('[GET /api/drumming-sessions]', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error("[GET /api/drumming-sessions]", err);
+
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
