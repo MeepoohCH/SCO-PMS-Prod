@@ -516,8 +516,8 @@ export function SuccessTab({ lots, onEdit, onViewProgress, isAdmin = false }: Su
   const today = new Date().toISOString().slice(0, 10);
   const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-  const [dateFrom, setDateFrom] = useState(oneMonthAgo);
-  const [dateTo, setDateTo] = useState(today);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [deptFilter, setDeptFilter] = useState<string[]>([]);
   const [keyword, setKeyword] = useState("");
   const [sortBy, setSortBy] = useState<"date_desc" | "date_asc" | "mt_desc">("date_desc");
