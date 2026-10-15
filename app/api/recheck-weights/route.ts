@@ -13,22 +13,35 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
 
-    const drumming_session_id = searchParams.get("drumming_session_id");
+   const drumming_session_id = searchParams.get("drumming_session_id");
 
-    const sessionId = Number(drumming_session_id);
+   if (!drumming_session_id) {
+     return NextResponse.json(
+       { error: "drumming_session_id is required" },
+       { status: 400 },
+     );
+   }
+
+   const sessionId = Number(drumming_session_id);
+
+   if (!Number.isInteger(sessionId) || sessionId <= 0) {
+     return NextResponse.json(
+       { error: "Invalid drumming_session_id" },
+       { status: 400 },
+     );
+   }
+
+
 
     // =========================
     // MAIN
     // =========================
-    const mainWeights = await prisma.recheck_weight_logs.findMany({
-      where: {
-        ...(drumming_session_id && {
-          drumming_session_id: sessionId,
-        }),
-      },
-      orderBy: [{ pallet_no: "asc" }, { attempt_no: "asc" }],
-    });
-
+const mainWeights = await prisma.recheck_weight_logs.findMany({
+  where: {
+    drumming_session_id: sessionId,
+  },
+  orderBy: [{ pallet_no: "asc" }, { attempt_no: "asc" }],
+});
     if (mainWeights.length > 0) {
       return NextResponse.json(mainWeights);
     }
@@ -74,22 +87,37 @@ export async function POST(req: NextRequest) {
 
     const { drumming_session_id, pallet_no, attempt_no, weight_kg, fail_reason, action_taken } = body
 
-    if (!drumming_session_id) {
-      return NextResponse.json({ error: 'drumming_session_id is required' }, { status: 400 })
-    }
+  const sessionId = Number(drumming_session_id);
+  const palletNo = Number(pallet_no);
+  const attemptNo = Number(attempt_no);
 
-    const record = await prisma.recheck_weight_logs.create({
-      data: {
-        drumming_session_id: Number(drumming_session_id),
-        pallet_no:           pallet_no   ?? null,
-        attempt_no:          attempt_no  ?? null,
-        weight_kg:           weight_kg   ?? null,
-        fail_reason:         (fail_reason as FailReason) ?? null,
-        action_taken:        action_taken ?? null,
-        logged_by:           Number(session.user.id),
-        logged_at:           new Date(),
-      },
-    })
+  if (!Number.isInteger(sessionId) || sessionId <= 0) {
+    return NextResponse.json(
+      { error: "Invalid drumming_session_id" },
+      { status: 400 },
+    );
+  }
+
+  if (!Number.isInteger(palletNo) || palletNo <= 0) {
+    return NextResponse.json({ error: "Invalid pallet_no" }, { status: 400 });
+  }
+
+  if (!Number.isInteger(attemptNo) || attemptNo <= 0) {
+    return NextResponse.json({ error: "Invalid attempt_no" }, { status: 400 });
+  }
+
+  const record = await prisma.recheck_weight_logs.create({
+    data: {
+      drumming_session_id: sessionId,
+      pallet_no: palletNo,
+      attempt_no: attemptNo,
+      weight_kg: weight_kg ?? null,
+      fail_reason: (fail_reason as FailReason) ?? null,
+      action_taken: action_taken ?? null,
+      logged_by: Number(session.user.id),
+      logged_at: new Date(),
+    },
+  });
 
     return NextResponse.json(record, { status: 201 })
   } catch (err) {

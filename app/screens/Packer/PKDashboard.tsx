@@ -188,7 +188,9 @@ export function PKDashboard({ lots, setLots, onOpen }: PKDashboardProps) {
             <div className="text-[13px] text-gray-400 mt-0.5">{lot.target_mt} MT</div>
           </div>
         </div>
-        {(isPaused || lot.status === 'in_progress') && (lot.planned_pallets ?? 0) > 0 && (
+        {(isPaused || lot.status === 'in_progress') && (
+          (lot.planned_pallets ?? 0) > 0 || (lot.done_pallets ?? 0) > 0
+        ) && (
           <div className="mb-3"><ProgressBar done={lot.done_pallets} total={lot.planned_pallets} color={accent} /></div>
         )}
         {isPaused && pm && (

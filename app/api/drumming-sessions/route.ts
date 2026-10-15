@@ -77,18 +77,42 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'production_detail_id and session_no are required' }, { status: 400 })
     }
 
-    const record = await prisma.drumming_sessions.create({
-      data: {
-        production_detail_id: Number(production_detail_id),
-        session_no:           Number(session_no),
-        operator_id:          Number(session.user.id),
-        started_at:           new Date(),
-        session_status:       'in_progress',
-        created_at:           new Date(),
-      },
-    })
+  const detailId = Number(production_detail_id);
+  const sessionNo = Number(session_no);
 
-    return NextResponse.json(record, { status: 201 })
+  if (!Number.isInteger(detailId) || detailId <= 0) {
+    return NextResponse.json({ error: "Invalid production_detail_id" }, { status: 400 });
+  }
+
+  if (!Number.isInteger(sessionNo) || sessionNo <= 0) {
+    return NextResponse.json({ error: "Invalid session_no" }, { status: 400 });
+  }
+
+  // ตรวจว่ามี pallet/session นี้อยู่แล้วหรือยัง
+  const existing = await prisma.drumming_sessions.findFirst({
+    where: {
+      production_detail_id: detailId,
+      session_no: sessionNo,
+    },
+  });
+
+  if (existing) {
+    // ถ้า frontend ยิงซ้ำ ไม่สร้าง record ใหม่
+    return NextResponse.json(existing, { status: 200 });
+  }
+
+  const record = await prisma.drumming_sessions.create({
+    data: {
+      production_detail_id: detailId,
+      session_no: sessionNo,
+      operator_id: Number(session.user.id),
+      started_at: new Date(),
+      session_status: "in_progress",
+      created_at: new Date(),
+    },
+  });
+
+  return NextResponse.json(record, { status: 201 });
   } catch (err) {
     console.error('[POST /api/drumming-sessions]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

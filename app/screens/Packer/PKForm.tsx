@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { AlertTriangle, AlertOctagon, XCircle, ArrowLeft, ChevronRight, ChevronLeft, LogOut } from 'lucide-react'
 import { DEPT, getWtStandard, isPerPalletChecklistItem } from '@/app/components/constants'
 import type { MduMachine, LocalExportIbc, DrumMmType, Mdu2450PalletStd } from '@/app/components/constants'
@@ -56,6 +56,20 @@ interface PKFormProps {
   setLots: React.Dispatch<React.SetStateAction<Lot[]>>
 }
 
+function getNextPalletNo(sessions: Session[]): number {
+  const used = new Set(
+    sessions.map(s => Number(s.no))
+  )
+
+  let next = 1
+
+  while (used.has(next)) {
+    next++
+  }
+
+  return next
+}
+
 export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormProps) {
   const dc = DEPT[lot.dept as DeptKey]?.accent || '#0F6E56'
   const fixStepMap: Record<string, number> = { checklist: 1, scale: 2, drumming: 3, amount: 3, submit: 5 }
@@ -97,7 +111,6 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
         cap_small: capXSmall ? Number(capXSmall) : null,
         actual_drum_count: actualDrumCount ? Number(actualDrumCount) : null,
         actual_tote_count: actualToteCount ? Number(actualToteCount) : null,
-        actual_pallet_count: sessions.length > 0 ? sessions.length : null,
 
         // Step 5
         lot_drumming_end: drumEnd ? fromThaiInputToUTC(`${opDate}T${drumEnd}`) : null,
@@ -301,6 +314,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   const [recheckList, setRecheckList] = useState<RecheckEntry[]>([])
   const [recheckDone, setRecheckDone] = useState(false)
   const [isCompletingPallet, setIsCompletingPallet] = useState(false)
+  const completingPalletRef = useRef(false)
   const [batchSizeKg, setBatchSizeKg] = useState('')
   const [containerQty, setContainerQty] = useState('')
   const [capLarge, setCapLarge] = useState('')
@@ -642,24 +656,60 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
           })
 
         setSessions(restoredSessions)
-        if (restoredSessions.length < totalP) {
-          setPalletNo(restoredSessions.length + 1)
+
+
+        const completedPalletNos = new Set(
+          restoredSessions.map(s => Number(s.no))
+        )
+
+        const allRequiredPalletsDone =
+          totalP > 0 &&
+          Array.from({ length: totalP }, (_, i) => i + 1)
+            .every(no => completedPalletNos.has(no))
+
+        if (!allRequiredPalletsDone) {
+          // ยังมี pallet ที่ต้องทำต่อ
+          const nextPalletNo = getNextPalletNo(restoredSessions)
+
+          setPalletNo(nextPalletNo)
+
+          // pallet ใหม่ต้องว่าง
+          setSessionWt('')
+          setRecheckList([])
           setRecheckDone(false)
         } else {
-          setPalletNo(totalP)
+          // ทำครบแล้ว
+          const lastPalletNo =
+            restoredSessions.length > 0
+              ? Math.max(...restoredSessions.map(s => Number(s.no) || 0))
+              : totalP
+
+          setPalletNo(lastPalletNo)
+
+          const lastPalletWeights = weights
+            .filter(w => Number(w.pallet_no) === lastPalletNo)
+            .sort(
+              (a: any, b: any) =>
+                (a.attempt_no ?? 0) - (b.attempt_no ?? 0)
+            )
+
+          setRecheckList(
+            lastPalletWeights.map((w: any, i: number) => ({
+              no: i + 1,
+              wt: String(w.weight_kg || ''),
+              pass: !w.fail_reason,
+            }))
+          )
+
+          setSessionWt(
+            lastPalletWeights.length > 0
+              ? String(lastPalletWeights[lastPalletWeights.length - 1].weight_kg || '')
+              : ''
+          )
+
           setRecheckDone(true)
         }
-
-        const lastPalletWeights = restoredSessions.length > 0
-          ? weights.filter(w => w.pallet_no === restoredSessions[restoredSessions.length - 1].no)
-          : []
-        if (lastPalletWeights.length > 0) {
-          setRecheckList(
-            lastPalletWeights
-              .sort((a: any, b: any) => (a.attempt_no ?? 0) - (b.attempt_no ?? 0))
-              .map((w: any, i: number) => ({ no: i + 1, wt: String(w.weight_kg || ''), pass: !w.fail_reason }))
-          )
-        }
+      
 
       } catch (err) {
         console.error('[PKForm] drumming session restore failed:', err)
@@ -853,8 +903,17 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
     !latexPreScaleOk
 
   // ── Step 3 validation (lifted from Step3Drumming.tsx) ────────
-  const allPalletsDone = sessions.length >= effectiveTotalP
-  const isCompletingLastPallet = sessions.length + 1 >= effectiveTotalP
+  const completedPalletNos = new Set(
+    sessions.map(s => Number(s.no))
+  )
+
+  const completedPalletCount = completedPalletNos.size
+
+  const allPalletsDone =
+    effectiveTotalP > 0 &&
+    Array.from({ length: effectiveTotalP }, (_, i) => i + 1)
+      .every(no => completedPalletNos.has(no))
+  const isCompletingLastPallet = palletNo >= effectiveTotalP
   const step3MissingFields: string[] = []
   if (!drumStart) step3MissingFields.push('Drumming start time')
   if (isCompletingLastPallet) {
@@ -1081,7 +1140,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   }
 
   function doRecheck() {
-    const isLastPallet = sessions.length + 1 === totalP
+    const isLastPallet = palletNo === effectiveTotalP
     const skipWeightCheck = lot.dept === 'IBC' || lot.dept === 'Latex' || palletNo > totalP
     const pass = isLastPallet || skipWeightCheck ? true : !!wPass
     const attemptNo = recheckList.length + 1
@@ -1109,9 +1168,17 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
       // ลบ recheck weights ของ session สุดท้ายออกจาก DB
       const res = await fetch(`/api/recheck-weights?production_detail_id=${lot.id}`)
       if (res.ok) {
-        const logs: { id: number; drumming_session_id?: number }[] = await res.json()
-        // ลบทั้งหมดที่เป็นของ session สุดท้าย
-        const toDelete = logs.filter(l => l.drumming_session_id === lastSession.no)
+        const logs: {
+          id: number
+          drumming_session_id?: number
+          pallet_no?: number
+        }[] = await res.json()
+
+        const toDelete = logs.filter(
+          l =>
+            l.drumming_session_id === drummingSessionId &&
+            l.pallet_no === Number(lastSession.no)
+        )
         await Promise.all(toDelete.map(l =>
           fetch(`/api/recheck-weights/${l.id}`, { method: 'DELETE' })
         ))
@@ -1174,14 +1241,45 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   }
 
   async function completePallet() {
-    if (sessions.length >= effectiveTotalP) {
-      console.warn('[completePallet] blocked — already at effectiveTotalP, ignoring duplicate call')
+    if (allPalletsDone) {
+      console.warn(
+        '[completePallet] blocked — all required pallets already completed'
+      )
       return
     }
-    if (isCompletingPallet) {
-      console.warn('[completePallet] blocked — already in progress')
+
+    if (completingPalletRef.current) {
+      console.warn(
+        '[completePallet] blocked — already in progress'
+      )
       return
     }
+
+    if (sessions.some(s => Number(s.no) === palletNo)) {
+      console.warn(
+        `[completePallet] blocked — Pallet #${palletNo} already exists`
+      )
+
+      setPalletNo(getNextPalletNo(sessions))
+      setSessionWt('')
+      setRecheckList([])
+      setRecheckDone(false)
+
+      return
+    }
+
+    completingPalletRef.current = true
+    setIsCompletingPallet(true)
+    // กัน pallet number ซ้ำ
+    if (sessions.some(s => Number(s.no) === palletNo)) {
+      console.warn(
+        `[completePallet] blocked — Pallet #${palletNo} already exists`
+      )
+
+      setPalletNo(getNextPalletNo(sessions))
+      return
+    }
+    completingPalletRef.current = true
     setIsCompletingPallet(true)
     try {
       // Capture checklist items 4-5 snapshot — pallet #1 only
@@ -1200,7 +1298,10 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
         sampleType: palletNo === 1 ? (sampleType || undefined) : undefined,
       }
       const updatedSessions = [...sessions, s]
-      setSessions(updatedSessions)
+
+      const updatedPalletCount = new Set(
+        updatedSessions.map(s => Number(s.no))
+      ).size
 
       const sessionId = await ensureDrummingSession()
 
@@ -1263,53 +1364,100 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
         ).catch(err => console.error('[completePallet] checklist save:', err))
       }
 
-      // ← save ทุกครั้ง ไม่ว่าจะครบหรือยังไม่ครบ
-      try {
-        await fetch(`/api/lots/${lot.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            lot_drumming_start: drumStart ? fromThaiInputToUTC(`${opDate}T${drumStart}`) : null,
-            batch_size_kg: Number(batchSizeKg) || null,
-            flush_kg: Number(flushKg) || null,
-            purge_kg: Number(purgeKg) || null,
-            drain_kg: Number(drainKg) || null,
-            ...(isTote ? {
+      // Save ทุกครั้ง ไม่ว่าจะครบหรือยังไม่ครบ
+      const lotRes = await fetch(`/api/lots/${lot.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lot_drumming_start: drumStart
+            ? fromThaiInputToUTC(`${opDate}T${drumStart}`)
+            : null,
+
+          batch_size_kg: Number(batchSizeKg) || null,
+          flush_kg: Number(flushKg) || null,
+          purge_kg: Number(purgeKg) || null,
+          drain_kg: Number(drainKg) || null,
+
+          ...(isTote
+            ? {
               container_tote: containerQty ? Number(containerQty) : null,
               container_drum: capLarge ? Number(capLarge) : null,
-            } : {
+            }
+            : {
               container_drum: containerQty ? Number(containerQty) : null,
               container_tote: capLarge ? Number(capLarge) : null,
             }),
-            cap_large: capSmall ? Number(capSmall) : null,
-            cap_small: capXSmall ? Number(capXSmall) : null,
-            actual_drum_count: actualDrumCount ? Number(actualDrumCount) : null,
-            actual_tote_count: actualToteCount ? Number(actualToteCount) : null,
-            actual_pallet_count: updatedSessions.length,
-            current_pk_step: updatedSessions.length < effectiveTotalP ? 3 : 4,
-          }),
-        })
-      } catch (err) {
-        console.error('[PKForm] drumming save failed:', err)
+
+          cap_large: capSmall ? Number(capSmall) : null,
+          cap_small: capXSmall ? Number(capXSmall) : null,
+
+          actual_drum_count: actualDrumCount
+            ? Number(actualDrumCount)
+            : null,
+
+          actual_tote_count: actualToteCount
+            ? Number(actualToteCount)
+            : null,
+
+          actual_pallet_count: updatedPalletCount,
+
+          current_pk_step:
+            updatedPalletCount < effectiveTotalP ? 3 : 4,
+        }),
+      })
+
+      // fetch ไม่ throw เมื่อ server ตอบ 4xx / 5xx
+      if (!lotRes.ok) {
+        const errorText = await lotRes.text().catch(() => '')
+
+        throw new Error(
+          `Drumming save failed: ${lotRes.status} ${errorText}`
+        )
       }
 
-      if (updatedSessions.length < effectiveTotalP) {
-        setPalletNo(n => n + 1)
+      // DB save สำเร็จแล้ว ค่อย update state
+      setSessions(updatedSessions)
+
+      if (updatedPalletCount < effectiveTotalP) {
+        const nextPalletNo = getNextPalletNo(updatedSessions)
+
+        setPalletNo(nextPalletNo)
         setSessionWt('')
         setRecheckList([])
         setRecheckDone(false)
+
       } else {
-        // Close drumming session
+        // ครบทุก pallet แล้ว → close drumming session
         if (sessionId) {
-          await fetch(`/api/drumming-sessions/${sessionId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ session_status: 'completed' }),
-          }).catch(err => console.error('[completePallet] close session:', err))
+          const closeRes = await fetch(
+            `/api/drumming-sessions/${sessionId}`,
+            {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                session_status: 'completed',
+              }),
+            }
+          )
+
+          if (!closeRes.ok) {
+            console.error(
+              '[completePallet] close session failed:',
+              closeRes.status
+            )
+          }
         }
-        setPkStep(4)
+
+        // ไป Step 4 โดยไม่ autosave ซ้ำ
+        setPkStep(4, true)
       }
+    } catch (err) {
+      console.error('[completePallet] failed:', err)
+
+      // ไม่เปลี่ยน sessions / palletNo
+      // เพราะการ save DB ไม่สำเร็จ
     } finally {
+      completingPalletRef.current = false
       setIsCompletingPallet(false)
     }
   }
@@ -1729,6 +1877,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
             await fetch(`/api/recheck-weights?production_detail_id=${lot.id}`, { method: 'DELETE' })
               .catch(e => console.error('[clear drumming]', e))
             setSessions([])
+            setExtraPallets(0)
             setRecheckList([])
             setRecheckDone(false)
             setPalletNo(1)
@@ -1880,8 +2029,8 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
                 disabled={isCompletingPallet || (pre45Asked && !pre45Ok) || step3MissingFields.length > 0 || !recheckDone}
                 onClick={completePallet}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium text-white cursor-pointer disabled:opacity-40 border-none transition-colors min-h-[48px]"
-                style={{ background: sessions.length + 1 >= effectiveTotalP ? '#9D174D' : dc }}>
-                {sessions.length + 1 < effectiveTotalP ? `Pallet #${sessions.length + 1} done` : 'All pallets done'} <ChevronRight className="w-5 h-5" />
+                style={{ background: palletNo >= effectiveTotalP ? '#9D174D' : dc }}>
+                {palletNo < effectiveTotalP ? `Pallet #${palletNo} done` : 'All pallets done'} <ChevronRight className="w-5 h-5" />
               </button>
             ) : (
               <button

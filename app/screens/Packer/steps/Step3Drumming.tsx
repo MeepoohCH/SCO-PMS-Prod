@@ -151,8 +151,97 @@ export function Step3Drumming({
     }
   }
 
+  const completedPalletNos = new Set(
+    sessions.map(s => Number(s.no))
+  )
+
+  const completedPalletCount = completedPalletNos.size
+
+
+  // ============================================================
+  // Batch Size Calculator — UI only, ไม่บันทึก DB
+  // ============================================================
+
+  const [calcPackageWeight, setCalcPackageWeight] = useState(
+    isTote ? '1000' : '210'
+  )
+
+  const toNumber = (
+    value: string | number | undefined | null
+  ) => {
+    const n = Number(value)
+    return Number.isFinite(n) ? n : 0
+  }
+
+  // เรียง Pallet ตามเลข เพื่อหา Pallet สุดท้ายที่ Drumming เสร็จจริง
+  const uniqueSessionMap = new Map<number, Session>()
+
+  sessions.forEach(session => {
+    uniqueSessionMap.set(Number(session.no), session)
+  })
+
+  const sortedSessions = Array.from(uniqueSessionMap.values()).sort(
+    (a, b) => Number(a.no) - Number(b.no)
+  )
+
+  const lastSession =
+    sortedSessions.length > 0
+      ? sortedSessions[sortedSessions.length - 1]
+      : undefined
+
+  const lastPalletWeight = toNumber(lastSession?.wt)
+
+  // จำนวน Package ที่ระบบคำนวณให้
+  const calculatedPackageQty = (() => {
+    if (completedPalletCount === 0) {
+      return 0
+    }
+
+    // Tote: 1 pallet = 1 Tote
+    if (isTote) {
+      return completedPalletCount
+    }
+
+    const packageWeight = toNumber(calcPackageWeight)
+
+    if (packageWeight <= 0) {
+      return 0
+    }
+
+    // ทุก pallet ก่อน pallet สุดท้าย = 4 drums
+    const fullPalletDrums =
+      Math.max(0, completedPalletCount - 1) * 4
+
+    // pallet สุดท้าย
+    const lastPalletDrums =
+      lastPalletWeight > 0
+        ? Math.ceil(lastPalletWeight / packageWeight)
+        : 0
+
+    return fullPalletDrums + lastPalletDrums
+  })()
+
+  // จำนวนที่ใช้จริงใน Calculator — ผู้ใช้แก้ได้
+  const [calcPackageQty, setCalcPackageQty] = useState<string>('')
+
+  // ถ้ายังไม่เคยกรอกเอง ให้ใช้ค่าที่ระบบคำนวณ
+  const effectivePackageQty =
+    calcPackageQty === null
+      ? calculatedPackageQty
+      : toNumber(calcPackageQty)
+
+  const calcPackagingWeight =
+    toNumber(calcPackageWeight) * effectivePackageQty
+
+  const calculatedBatchSize =
+    calcPackagingWeight +
+    toNumber(flushKg) +
+    toNumber(purgeKg) +
+    toNumber(drainKg)
+
+
   const isLastPallet = palletNo === totalP
-  const allPalletsDone = sessions.length >= totalP
+  const allPalletsDone = completedPalletCount >= totalP
 
   const item4 = preItems45[0]
   const item5 = preItems45[1]
@@ -187,15 +276,16 @@ export function Step3Drumming({
           <div className="flex justify-between items-center mb-3">
             <div>
               <div className="text-xs font-medium" style={{ color: dc }}>{allPalletsDone ? 'Session complete' : 'Session in progress'}</div>
-              <div className="text-[11px] text-gray-400">{sessions.length} pallets done</div>
+              <div className="text-[11px] text-gray-400">{completedPalletCount} pallets done</div>
             </div>
             <div className="text-3xl font-bold" style={{ color: dc }}>
-              #{sessions.length + 1 > totalP ? totalP : palletNo}<span className="text-sm text-gray-400 font-normal">/{totalP}</span>
+              #{palletNo}
+              <span className="text-sm text-gray-400 font-normal">/{totalP}</span>
             </div>
           </div>
           <div className="h-2 bg-gray-200 rounded-full">
             <div className="h-full rounded-full transition-all"
-              style={{ width: `${totalP ? Math.min((sessions.length / totalP) * 100, 100) : 0}%`, background: dc }} />
+              style={{ width: `${totalP ? Math.min((completedPalletCount / totalP) * 100, 100) : 0}%`, background: dc }} />
           </div>
         </Card>
 
@@ -257,16 +347,16 @@ export function Step3Drumming({
         {/* Completed pallets */}
         {sessions.length > 0 && (
           <Card className="mb-3">
-            <div className="text-xs font-medium text-green-800 mb-3">Completed pallets ({sessions.length}/{totalP})</div>
+            <div className="text-xs font-medium text-green-800 mb-3">Completed pallets ({completedPalletCount}/{totalP})</div>
             {sessions.map((s, i) => (
-              <PalletRow key={i} session={s} preItems45={preItems45} dept={lotDept} dc={dc} totalP={totalP} />
+              <PalletRow key={`${s.no}-${i}`} session={s} preItems45={preItems45} dept={lotDept} dc={dc} totalP={totalP} />
             ))}
           </Card>
         )}
         {/* Recheck weight */}
         {allPalletsDone ? (
           <Card className="mb-3 text-center py-8">
-            <div className="text-lg font-bold text-green-800 mb-1">✓ ครบ {sessions.length} pallets แล้ว</div>
+            <div className="text-lg font-bold text-green-800 mb-1">✓ ครบ {completedPalletCount} pallets แล้ว</div>
             {onUndoLastSession && !readOnly && (
               <button
                 onClick={onUndoLastSession}
@@ -515,30 +605,41 @@ export function Step3Drumming({
           </Card>
         )}
 
-        {!readOnly && sessions.length < totalP && recheckDone && (
+        {!readOnly && !allPalletsDone && recheckDone && (
           <Card className="mb-3">
-            {/* ถ้าเป็น pallet สุดท้าย → แสดง 2 ปุ่ม */}
-            {sessions.length + 1 === totalP ? (
+            {isLastPallet ? (
               <div className="flex flex-col gap-2">
                 <div className="text-[11px] text-amber-700 text-center mb-1">
                   นี่คือ Pallet สุดท้ายตาม SL plan — เลือกดำเนินการ
                 </div>
+
                 <Btn
                   label="✓ จบ Drumming — ไป Post-Checklist"
-                  color="#9D174D" full
-                  disabled={(pre45Asked && !pre45Ok) || missingFields.length > 0 || isCompletingPallet}
-                  onClick={completePallet} />
+                  color="#9D174D"
+                  full
+                  disabled={
+                    (pre45Asked && !pre45Ok) ||
+                    missingFields.length > 0 ||
+                    isCompletingPallet
+                  }
+                  onClick={completePallet}
+                />
+
                 {onAddExtraPallet && (
                   <div className="flex flex-col gap-1.5">
                     <Btn
-                      label={`+ เพิ่ม Pallet #${sessions.length + 2} (เกิน SL plan)`}
-                      color="#854F0B" full
+                      label={`+ เพิ่ม Pallet #${palletNo + 1} (เกิน SL plan)`}
+                      color="#854F0B"
+                      full
                       disabled={isCompletingPallet}
-                      onClick={onAddExtraPallet} />
+                      onClick={onAddExtraPallet}
+                    />
+
                     {onRemoveExtraPallet && (
                       <button
                         onClick={onRemoveExtraPallet}
-                        className="text-[11px] text-gray-400 underline cursor-pointer bg-transparent border-none text-center">
+                        className="text-[11px] text-gray-400 underline cursor-pointer bg-transparent border-none text-center"
+                      >
                         ← ยกเลิก / กลับไป Pallet สุดท้าย
                       </button>
                     )}
@@ -548,10 +649,17 @@ export function Step3Drumming({
             ) : (
               <Btn
                 label={`Pallet #${palletNo} done - next pallet #${palletNo + 1}`}
-                color={dc} full
-                disabled={(pre45Asked && !pre45Ok) || missingFields.length > 0 || isCompletingPallet}
-                onClick={completePallet} />
+                color={dc}
+                full
+                disabled={
+                  (pre45Asked && !pre45Ok) ||
+                  missingFields.length > 0 ||
+                  isCompletingPallet
+                }
+                onClick={completePallet}
+              />
             )}
+
             {missingFields.length > 0 && (
               <div className="text-[11px] text-amber-700 text-center mt-2">
                 กรุณากรอกข้อมูลให้ครบ: {missingFields.join(', ')}
@@ -559,6 +667,7 @@ export function Step3Drumming({
             )}
           </Card>
         )}
+
         {canClearDrumming && !readOnly && (
           <div className="flex justify-center mt-2 mb-1">
             <button type="button" onClick={() => setShowClearDrummingConfirm(true)}
@@ -642,7 +751,307 @@ export function Step3Drumming({
                 className="w-full min-w-0 border border-[#DDE2EE] rounded-xl outline-none box-border transition-all duration-150 focus:border-[#185FA5] focus:ring-2 focus:ring-[#185FA5]/10 flex items-center leading-normal h-12 px-4 text-sm font-medium bg-white text-[#0E1117]" />
             </div>
           </div>
-          <Inp label="น้ำหนักรวมที่บรรจุได้ Kg. (Batch size)" type="text" value={batchSizeKg} onChange={setBatchSizeKg} placeholder="กรอกตัวเลข หรือ -" req />
+
+          {/* Batch Size Calculator */}
+          <div className="mb-4 rounded-2xl border border-[#DDE2EE] bg-[#FAFBFD] overflow-hidden">
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#E8EBF2]">
+              <div>
+                <div className="text-sm font-bold text-[#1E2A44]">
+                  ตัวช่วยคำนวณ Batch Size
+                </div>
+                <div className="text-[10px] text-[#9BA3BA] mt-0.5">
+                  ค่าที่แก้ไขในส่วนนี้ใช้คำนวณเท่านั้น ไม่บันทึกลงฐานข้อมูล
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCalcPackageWeight(isTote ? '1000' : '210')
+                }}
+                className="
+        h-9 px-4 rounded-lg
+        border border-[#B8D5F5]
+        bg-white
+        text-[11px] font-semibold text-[#185FA5]
+        hover:bg-[#F0F7FF]
+        transition-colors
+      "
+              >
+                Reset
+              </button>
+            </div>
+
+            <div className="p-4">
+
+              {/* Main inputs */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+
+                {/* Weight */}
+                <div>
+                  <div className="text-xs font-semibold text-[#5A617A] mb-1.5">
+                    น้ำหนัก / {isTote ? 'Tote' : 'Drum'}
+                    <span className="font-normal text-[#9BA3BA]"> (kg)</span>
+                  </div>
+
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={calcPackageWeight}
+                      onChange={e => {
+                        const value = e.target.value
+                        if (/^\d*\.?\d*$/.test(value)) {
+                          setCalcPackageWeight(value)
+                        }
+                      }}
+                      className="
+          w-full h-12
+          rounded-xl
+          border border-[#DDE2EE]
+          bg-white
+          px-4 pr-12
+          text-lg font-bold text-[#0E1117]
+          outline-none
+          transition-all
+          focus:border-[#185FA5]
+          focus:ring-2 focus:ring-[#185FA5]/10
+        "
+                    />
+
+                    <span
+                      className="
+          absolute right-4 top-1/2 -translate-y-1/2
+          text-[11px] font-medium text-[#9BA3BA]
+        "
+                    >
+                      kg
+                    </span>
+                  </div>
+
+                  <div className="text-[10px] text-[#9BA3BA] mt-1.5">
+                    Default: {isTote ? '1,000' : '210'} kg
+                  </div>
+                </div>
+
+                {/* Quantity */}
+                <div>
+                  <div className="text-xs font-semibold text-[#5A617A] mb-1.5">
+                    จำนวน {isTote ? 'Tote' : 'Drum'}
+                    <span className="font-normal text-[#9BA3BA]"> (ใบ)</span>
+                  </div>
+
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={
+                        calcPackageQty === null
+                          ? String(calculatedPackageQty)
+                          : calcPackageQty
+                      }
+                      onChange={e => {
+                        const value = e.target.value
+
+                        if (/^\d*$/.test(value)) {
+                          setCalcPackageQty(value)
+                        }
+                      }}
+                      className="
+      w-full h-12
+      rounded-xl
+      border border-[#DDE2EE]
+      bg-white
+      px-4 pr-12
+      text-lg font-bold text-[#0E1117]
+      outline-none
+      transition-all
+      focus:border-[#185FA5]
+      focus:ring-2 focus:ring-[#185FA5]/10
+    "
+                    />
+
+                    <span className="
+    absolute right-4 top-1/2 -translate-y-1/2
+    text-[11px] font-medium text-[#9BA3BA]
+  ">
+                      ใบ
+                    </span>
+                  </div>
+
+
+                  {/* Calculation explanation */}
+                  <div className="text-[10px] text-[#9BA3BA] mt-1.5 leading-relaxed">
+                    {isTote ? (
+                      <>
+                        ระบบคำนวณ: {completedPalletCount} Pallet
+                        {' = '}
+                        <span className="font-semibold text-[#185FA5]">
+                          {calculatedPackageQty} ใบ
+                        </span>
+                      </>
+                    ) : completedPalletCount > 0 ? (
+                      <>
+                        {(completedPalletCount - 1) * 4} ใบจาก Pallet เต็ม
+                        {' + '}
+                        <span className="font-semibold text-[#5A617A]">
+                          {Math.ceil(
+                            lastPalletWeight /
+                            Math.max(toNumber(calcPackageWeight), 1)
+                          )} ใบ
+                        </span>
+                        {' จาก Pallet สุดท้าย = '}
+                        <span className="font-semibold text-[#185FA5]">
+                          {calculatedPackageQty} ใบ
+                        </span>
+                      </>
+                    ) : (
+                      'ยังไม่มี Pallet ที่ Drumming เสร็จ'
+                    )}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Waste */}
+              <div className="
+      flex items-center justify-between gap-4
+      rounded-xl
+      border border-[#E1E5EE]
+      bg-white
+      px-4 py-3
+      mb-3
+    ">
+                <div className="text-[13px] font-semibold text-[#5A617A] whitespace-nowrap">
+                  Packaging Waste
+                </div>
+
+                <div className="flex items-center justify-end gap-3 flex-wrap">
+
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xs text-[#9BA3BA]">Flush</span>
+                    <span className="text-sm font-bold text-[#374151]">
+                      {flushKg || '0'}
+                    </span>
+                    <span className="text-[9px] text-[#9BA3BA]">kg</span>
+                  </div>
+
+                  <span className="text-[#C8CEDA] text-sm">+</span>
+
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xs text-[#9BA3BA]">Purge</span>
+                    <span className="text-sm font-bold text-[#374151]">
+                      {purgeKg || '0'}
+                    </span>
+                    <span className="text-[9px] text-[#9BA3BA]">kg</span>
+                  </div>
+
+                  <span className="text-[#C8CEDA] text-sm">+</span>
+
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xs text-[#9BA3BA]">Drain</span>
+                    <span className="text-sm font-bold text-[#374151]">
+                      {drainKg || '0'}
+                    </span>
+                    <span className="text-[9px] text-[#9BA3BA]">kg</span>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Formula */}
+              <div className="flex items-center gap-3 px-1 py-2 mb-2">
+                <span className="text-[10px] font-medium text-[#9BA3BA]">
+                  การคำนวณ
+                </span>
+
+                <div className="text-sm font-semibold text-[#374151]">
+                  ({toNumber(calcPackageWeight).toLocaleString()} ×{' '}
+                  {calcPackageQty.toLocaleString()})
+                  <span className="text-[#9BA3BA]"> + </span>
+                  {toNumber(flushKg).toLocaleString()}
+                  <span className="text-[#9BA3BA]"> + </span>
+                  {toNumber(purgeKg).toLocaleString()}
+                  <span className="text-[#9BA3BA]"> + </span>
+                  {toNumber(drainKg).toLocaleString()}
+                </div>
+              </div>
+
+              {/* Result */}
+              <div
+                className="
+        flex items-center justify-between gap-4
+        rounded-xl
+        border-2
+        px-4 py-3
+      "
+                style={{
+                  borderColor: dc,
+                  background: `${dc}08`,
+                }}
+              >
+                <div>
+                  <div
+                    className="text-[10px] font-semibold mb-1"
+                    style={{ color: dc }}
+                  >
+                    Batch Size ที่คำนวณได้
+                  </div>
+
+                  <div className="flex items-baseline gap-1.5">
+                    <span
+                      className="text-3xl font-bold tracking-tight"
+                      style={{ color: dc }}
+                    >
+                      {calculatedBatchSize.toLocaleString()}
+                    </span>
+
+                    <span
+                      className="text-xs font-semibold"
+                      style={{ color: dc }}
+                    >
+                      kg
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setBatchSizeKg(String(calculatedBatchSize))
+                  }
+                  className="
+          h-10 px-5
+          rounded-lg
+          text-white
+          text-xs font-bold
+          border-none
+          cursor-pointer
+          shadow-sm
+          transition-all
+          hover:opacity-90
+          active:scale-[0.98]
+        "
+                  style={{ background: dc }}
+                >
+                  ใช้ค่านี้
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          {/* ค่า Batch Size จริง — อันนี้ระบบเดิมบันทึก DB */}
+          <Inp
+            label="น้ำหนักรวมที่บรรจุได้ Kg. (Batch size)"
+            type="text"
+            value={batchSizeKg}
+            onChange={setBatchSizeKg}
+            placeholder="กรอกตัวเลข หรือ 0"
+            req
+          />
           <div className="text-xs font-medium text-gray-600 mb-2 pt-2">จำนวน "บรรจุภัณฑ์ใหม่" ที่นำมาใช้ในการบรรจุ</div>
           {lotDept === 'Latex' ? (
             <div className="flex flex-col gap-2">
