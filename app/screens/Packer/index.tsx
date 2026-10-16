@@ -19,6 +19,7 @@ async function submitLot(lotId: number) {
   return res.json()
 }
 
+
 export default function App() {
   const { data: session } = useSession()
   const [lots, setLots] = useState<Lot[]>([])
@@ -33,8 +34,14 @@ export default function App() {
     setLots(data.map(l => ({
       ...l,
       planned_pallets: Number(l.planned_pallets ?? 0),
-      done_pallets:    Number(l.actual_pallet_count ?? l.done_pallets ?? 0),
+      done_pallets: Number(l.actual_pallet_count ?? l.done_pallets ?? 0),
     })) as Lot[])
+  }
+  async function backToDashboard() {
+    await refresh()
+    setActiveLot(null)
+    setViewingLot(null)
+    setPkView('list')
   }
 
   useEffect(() => { refresh() }, [])
@@ -45,15 +52,23 @@ export default function App() {
     if (updated && updated !== activeLot) {
       setActiveLot(prev => prev ? { ...updated, fixSection: prev.fixSection } : updated)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lots])
 
   async function handleSubmit(data: Record<string, unknown>) {
-    setLots(p => p.map(l => l.id === activeLot?.id ? { ...l, status: 'submitted' as LotStatus, ...data } : l))
-    if (activeLot) await submitLot(activeLot.id)
-    setActiveLot(null)
-    setPkView('list')
-    await refresh()
+    setLots(p =>
+      p.map(l =>
+        l.id === activeLot?.id
+          ? { ...l, status: 'submitted' as LotStatus, ...data }
+          : l
+      )
+    )
+
+    if (activeLot) {
+      await submitLot(activeLot.id)
+    }
+
+    await backToDashboard()
   }
 
   function openLot(lot: Lot) {
@@ -75,7 +90,7 @@ export default function App() {
         {pkView === 'form' && activeLot && (
           <PKForm
             lot={activeLot}
-            onBack={() => { setPkView('list'); setActiveLot(null) }}
+            onBack={backToDashboard}
             onSubmit={handleSubmit}
             currentUser={user}
             setLots={setLots}
@@ -84,7 +99,7 @@ export default function App() {
         {pkView === 'viewer' && viewingLot && (
           <PKFormViewer
             lot={viewingLot as any}
-            onBack={() => { setPkView('list'); setViewingLot(null) }}
+            onBack={backToDashboard}
             readOnly={true}
             setLots={setLots as any}
             currentUser={user}
