@@ -15,8 +15,16 @@ async function submitLot(lotId: number) {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status: 'submitted' }),
+    cache: 'no-store',
   })
-  return res.json()
+
+  const result = await res.json()
+
+  if (!res.ok) {
+    throw new Error(result?.error || 'Failed to submit lot')
+  }
+
+  return result
 }
 
 
@@ -55,20 +63,15 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lots])
 
-  async function handleSubmit(data: Record<string, unknown>) {
-    setLots(p =>
-      p.map(l =>
-        l.id === activeLot?.id
-          ? { ...l, status: 'submitted' as LotStatus, ...data }
-          : l
-      )
-    )
+  async function handleSubmit(_data: Record<string, unknown>) {
+    if (!activeLot) return
 
-    if (activeLot) {
+    try {
       await submitLot(activeLot.id)
+      await backToDashboard()
+    } catch (error) {
+      console.error('Submit failed:', error)
     }
-
-    await backToDashboard()
   }
 
   function openLot(lot: Lot) {
