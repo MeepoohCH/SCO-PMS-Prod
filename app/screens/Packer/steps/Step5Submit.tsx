@@ -17,7 +17,7 @@ export interface Step5SubmitProps {
   downtimeLogs: DowntimeLog[]
   currentUser: string
   setPkStep: (s: number) => void
-  onSubmit: (data: Record<string, unknown>) => void
+  onSubmit: (data: Record<string, unknown>) => void | Promise<void>
   setLots: React.Dispatch<React.SetStateAction<Lot[]>>
   onBackToList: () => void
   readOnly?: boolean
@@ -53,20 +53,46 @@ export function Step5Submit({
               <Btn label="Submit to Pack Lead" color="#534AB7" full disabled={!drumEnd}
                 onClick={async () => {
                   try {
-                    await fetch(`/api/lots/${lot.id}`, {
+                    // 1. Save edited end time
+                    const res = await fetch(`/api/lots/${lot.id}`, {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ lot_drumming_end: drumEnd, current_pk_step: 6 }),
+                      body: JSON.stringify({
+                        lot_drumming_end: drumEnd,
+                      }),
                     })
-                    await fetch(`/api/lots/${lot.id}/status`, {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ status: 'submitted', submitted_at: new Date().toISOString() }),
-                    })
+
+                    if (!res.ok) {
+                      const message = await res.text()
+                      throw new Error(
+                        message || `Failed to save end time (${res.status})`
+                      )
+                    }
+
+                    // 2. ให้ function นี้จัดการ rejected → submitted
+                    if (onResubmitOperator) {
+                      await onResubmitOperator()
+                    }
+
+                    // 3. Update local state หลัง API สำเร็จ
+                    setLots(prev =>
+                      prev.map(l =>
+                        l.id === lot.id
+                          ? {
+                            ...l,
+                            lot_drumming_end: drumEnd,
+                            status: 'submitted' as typeof l.status,
+                          }
+                          : l
+                      )
+                    )
+
+                    // 4. กลับหน้า list
+                    onBackToList()
+
                   } catch (err) {
-                    console.error('[Step5Submit] submit failed:', err)
+                    console.error('[Step5Submit] resubmit failed:', err)
                   }
-                  onSubmit({ drumEnd, sessions, downtimeLogs })
                 }} />
             </div>
           )}
