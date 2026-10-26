@@ -1925,7 +1925,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
 
       {/* Issue mode: global Previous/Next navigation bar (all steps) */}
       {isIssueMode && (
-        <div className="sticky bottom-0 z-50 bg-[#F5F5F5] border-t border-[#DDE2EE] px-4 py-3 flex items-center gap-2 mt-4">
+        <div className="sticky bottom-0 z-10 bg-[#F5F5F5] border-t border-[#DDE2EE] px-4 py-3 flex items-center gap-2 mt-4">
           <button
             disabled={pkStep === 0}
             onClick={() => setPkStep(Math.max(0, pkStep - 1))}
@@ -2006,7 +2006,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
 
       {/* In-progress: Previous / Step X of 6 / Next navigation bar */}
       {!isIssueMode && !paused && !isLockedByPause && lot.status === 'in_progress' && (
-        <div className="sticky bottom-0 z-50 bg-[#F5F5F5] border-t border-[#DDE2EE] px-4 py-3 flex items-center gap-2 mt-4">
+        <div className="sticky bottom-0 z-10 bg-[#F5F5F5] border-t border-[#DDE2EE] px-4 py-3 flex items-center gap-2 mt-4">
           <button
             disabled={pkStep === 0}
             onClick={async () => {

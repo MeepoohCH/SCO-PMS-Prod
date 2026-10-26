@@ -233,12 +233,23 @@ export function Step3Drumming({
   const calcPackagingWeight =
     toNumber(calcPackageWeight) * effectivePackageQty
 
+  const calcFlushKg = lotDept === 'Latex'
+    ? 0
+    : toNumber(flushKg)
+
+  const calcPurgeKg = lotDept === 'Latex'
+    ? toNumber(latexProductPurgeKg)
+    : toNumber(purgeKg)
+
+  const calcDrainKg = lotDept === 'Latex'
+    ? toNumber(latexDrainKg)
+    : toNumber(drainKg)
+
   const calculatedBatchSize =
     calcPackagingWeight +
-    toNumber(flushKg) +
-    toNumber(purgeKg) +
-    toNumber(drainKg)
-
+    calcFlushKg +
+    calcPurgeKg +
+    calcDrainKg
 
   const isLastPallet = palletNo === totalP
   const allPalletsDone = completedPalletCount >= totalP
@@ -933,7 +944,7 @@ export function Step3Drumming({
                   <div className="flex items-baseline gap-1">
                     <span className="text-xs text-[#9BA3BA]">Flush</span>
                     <span className="text-sm font-bold text-[#374151]">
-                      {flushKg || '0'}
+                      {lotDept === 'Latex' ? '0' : (flushKg || '0')}
                     </span>
                     <span className="text-[9px] text-[#9BA3BA]">kg</span>
                   </div>
@@ -943,7 +954,9 @@ export function Step3Drumming({
                   <div className="flex items-baseline gap-1">
                     <span className="text-xs text-[#9BA3BA]">Purge</span>
                     <span className="text-sm font-bold text-[#374151]">
-                      {purgeKg || '0'}
+                      {lotDept === 'Latex'
+                        ? (latexProductPurgeKg || '0')
+                        : (purgeKg || '0')}
                     </span>
                     <span className="text-[9px] text-[#9BA3BA]">kg</span>
                   </div>
@@ -953,7 +966,9 @@ export function Step3Drumming({
                   <div className="flex items-baseline gap-1">
                     <span className="text-xs text-[#9BA3BA]">Drain</span>
                     <span className="text-sm font-bold text-[#374151]">
-                      {drainKg || '0'}
+                      {lotDept === 'Latex'
+                        ? (latexDrainKg || '0')
+                        : (drainKg || '0')}
                     </span>
                     <span className="text-[9px] text-[#9BA3BA]">kg</span>
                   </div>
@@ -971,11 +986,11 @@ export function Step3Drumming({
                   ({toNumber(calcPackageWeight).toLocaleString()} ×{' '}
                   {calcPackageQty.toLocaleString()})
                   <span className="text-[#9BA3BA]"> + </span>
-                  {toNumber(flushKg).toLocaleString()}
+                  {toNumber(calcFlushKg).toLocaleString()}
                   <span className="text-[#9BA3BA]"> + </span>
-                  {toNumber(purgeKg).toLocaleString()}
+                  {toNumber(calcPurgeKg).toLocaleString()}
                   <span className="text-[#9BA3BA]"> + </span>
-                  {toNumber(drainKg).toLocaleString()}
+                  {toNumber(calcDrainKg).toLocaleString()}
                 </div>
               </div>
 

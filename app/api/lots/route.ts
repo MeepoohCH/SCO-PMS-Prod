@@ -172,6 +172,7 @@ export async function GET(req: NextRequest) {
         },
 
         production_detail_ibc: true,
+        latex_drumming_data: true,
 
         scale_verifications: {
           select: {
@@ -270,6 +271,7 @@ export async function GET(req: NextRequest) {
       archivePackagingTypes,
       archivePlans,
       archiveIbcs,
+      archiveLatex,
       archiveScaleVerifications,
     ] = await Promise.all([
       // Products
@@ -327,6 +329,16 @@ export async function GET(req: NextRequest) {
           })
         : [],
 
+      archiveDetailIds.length
+        ? prisma.latex_drumming_data_archive.findMany({
+            where: {
+              production_detail_id: {
+                in: archiveDetailIds,
+              },
+            },
+          })
+        : [],
+
       // Scale Verification
       // ใช้ pl_approved_at เหมือน Main
       archiveDetailIds.length
@@ -361,6 +373,9 @@ export async function GET(req: NextRequest) {
       archiveIbcs.map((ibc) => [ibc.production_detail_id, ibc]),
     );
 
+const latexMap = new Map(
+  archiveLatex.map((latex) => [latex.production_detail_id, latex]),
+);
     // =========================================================
     // Scale Verification Map
     // =========================================================
@@ -461,6 +476,7 @@ export async function GET(req: NextRequest) {
       const plan = lot.plan_id ? planMap.get(lot.plan_id) : null;
 
       const ibc = ibcMap.get(lot.id) ?? null;
+const latex = latexMap.get(lot.id) ?? null;
 
       const fullPlan = plan
         ? {
@@ -498,6 +514,8 @@ export async function GET(req: NextRequest) {
         plan: fullPlan,
 
         production_detail_ibc: ibc,
+
+        latex_drumming_data: latex,
 
         // สำคัญ: ต้องเป็นข้อมูลจริง
         // ไม่ใช่ { select: ... }

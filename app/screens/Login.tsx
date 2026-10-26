@@ -566,42 +566,84 @@ export function SuccessTab({ lots, onEdit, onViewProgress, isAdmin = false }: Su
 
 
   function exportToExcel() {
-    const rows = filtered.map(l => ({
-      'Packing Date': l.packing_date
-        ? new Date(l.packing_date)
-        : '',
-      'Product Name': l.product || '',
-      'Lot No.': l.lot || '',
-      'Drum (ใบ)': (l as any).actual_drum_count ?? '',
-      'Tote (ใบ)': (l as any).actual_tote_count ?? '',
-      'Flush (kg)': (l as any).flush_kg ?? '',
-      'Purge (kg)': (l as any).purge_kg ?? '',
-      'Drain (kg)': (l as any).drain_kg ?? '',
-      'น้ำหนักรวม Batch (kg)': (l as any).batch_size_kg ?? '',
-    }));
+    // ถ้า export มี Dept อื่นนอกจาก Latex ให้มีคอลัมน์ Flush
+    // ถ้า filter Latex อย่างเดียว จะไม่มีคอลัมน์ Flush เลย
+    const hasNonLatex = filtered.some(l => l.dept !== 'Latex');
+
+    const rows = filtered.map(l => {
+      // ข้อมูลเฉพาะของ Latex จากตาราง latex_drumming_data
+      const latex = (l as any).latex_drumming_data;
+
+      const baseRow: Record<string, any> = {
+        'Packing Date': l.packing_date
+          ? new Date(l.packing_date)
+          : '',
+        'Product Name': l.product || '',
+        'Lot No.': l.lot || '',
+        'Drum (ใบ)': (l as any).actual_drum_count ?? '',
+        'Tote (ใบ)': (l as any).actual_tote_count ?? '',
+      };
+
+      // Latex ไม่มี Flush ใน Staff Excel
+      // แต่ถ้ามี Dept อื่นอยู่ในไฟล์ ยังสร้างคอลัมน์ Flush ให้ Dept อื่น
+      if (hasNonLatex) {
+        baseRow['Flush (kg)'] =
+          l.dept === 'Latex'
+            ? ''
+            : (l as any).flush_kg ?? '';
+      }
+
+      baseRow['Purge (kg)'] =
+        l.dept === 'Latex'
+          ? latex?.product_purge_kg ?? ''
+          : (l as any).purge_kg ?? '';
+
+      baseRow['Drain (kg)'] =
+        l.dept === 'Latex'
+          ? latex?.drain_kg ?? ''
+          : (l as any).drain_kg ?? '';
+
+      baseRow['น้ำหนักรวม Batch (kg)'] =
+        (l as any).batch_size_kg ?? '';
+
+      return baseRow;
+    });
 
     const worksheet = XLSX.utils.json_to_sheet(rows);
 
     // กำหนดรูปแบบ Packing Date เป็นวันที่
     rows.forEach((_, index) => {
       const cell = worksheet[`A${index + 2}`];
+
       if (cell && cell.v instanceof Date) {
         cell.t = 'd';
         cell.z = 'dd/mm/yyyy';
       }
     });
 
-    worksheet['!cols'] = [
-      { wch: 15 }, // Packing Date
-      { wch: 25 }, // Product Name
-      { wch: 18 }, // Lot No.
-      { wch: 12 }, // Drum
-      { wch: 12 }, // Tote
-      { wch: 12 }, // Flush
-      { wch: 12 }, // Purge
-      { wch: 12 }, // Drain
-      { wch: 24 }, // น้ำหนักรวม Batch
-    ];
+    // ความกว้าง column เปลี่ยนตามว่ามี Flush หรือไม่
+    worksheet['!cols'] = hasNonLatex
+      ? [
+        { wch: 15 }, // Packing Date
+        { wch: 25 }, // Product Name
+        { wch: 18 }, // Lot No.
+        { wch: 12 }, // Drum
+        { wch: 12 }, // Tote
+        { wch: 12 }, // Flush
+        { wch: 12 }, // Purge
+        { wch: 12 }, // Drain
+        { wch: 24 }, // Batch
+      ]
+      : [
+        { wch: 15 }, // Packing Date
+        { wch: 25 }, // Product Name
+        { wch: 18 }, // Lot No.
+        { wch: 12 }, // Drum
+        { wch: 12 }, // Tote
+        { wch: 12 }, // Purge
+        { wch: 12 }, // Drain
+        { wch: 24 }, // Batch
+      ];
 
     const workbook = XLSX.utils.book_new();
 
@@ -616,6 +658,7 @@ export function SuccessTab({ lots, onEdit, onViewProgress, isAdmin = false }: Su
       `packing_report_${new Date().toISOString().slice(0, 10)}.xlsx`
     );
   }
+
   const quickPresets: [string, number][] = [["7d", 7], ["30d", 30], ["90d", 90], ["1y", 365]];
 
   return (

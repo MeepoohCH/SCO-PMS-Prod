@@ -1356,7 +1356,17 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
                       <span>{Math.round(((lot as SLPlan).done_pallets || 0) / ((lot as SLPlan).planned_pallets!) * 100)}%</span>
                     </div>
                     <div className="h-1 bg-[#DDE2EE] rounded-sm">
-                      <div className="h-full rounded-sm" style={{ background: "#534AB7", width: `${((lot as SLPlan).done_pallets || 0) / ((lot as SLPlan).planned_pallets!) * 100}%` }} />
+                      <div
+                        className="h-full rounded-sm"
+                        style={{
+                          background: "#534AB7",
+                          width: `${Math.min(
+                            ((lot as SLPlan).done_pallets || 0) /
+                            ((lot as SLPlan).planned_pallets!) * 100,
+                            100
+                          )}%`
+                        }}
+                      />
                     </div>
                   </div>
                 )}
@@ -1525,7 +1535,17 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
                         <span>{Math.round(((lot as SLPlan).done_pallets || 0) / ((lot as SLPlan).planned_pallets!) * 100)}%</span>
                       </div>
                       <div className="h-1 bg-[#DDE2EE] rounded-sm">
-                        <div className="h-full rounded-sm" style={{ background: DEPT[lot.dept as DeptKey]?.accent || "#185FA5", width: `${((lot as SLPlan).done_pallets || 0) / ((lot as SLPlan).planned_pallets!) * 100}%` }} />
+                        <div
+                          className="h-full rounded-sm"
+                          style={{
+                            background: DEPT[lot.dept as DeptKey]?.accent || "#185FA5",
+                            width: `${Math.min(
+                              ((lot as SLPlan).done_pallets || 0) /
+                              ((lot as SLPlan).planned_pallets!) * 100,
+                              100
+                            )}%`
+                          }}
+                        />
                       </div>
                     </div>
                   )}
