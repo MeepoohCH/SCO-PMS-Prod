@@ -70,10 +70,17 @@ export function Step5Submit({
                     }
 
                     // 2. ให้ function นี้จัดการ rejected → submitted
-                    if (onResubmitOperator) {
-                      await onResubmitOperator()
-                    }
+                    const statusRes = await fetch(`/api/lots/${lot.id}/status`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        status: 'submitted',
+                      }),
+                    })
 
+                    if (!statusRes.ok) {
+                      throw new Error(await statusRes.text())
+                    }
                     // 3. Update local state หลัง API สำเร็จ
                     setLots(prev =>
                       prev.map(l =>
@@ -91,7 +98,7 @@ export function Step5Submit({
                     onBackToList()
 
                   } catch (err) {
-                    console.error('[Step5Submit] resubmit failed:', err)
+                    console.error('[Step5Submit] submit failed:', err)
                   }
                 }} />
             </div>
