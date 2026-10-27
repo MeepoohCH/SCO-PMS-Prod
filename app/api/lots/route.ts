@@ -6,28 +6,30 @@ import type { Prisma } from '@prisma/client'
 function mapLot<T extends Record<string, unknown>>(lot: T) {
   const ibc  = lot.production_detail_ibc as Record<string, unknown> | null | undefined
   const plan = (lot as any).plan as Record<string, unknown> | null | undefined
+   const product = lot.product as Record<string, unknown> | null | undefined;
   return {
     ...lot,
-    status:              lot.detail_status,
-    target_mt:           lot.target_amount_mt,
-    done_pallets:        lot.actual_pallet_count,
-    packing_date:        lot.operation_date,
-    drumming_start:      lot.lot_drumming_start,
-    drumming_end:        lot.lot_drumming_end,
-    ibc_operator_name:   ibc?.operator_name    ?? null,
-    ibc_quality_status:  ibc?.quality_status_lab ?? null,
-    ibc_residue_kg:      ibc?.residue_kg        ?? null,
-    ibc_empty_before_kg: ibc?.empty_before_kg   ?? null,
-    ibc_with_product_kg: ibc?.with_product_kg   ?? null,
-    ibc_product_net_kg:  ibc?.product_net_kg    ?? null,
-    plan_id:             (plan as any)?.id                    ?? null,
-    plan_created_by:     (plan as any)?.creator?.full_name    ?? null,
-    plan_updated_by:     (plan as any)?.updater?.full_name    ?? null,
-    plan_created_by_id:  (plan as any)?.creator?.id           ?? null,
-    plan_updated_by_id:  (plan as any)?.updater?.id           ?? null,
-    plan_special_comm:   null,
-    special_comm:        lot.special_comm                     ?? null,
-  }
+    status: lot.detail_status,
+    target_mt: lot.target_amount_mt,
+    done_pallets: lot.actual_pallet_count,
+    packing_date: lot.operation_date,
+    drumming_start: lot.lot_drumming_start,
+    drumming_end: lot.lot_drumming_end,
+    gmid: product?.gmid ?? null,
+    ibc_operator_name: ibc?.operator_name ?? null,
+    ibc_quality_status: ibc?.quality_status_lab ?? null,
+    ibc_residue_kg: ibc?.residue_kg ?? null,
+    ibc_empty_before_kg: ibc?.empty_before_kg ?? null,
+    ibc_with_product_kg: ibc?.with_product_kg ?? null,
+    ibc_product_net_kg: ibc?.product_net_kg ?? null,
+    plan_id: (plan as any)?.id ?? null,
+    plan_created_by: (plan as any)?.creator?.full_name ?? null,
+    plan_updated_by: (plan as any)?.updater?.full_name ?? null,
+    plan_created_by_id: (plan as any)?.creator?.id ?? null,
+    plan_updated_by_id: (plan as any)?.updater?.id ?? null,
+    plan_special_comm: null,
+    special_comm: lot.special_comm ?? null,
+  };
 }
 
 async function validFk(

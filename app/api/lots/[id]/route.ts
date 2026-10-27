@@ -9,7 +9,10 @@ function mapLot<T extends Record<string, unknown>>(lot: T) {
     | Record<string, unknown>
     | null
     | undefined;
+
   const plan = (lot as any).plan as Record<string, unknown> | null | undefined;
+  const product = lot.product as Record<string, unknown> | null | undefined;
+
   return {
     ...lot,
     status: lot.detail_status,
@@ -18,6 +21,7 @@ function mapLot<T extends Record<string, unknown>>(lot: T) {
     packing_date: lot.operation_date,
     drumming_start: lot.lot_drumming_start,
     drumming_end: lot.lot_drumming_end,
+    gmid: product?.gmid ?? null,
     operator_name: ibc?.operator_name ?? null,
     quality_status: ibc?.quality_status_lab ?? null,
     ibc_operator_name: ibc?.operator_name ?? null,
@@ -650,9 +654,9 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       packaging_type_id !== undefined
         ? await validFk("packaging_types", packaging_type_id)
         : undefined;
-const todayThai = new Date(Date.now() + 7 * 60 * 60 * 1000)
-  .toISOString()
-  .slice(0, 10);
+    const todayThai = new Date(Date.now() + 7 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
     await prisma.production_details.update({
       where: { id: Number(id) },
       data: {
