@@ -153,7 +153,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
             flush_kg: latexFlushKg || null,
             product_purge_kg: latexProductPurgeKg || null,
             drain_kg: latexDrainKg || null,
-            total_kg: latexTotalKg || null,
+            total_kg: batchSizeKg || null,
             sample_collected: latexSample || null,
             drummer_name: latexDrummer || null,
             storage_area: latexStorageArea || null,
@@ -323,6 +323,11 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
   const [actualDrumCount, setActualDrumCount] = useState('')
   const [actualToteCount, setActualToteCount] = useState('')
   const lotRecordAS = useAutosave({ batchSizeKg, containerQty, capLarge, capSmall, capXSmall, actualDrumCount, actualToteCount }, () => { })
+  useEffect(() => {
+    if (lot.dept === 'Latex') {
+      setLatexTotalKg(batchSizeKg)
+    }
+  }, [batchSizeKg, lot.dept])
 
   // ── Checklist items from DB (keyed by item.id) ───────────────
   const [preItemsDB, setPreItemsDB] = useState<ApiChecklistItem[]>([])
@@ -927,7 +932,7 @@ export function PKForm({ lot, onBack, onSubmit, currentUser, setLots }: PKFormPr
     if (lot.dept === 'Latex') {
       if (!latexProductPurgeKg.trim()) step3MissingFields.push('Product Purge (kg)')
       if (!latexDrainKg.trim()) step3MissingFields.push('Drain (kg)')
-      if (!latexTotalKg.trim()) step3MissingFields.push('Total (kg)')
+
     } else {
       if (!flushKg.trim()) step3MissingFields.push('Flush (kg)')
       if (!purgeKg.trim()) step3MissingFields.push('Purge (kg)')

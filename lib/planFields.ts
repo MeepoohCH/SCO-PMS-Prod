@@ -30,6 +30,7 @@ export function buildPlanFields(lot: Record<string, any>) {
     { l: "Tank / Blender No.", v: safeStr(lot.blender) },
     { l: "Site Logistics (SL)", v: safeStr(lot.plan_created_by) },
     { l: "Packaging", v: safeStr(lot.packaging || lot.packaging_type) },
+    { l: "Packaging Standard Weight (kg)", v: safeStr(lot.standard_weight_kg) },
     { l: "Target Amount", v: lot.target_mt ? `${lot.target_mt} MT` : "-" },
     {
       l: "Planned Pallets",

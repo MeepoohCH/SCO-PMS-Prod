@@ -725,7 +725,14 @@ export function Step3Drumming({
               <>
                 <Inp label="Product Purge" type="text" value={latexProductPurgeKg} onChange={setLatexProductPurgeKg} placeholder="-" req />
                 <Inp label="Drain" type="text" value={latexDrainKg} onChange={setLatexDrainKg} placeholder="-" req />
-                <Inp label="Total" type="text" value={latexTotalKg} onChange={setLatexTotalKg} placeholder="-" req />
+                <Inp
+                  label="Total"
+                  type="text"
+                  value={latexTotalKg}
+                  disabled
+                  placeholder="-"
+                  req
+                />
               </>
             ) : (
               <>

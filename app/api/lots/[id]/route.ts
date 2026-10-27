@@ -12,6 +12,10 @@ function mapLot<T extends Record<string, unknown>>(lot: T) {
 
   const plan = (lot as any).plan as Record<string, unknown> | null | undefined;
   const product = lot.product as Record<string, unknown> | null | undefined;
+const packagingType = lot.packaging_type as
+  | Record<string, unknown>
+  | null
+  | undefined;
 
   return {
     ...lot,
@@ -41,6 +45,7 @@ function mapLot<T extends Record<string, unknown>>(lot: T) {
     drum_serial_end: lot.label_no_end ?? null,
     label_count: lot.label_count ?? null,
     label_pkg_type: lot.label_pkg_type ?? null,
+    standard_weight_kg: packagingType?.standard_weight_kg ?? null,
   };
 }
 

@@ -7,6 +7,11 @@ function mapLot<T extends Record<string, unknown>>(lot: T) {
   const ibc  = lot.production_detail_ibc as Record<string, unknown> | null | undefined
   const plan = (lot as any).plan as Record<string, unknown> | null | undefined
    const product = lot.product as Record<string, unknown> | null | undefined;
+     const packagingType = lot.packaging_type as
+       | Record<string, unknown>
+       | null
+       | undefined;
+
   return {
     ...lot,
     status: lot.detail_status,
@@ -16,6 +21,7 @@ function mapLot<T extends Record<string, unknown>>(lot: T) {
     drumming_start: lot.lot_drumming_start,
     drumming_end: lot.lot_drumming_end,
     gmid: product?.gmid ?? null,
+    standard_weight_kg: packagingType?.standard_weight_kg ?? null,
     ibc_operator_name: ibc?.operator_name ?? null,
     ibc_quality_status: ibc?.quality_status_lab ?? null,
     ibc_residue_kg: ibc?.residue_kg ?? null,

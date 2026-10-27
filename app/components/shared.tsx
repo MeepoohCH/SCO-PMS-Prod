@@ -39,6 +39,7 @@ interface InpProps {
   autoSaveStatus?: "saving" | "saved" | null;
   className?: string;
   lang?: string;
+  disabled?: boolean
 }
 
 interface SelProps {
@@ -201,7 +202,7 @@ export function Card({ children, className = "", accentLeft, accentTop, style: e
 }
 
 // ── Inp (ปรับความสูงและขนาดอักษรให้กดง่ายไม่หลุดโฟกัส) ──────────────────────────────────────────────────────
-export function Inp({ label, value, onChange, type = "text", readOnly, placeholder, req, note, mono, sm, autoSaveStatus, className, lang }: InpProps) {
+export function Inp({ label, value, onChange, type = "text", readOnly, placeholder, req, note, mono, sm, autoSaveStatus, className, lang, disabled = false }: InpProps) {
   return (
     <div className="mb-4 min-w-0">
       {label && (
@@ -218,6 +219,7 @@ export function Inp({ label, value, onChange, type = "text", readOnly, placehold
       <input
         type={type}
         value={value ?? ""}
+        disabled={disabled}
         readOnly={readOnly}
         placeholder={placeholder ?? ""}
         onChange={e => onChange?.(e.target.value)}
@@ -230,6 +232,7 @@ export function Inp({ label, value, onChange, type = "text", readOnly, placehold
           sm ? "h-11 px-3 text-xs" : (type === 'date' || type === 'time' || type === 'datetime-local') ? "h-12 px-2.5 text-sm font-medium py-0 min-h-[48px]" : "h-12 px-4 text-sm font-medium",
           mono ? " " : "font-sans",
           readOnly ? "bg-slate-50 text-[#9BA3BA] cursor-not-allowed border-dashed" : "bg-white text-[#0E1117]",
+          disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white',
           type === 'date' ? "max-w-full min-w-[100px] inline-block appearance-none" : "",
           className,
         ].join(" ")}
