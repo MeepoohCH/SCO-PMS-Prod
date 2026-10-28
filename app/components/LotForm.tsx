@@ -103,6 +103,7 @@ export interface LotPlan {
   product?: string;
   product_name?: string;
   product_id?: number;
+  gmid?: string | null;
   lot?: string;
   lot_no?: string;
   customer?: string;
@@ -350,7 +351,7 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
       </div>
 
       {/* ════════════════ [SHARED] Plan date + Blender ════════════════ */}
-     <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
         <div>
           <Inp type="date" label="Plan date" req value={(plan.date as string) || ""} onChange={v => set("date", v)} />
         </div>
@@ -400,23 +401,26 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
           )}
 
           {/* ════════════════════ [SHARED] Common lot fields ════════════════════ */}
-          <div className="col-span-2">
+          {/* Product Name + GMID */}
+          <div>
             <div className="flex items-center gap-2 mb-1.5">
               <span className="text-xs text-[#5A617A] font-bold tracking-wide select-none">
                 <span className="text-[#E24B4A]">* </span>Product Name
               </span>
+
               {plan.dept && (
                 <span
                   className="text-[10px] px-2 py-0.5 rounded-full font-medium"
                   style={{
-                    background: DEPT[plan.dept as DeptKey]?.badge.bg || '#F4F5F7',
-                    color: DEPT[plan.dept as DeptKey]?.badge.color || '#5A617A',
+                    background: DEPT[plan.dept as DeptKey]?.badge.bg || "#F4F5F7",
+                    color: DEPT[plan.dept as DeptKey]?.badge.color || "#5A617A",
                   }}
                 >
                   {plan.dept} only
                 </span>
               )}
             </div>
+
             <Combo
               label=""
               value={(plan.product_name as string) || ""}
@@ -424,10 +428,17 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
                 const found = allProducts.find(
                   p => (p.product_name as string) === v && p.dept === plan.dept
                 );
+
                 setPlan(p =>
                   p
-                    ? { ...p, product_name: v, product: v, ...(found && { product_id: found.id }) }
-                    : p,
+                    ? {
+                      ...p,
+                      product_name: v,
+                      product: v,
+                      product_id: found?.id,
+                      gmid: found?.gmid ? String(found.gmid) : null,
+                    }
+                    : p
                 );
               }}
               opts={productOpts}
@@ -436,6 +447,18 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
           </div>
 
           <div>
+            <Inp
+              label="GMID"
+              type="text"
+              value={String(plan.gmid ?? "")}
+              onChange={v => set("gmid", v)}
+              placeholder="-"
+              req
+            />
+          </div>
+
+          <div>
+
             <Inp
               label="Lot No"
               req

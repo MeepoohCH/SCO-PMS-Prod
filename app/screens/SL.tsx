@@ -62,6 +62,7 @@ export interface SLPlan extends Lot {
   draft_note?: string;
   _finalEdit?: boolean;
   product_name?: string;
+  gmid?: string | null;
   product_id?: number;
   lot_no?: string;
   country_label?: string;
@@ -272,7 +273,26 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
     setPlan({ ...flatLot, shifts: (lot as SLPlan).shifts || initShifts, shiftOrder });
     setView("draft_edit");
   }
+  async function updateProductGmid() {
+    if (!plan?.product_id) return;
 
+    // GMID ว่าง = ไม่ update master ปล่อยค่าเดิมไว้
+    const gmid = plan.gmid?.trim();
+    if (!gmid) return;
+
+    const res = await fetch(`/api/products/${plan.product_id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        gmid,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Update GMID failed");
+    }
+  }
   async function saveDraft() {
     if (!plan) return;
     setSaving(true);
@@ -308,6 +328,7 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
     const resolvedProductId = plan.product_id
 
     try {
+      await updateProductGmid();
       const isExisting = lots.find(l => l.id === plan.id);
       if (isExisting) {
         const ibcData = plan.dept === 'IBC' ? {
@@ -461,25 +482,13 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
     setView("dashboard");
   }
 
-  // async function sendToPacker() {
-  //   if (!plan) return;
-  //   console.log('[SL sendToPacker] lot id:', plan.id, 'status → waiting');
-  //   const res = await fetch(`/api/lots/${plan.id}/status`, {
-  //     method: "PATCH",
-  //     headers: { "Content-Type": "application/json" },
-  //     body: JSON.stringify({ status: "waiting" }),
-  //   });
-  //   console.log('[SL sendToPacker] response status:', res.status);
-  //   if (res.ok) {
-  //     setLots(prev => prev.map(l => l.id === plan.id ? { ...l, status: "waiting" } : l));
-  //   }
-  //   setView("dashboard");
-  // }
+
   async function sendToPacker() {
     if (!plan) return;
     setSaving(true);
 
     try {
+      await updateProductGmid();
       let currentLotId = plan.id;
       const targetDate = plan.date || plan.packing_date || plan.plan_date || "";
       // เช็คว่า ID เป็นของจำลองจาก Date.now() หรือไม่ (ถ้าเป็นตัวเลขยาว ๆ 13 หลัก แสดงว่าเป็นอันใหม่ที่ยังไม่เซฟลง DB)
@@ -677,6 +686,10 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
 
   if (isEmpty(plan?.product_name) && isEmpty(plan?.product_id)) {
     missingSend.push("Product Name");
+  }
+
+  if (isEmpty(plan?.gmid)) {
+    missingSend.push("GMID");
   }
 
   if (isEmpty(plan?.lot_no) && isEmpty(plan?.lot)) {
