@@ -611,7 +611,9 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
               {(["Yes", "No"] as const).map(l => {
                 const key = plan.dept === "Latex" ? "empty_tank" : "export_on_pallet";
                 const isYes = l === "Yes";
-                const active = isYes ? plan[key] === true : plan[key] !== true;
+                const active = isYes
+                  ? plan[key] === true
+                  : plan[key] === false;
                 const activeColor = isYes ? "#27500A" : "#475569";
                 const activeBg = isYes ? "#EAF3DE" : "#F4F5F7";
                 return (

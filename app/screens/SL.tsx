@@ -654,25 +654,135 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
   }
 
   const canSaveDraft = !!((plan?.blender || plan?.blender_id) && plan?.date);
+
+  // ── Send to Packer validation ─────────────────────────────
+  // Save Draft ยังไม่ต้องกรอกครบ
+  // แต่ Send to Packer ต้องกรอกทุก required field ของ Plan ให้ครบ
+
   const missingSend: string[] = [];
-  if (!plan?.product_name && !plan?.product_id) missingSend.push("Product");
-  if (!plan?.lot_no && !plan?.lot) missingSend.push("Lot No");
-  if (!plan?.country_label) missingSend.push("Country Label");
-  if (!plan?.packaging_type_id && !plan?.packaging_type) missingSend.push("Packaging");
-  if (!plan?.date) missingSend.push("Plan Date");
-  if (!plan?.cut_off_date) missingSend.push("Cut off Date");
-  if (!plan?.blender_id && !plan?.blender) missingSend.push("Blender");
-  if (!plan?.planned_pallets) missingSend.push("Planned Pallets");
-  if (plan?.dept === 'IBC') {
-    if (!plan?.operator_name) missingSend.push("Operator Name (IBC)");
-    if (!plan?.quality_status) missingSend.push("Quality Status (IBC)");
-    if (!plan?.ibc_residue_kg) missingSend.push("น้ำหนัก ที่ เศษ ใน IBC ที่ (IBC)");
-    if (!plan?.ibc_empty_before_kg) missingSend.push("น้ำหนัก IBC เปล่าก่อนผลิต (IBC)");
-    if (!plan?.ibc_with_product_kg) missingSend.push("น้ำหนัก IBC เปล่า + Product (IBC)");
-    if (!plan?.ibc_product_net_kg) missingSend.push("น้ำหนัก Product (IBC)");
+
+  const isEmpty = (value: unknown) =>
+    value === undefined ||
+    value === null ||
+    (typeof value === "string" && value.trim() === "");
+
+  // ── SHARED: ทุกแผนกต้องมี ──
+  if (isEmpty(plan?.date)) {
+    missingSend.push("Plan Date");
   }
 
-  const canSend = plan && missingSend.length === 0;
+  if (isEmpty(plan?.blender) && isEmpty(plan?.blender_id)) {
+    missingSend.push("Tank No./Blender No.");
+  }
+
+  if (isEmpty(plan?.product_name) && isEmpty(plan?.product_id)) {
+    missingSend.push("Product Name");
+  }
+
+  if (isEmpty(plan?.lot_no) && isEmpty(plan?.lot)) {
+    missingSend.push("Lot No.");
+  }
+
+  if (
+    isEmpty(plan?.target_mt) ||
+    Number(plan?.target_mt) <= 0
+  ) {
+    missingSend.push("Target Amount");
+  }
+
+  if (isEmpty(plan?.country_label)) {
+    missingSend.push("Country Label");
+  }
+
+  if (isEmpty(plan?.cut_off_date)) {
+    missingSend.push("Cut off Date");
+  }
+
+  if (
+    isEmpty(plan?.packaging_type) &&
+    isEmpty(plan?.packaging_type_id)
+  ) {
+    missingSend.push("Packaging Type");
+  }
+
+  if (
+    isEmpty(plan?.planned_pallets) ||
+    Number(plan?.planned_pallets) <= 0
+  ) {
+    missingSend.push("Planned Pallets");
+  }
+
+  // ── Boolean: false = กรอก "No" แล้ว จึงห้ามใช้ !value ──
+  if (plan?.dept === "Latex") {
+    if (typeof plan?.empty_tank !== "boolean") {
+      missingSend.push("Empty Tank");
+    }
+  } else {
+    if (typeof plan?.export_on_pallet !== "boolean") {
+      missingSend.push("Export on Pallet");
+    }
+  }
+
+  // ── PUF / PU only ──
+  if (plan && ["PUF", "PU"].includes(plan.dept)) {
+    if (isEmpty(plan.flush_blender)) {
+      missingSend.push("Flush Blender");
+    }
+  }
+
+  // ── Label ──
+  if (isEmpty(plan?.drum_serial_start)) {
+    missingSend.push("Label No. (start)");
+  }
+
+  if (isEmpty(plan?.drum_serial_end)) {
+    missingSend.push("Label No. (end)");
+  }
+
+  if (isEmpty((plan as any)?.label_pkg_type)) {
+    missingSend.push("Label Packaging Type");
+  }
+
+  // ตรวจ range เพิ่มด้วย
+  const labelStart = Number(plan?.drum_serial_start);
+  const labelEnd = Number(plan?.drum_serial_end);
+
+  if (
+    !isEmpty(plan?.drum_serial_start) &&
+    !isEmpty(plan?.drum_serial_end) &&
+    labelEnd < labelStart
+  ) {
+    missingSend.push("Valid Label No. Range");
+  }
+
+  // ── IBC only ──
+  if (plan?.dept === "IBC") {
+    if (isEmpty(plan.operator_name)) {
+      missingSend.push("Operator Name");
+    }
+
+    if (isEmpty(plan.quality_status)) {
+      missingSend.push("Quality Status");
+    }
+
+    if (isEmpty(plan.ibc_residue_kg)) {
+      missingSend.push("น้ำหนักเศษใน IBC");
+    }
+
+    if (isEmpty(plan.ibc_empty_before_kg)) {
+      missingSend.push("น้ำหนัก IBC เปล่าก่อนผลิต");
+    }
+
+    if (isEmpty(plan.ibc_with_product_kg)) {
+      missingSend.push("น้ำหนัก IBC เปล่า + Product");
+    }
+
+    if (isEmpty(plan.ibc_product_net_kg)) {
+      missingSend.push("น้ำหนัก Product");
+    }
+  }
+
+  const canSend = !!plan && missingSend.length === 0;
 
   // ══════════════════════════════════════════════════════════
   // VIEW: final_check
