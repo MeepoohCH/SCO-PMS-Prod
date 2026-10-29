@@ -273,26 +273,73 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
     setPlan({ ...flatLot, shifts: (lot as SLPlan).shifts || initShifts, shiftOrder });
     setView("draft_edit");
   }
-  async function updateProductGmid() {
-    if (!plan?.product_id) return;
 
-    // GMID ว่าง = ไม่ update master ปล่อยค่าเดิมไว้
+  async function resolveProduct(): Promise<number | undefined> {
+    if (!plan) return undefined;
+
+    const productName = plan.product_name?.trim();
     const gmid = plan.gmid?.trim();
-    if (!gmid) return;
 
-    const res = await fetch(`/api/products/${plan.product_id}`, {
-      method: "PATCH",
+    if (!productName) return undefined;
+
+    // Product เดิม
+    if (plan.product_id) {
+      // GMID ว่างตอน Save Draft = ไม่แก้ Master
+      if (gmid) {
+        const res = await fetch(`/api/products/${plan.product_id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ gmid }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Update GMID failed");
+        }
+      }
+
+      return plan.product_id;
+    }
+
+    // Product ใหม่ต้องมี GMID
+    if (!gmid) {
+      throw new Error("กรุณากรอก GMID สำหรับ Product ใหม่");
+    }
+
+    // สร้าง Product + GMID ใหม่ลง Master
+    const res = await fetch("/api/products", {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        product_name: productName,
         gmid,
+        dept: plan.dept,
       }),
     });
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || "Update GMID failed");
+      throw new Error(err.error || "Create Product failed");
     }
+
+    const created = await res.json();
+
+    // เก็บ ID ใหม่ไว้ใน state ด้วย
+    setPlan(p =>
+      p
+        ? {
+          ...p,
+          product_id: created.id,
+          product_name: created.product_name,
+          product: created.product_name,
+          gmid: created.gmid,
+        }
+        : p
+    );
+
+    return created.id;
   }
+
   async function saveDraft() {
     if (!plan) return;
     setSaving(true);
@@ -325,10 +372,10 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
     console.log('[SL saveDraft] resolvedBlenderId:', resolvedBlenderId);
 
     // product_name ส่งตรงไปใน payload ให้ /api/lots route จัดการ auto-create ผ่าน Prisma
-    const resolvedProductId = plan.product_id
+    let resolvedProductId = plan.product_id
 
     try {
-      await updateProductGmid();
+      resolvedProductId = await resolveProduct();
       const isExisting = lots.find(l => l.id === plan.id);
       if (isExisting) {
         const ibcData = plan.dept === 'IBC' ? {
@@ -488,15 +535,17 @@ export default function SLScreen({ lots, setLots }: SLScreenProps) {
     setSaving(true);
 
     try {
-      await updateProductGmid();
-      let currentLotId = plan.id;
-      const targetDate = plan.date || plan.packing_date || plan.plan_date || "";
-      // เช็คว่า ID เป็นของจำลองจาก Date.now() หรือไม่ (ถ้าเป็นตัวเลขยาว ๆ 13 หลัก แสดงว่าเป็นอันใหม่ที่ยังไม่เซฟลง DB)
-      let isNewLot = typeof plan.id === 'number' && String(plan.id).length >= 12;
-      let resolvedBlenderId = plan.blender_id;
+      const resolvedProductId = await resolveProduct();
 
-      // product_name ส่งตรงไปใน payload ให้ /api/lots route จัดการ auto-create
-      const resolvedProductId = plan.product_id
+      let currentLotId = plan.id;
+      const targetDate =
+        plan.date || plan.packing_date || plan.plan_date || "";
+
+      let isNewLot =
+        typeof plan.id === "number" &&
+        String(plan.id).length >= 12;
+
+      let resolvedBlenderId = plan.blender_id;
 
       // ── 1. ถ้าเป็นแผนงานสร้างใหม่ (ยังไม่มี Real ID ในฐานข้อมูล) ──────────────────
       if (isNewLot) {

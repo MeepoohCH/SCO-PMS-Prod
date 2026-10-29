@@ -426,7 +426,9 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
               value={(plan.product_name as string) || ""}
               onChange={v => {
                 const found = allProducts.find(
-                  p => (p.product_name as string) === v && p.dept === plan.dept
+                  p =>
+                    (p.product_name as string) === v &&
+                    p.dept === plan.dept
                 );
 
                 setPlan(p =>
@@ -435,8 +437,17 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
                       ...p,
                       product_name: v,
                       product: v,
+
+                      // Product เดิม → มี id
+                      // Product ใหม่ → undefined
                       product_id: found?.id,
-                      gmid: found?.gmid ? String(found.gmid) : null,
+
+                      // Product เดิม → GMID จาก Master
+                      // Product ใหม่ → ช่องว่างให้กรอกเอง
+                      // ลบ Product → ล้าง GMID
+                      gmid: found?.gmid
+                        ? String(found.gmid)
+                        : "",
                     }
                     : p
                 );
@@ -452,7 +463,8 @@ export function LotForm({ plan, setPlan, db, mode: _mode }: LotFormProps) {
               type="text"
               value={String(plan.gmid ?? "")}
               onChange={v => set("gmid", v)}
-              placeholder="-"
+              placeholder={plan.product_name ? "Enter GMID" : "Select Product first"}
+              disabled={!plan.product_name}
               req
             />
           </div>
